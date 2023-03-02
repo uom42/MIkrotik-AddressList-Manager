@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+	x:Class="MALM.UI.MikrotikAddressTableRecordsListUI"
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:localCtl="clr-namespace:MALM.Pages.Controls"
+	xmlns:localModel="clr-namespace:MALM.Model"
+	xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+	xmlns:uomMAUIctl="clr-namespace:uom.controls.MAUI.CollectionViews"
+	Title="MkAddressList"
+	SemanticProperties.HeadingLevel="Level1">
+
+
+	<ContentPage.ToolbarItems>
+		<ToolbarItem
+			x:Name="btnRows_Refresh"
+			IconImageSource="{mi:MaterialOutlined Icon=Refresh,
+			                                      IconColor={StaticResource White}}"
+			Order="Primary" />
+
+
+		<ToolbarItem
+			x:Name="btnRows_Add"
+			Order="Secondary"
+			Text="_Add" />
+
+		<ToolbarItem x:Name="btnExitApp" Order="Secondary" />
+
+
+	</ContentPage.ToolbarItems>
+
+
+	<StackLayout Margin="4" VerticalOptions="FillAndExpand">
+
+		<!--  List of Mikrotik Rows  -->
+
+
+		<!--
+			Command="{Binding RefreshCommand}"
+			IsRefreshing="{Binding IsRefreshing}"
+		-->
+
+		<RefreshView x:Name="refRows">
+
+			<uomMAUIctl:CollectionViewEx
+				x:Name="lvwRows"
+				CanMixGroups="False"
+				CanReorderItems="False"
+				IsGrouped="true"
+				ItemsUpdatingScrollMode="KeepItemsInView"
+				SelectionMode="None"
+				VerticalOptions="FillAndExpand">
+
+
+				<CollectionView.ItemTemplate>
+					<localCtl:MikrotikAddressTableRecordTemplate />
+				</CollectionView.ItemTemplate>
+
+
+
+
+				<CollectionView.GroupHeaderTemplate>
+
+
+					<DataTemplate>
+
+
+						<StackLayout HorizontalOptions="FillAndExpand" Orientation="Horizontal">
+
+
+
+							<StackLayout
+								Padding="8,0,4,0"
+								HorizontalOptions="Start"
+								Orientation="Horizontal">
+
+								<!--
+								-->
+
+								<StackLayout.Shadow>
+									<Shadow
+										Brush="Black"
+										Opacity="0.5"
+										Radius="8"
+										Offset="4,4" />
+								</StackLayout.Shadow>
+
+								<Label
+									FontAttributes="Bold"
+									FontSize="Subtitle"
+									HorizontalOptions="Start"
+									HorizontalTextAlignment="Start"
+									LineBreakMode="TailTruncation"
+									Text="{Binding DisplayName}"
+									TextColor="{StaticResource Primary}"
+									VerticalTextAlignment="Center" />
+
+								<Label
+									Padding="4,0,0,0"
+									FontSize="Subtitle"
+									HorizontalOptions="End"
+									HorizontalTextAlignment="Center"
+									Text="{Binding ItemsCountString}"
+									TextColor="{StaticResource Tertiary}"
+									VerticalTextAlignment="Center" />
+
+							</StackLayout>
+
+
+
+
+
+
+							<StackLayout HorizontalOptions="FillAndExpand" Orientation="Horizontal">
+
+								<StackLayout.Shadow>
+									<Shadow
+										Brush="Black"
+										Opacity="0.5"
+										Radius="8"
+										Offset="4,4" />
+								</StackLayout.Shadow>
+
+								<Line
+									HorizontalOptions="FillAndExpand"
+									Stroke="{StaticResource Primary}"
+									StrokeThickness="1"
+									VerticalOptions="Center"
+									X2="{Binding Width, Source={RelativeSource Self}}" />
+
+							</StackLayout>
+
+
+
+							<StackLayout
+								Padding="4,0,4,0"
+								HorizontalOptions="End"
+								Orientation="Horizontal">
+
+								<StackLayout.Shadow>
+									<Shadow
+										Brush="Black"
+										Opacity="0.5"
+										Radius="8"
+										Offset="4,4" />
+								</StackLayout.Shadow>
+
+								<Label
+									x:Name="lblCollapseGroupGlyph"
+									FontSize="Body"
+									HorizontalTextAlignment="Center"
+									IsVisible="{Binding IsCollapsed}"
+									LineBreakMode="NoWrap"
+									Text="{mi:MaterialOutlined Icon=ArrowDropDown,
+									                           IconColor={StaticResource Primary}}"
+									VerticalTextAlignment="Center" />
+
+
+								<Label
+									x:Name="lblExpandGroupGlyph"
+									FontSize="Title"
+									HorizontalTextAlignment="Center"
+									IsVisible="{Binding NotCollapsed}"
+									LineBreakMode="NoWrap"
+									Text="{mi:MaterialOutlined Icon=ArrowDropUp,
+									                           IconColor={StaticResource Primary}}"
+									VerticalTextAlignment="Center" />
+							</StackLayout>
+
+
+
+							<StackLayout.GestureRecognizers>
+								<TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnGroupTap" />
+							</StackLayout.GestureRecognizers>
+							<!--
+							-->
+
+
+						</StackLayout>
+
+
+
+					</DataTemplate>
+
+
+				</CollectionView.GroupHeaderTemplate>
+
+
+
+
+
+			</uomMAUIctl:CollectionViewEx>
+
+
+		</RefreshView>
+
+
+
+
+
+	</StackLayout>
+</ContentPage>

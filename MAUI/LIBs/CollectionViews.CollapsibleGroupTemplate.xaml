@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<DataTemplate
+	x:Class="uom.controls.MAUI.CollectionViews.CollapsibleGroupTemplate"
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+	xmlns:uomMAUIctlCV="clr-namespace:uom.controls.MAUI.CollectionViews">
+
+
+	<StackLayout
+		x:Name="slMain"
+		HorizontalOptions="FillAndExpand"
+		Orientation="Horizontal">
+
+
+
+		<!--  Group Name & Items Count  -->
+		<StackLayout Padding="8,0,4,0" Orientation="Horizontal">
+
+			<StackLayout.Shadow>
+				<Shadow
+					Brush="Black"
+					Opacity="0.5"
+					Radius="8"
+					Offset="4,4" />
+			</StackLayout.Shadow>
+
+			<Label
+				FontSize="Title"
+				HorizontalOptions="Start"
+				HorizontalTextAlignment="Start"
+				LineBreakMode="TailTruncation"
+				Text="{Binding Name}"
+				TextColor="{StaticResource Primary}"
+				VerticalTextAlignment="Center" />
+
+			<Label
+				Padding="4,0,0,0"
+				FontSize="Subtitle"
+				HorizontalOptions="End"
+				HorizontalTextAlignment="Center"
+				Text="{Binding ItemsCountString}"
+				TextColor="{StaticResource Tertiary}"
+				VerticalTextAlignment="Center" />
+
+		</StackLayout>
+
+
+		<!--  Horizontal line  -->
+		<StackLayout HorizontalOptions="FillAndExpand" Orientation="Horizontal">
+
+			<StackLayout.Shadow>
+				<Shadow
+					Brush="Black"
+					Opacity="0.5"
+					Radius="8"
+					Offset="4,4" />
+			</StackLayout.Shadow>
+
+			<Line
+				HorizontalOptions="FillAndExpand"
+				Stroke="{StaticResource Primary}"
+				StrokeThickness="2"
+				VerticalOptions="Center"
+				X2="{Binding Width, Source={RelativeSource Self}}" />
+
+		</StackLayout>
+
+
+
+		<!--  Expand/Collapse buttons  -->
+
+		<StackLayout
+			x:Name="slMain2"
+			Padding="4,0,4,0"
+			HorizontalOptions="End"
+			Orientation="Horizontal">
+
+			<StackLayout.Shadow>
+				<Shadow
+					Brush="Black"
+					Opacity="0.5"
+					Radius="8"
+					Offset="4,4" />
+			</StackLayout.Shadow>
+
+			<Label
+				x:Name="lblCollapseGroupGlyph"
+				FontSize="Body"
+				HorizontalTextAlignment="Center"
+				IsVisible="{Binding IsCollapsed}"
+				LineBreakMode="NoWrap"
+				Text="{mi:MaterialOutlined Icon=ArrowDropDown,
+				                           IconColor={StaticResource Primary}}"
+				VerticalTextAlignment="Center" />
+
+
+			<Label
+				x:Name="lblExpandGroupGlyph"
+				FontSize="Title"
+				HorizontalTextAlignment="Center"
+				IsVisible="{Binding NotCollapsed}"
+				LineBreakMode="NoWrap"
+				Text="{mi:MaterialOutlined Icon=ArrowDropUp,
+				                           IconColor={StaticResource Primary}}"
+				VerticalTextAlignment="Center" />
+		</StackLayout>
+
+
+		<!--
+
+		<StackLayout.GestureRecognizers>
+			<TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnGesture_Tapped" />
+		</StackLayout.GestureRecognizers>
+
+		-->
+
+
+	</StackLayout>
+
+
+
+</DataTemplate>

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+	x:Class="MALM.UI.MasterKeyUI"
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:uomMAUIctl="clr-namespace:uom.controls.MAUI">
+
+
+	<StackLayout
+		Margin="16"
+		HorizontalOptions="FillAndExpand"
+		VerticalOptions="FillAndExpand">
+
+
+		<StackLayout
+			Margin="16"
+			Spacing="16"
+			VerticalOptions="Start">
+
+			<StackLayout
+				x:Name="slEditFields"
+				Spacing="16"
+				VerticalOptions="Start">
+
+				<!--  Edit fields  -->
+				<Entry
+					x:Name="txtMasterKey1"
+					ClearButtonVisibility="WhileEditing"
+					IsPassword="True"
+					IsTextPredictionEnabled="False"
+					Keyboard="Text"
+					MaxLength="100"
+					Placeholder="P"
+					ReturnType="Next"
+					Text="">
+					<Entry.Shadow>
+						<Shadow
+							Brush="Black"
+							Opacity="0.8"
+							Radius="40"
+							Offset="16,16" />
+					</Entry.Shadow>
+				</Entry>
+
+
+				<Entry
+					x:Name="txtMasterKey2"
+					ClearButtonVisibility="WhileEditing"
+					IsPassword="True"
+					IsTextPredictionEnabled="False"
+					Keyboard="Text"
+					MaxLength="100"
+					Placeholder="P"
+					ReturnType="Next"
+					Text="">
+					<Entry.Shadow>
+						<Shadow
+							Brush="Black"
+							Opacity="0.8"
+							Radius="40"
+							Offset="16,16" />
+					</Entry.Shadow>
+				</Entry>
+
+
+
+
+			</StackLayout>
+
+			<uomMAUIctl:SwitchLabel x:Name="chkRememberMK" Text="dont ask" />
+
+
+
+
+		</StackLayout>
+
+
+		<StackLayout Margin="16" Spacing="30">
+			<!--  Bottom Buttons  -->
+
+			<Button x:Name="btnOk" Text="ok">
+
+				<Button.Shadow>
+					<Shadow
+						Brush="Black"
+						Opacity="0.8"
+						Radius="40"
+						Offset="16,16" />
+				</Button.Shadow>
+
+			</Button>
+
+			<Button x:Name="btnCancel" Text="cancel">
+
+				<Button.Shadow>
+					<Shadow
+						Brush="Black"
+						Opacity="0.8"
+						Radius="40"
+						Offset="16,16" />
+				</Button.Shadow>
+
+			</Button>
+
+		</StackLayout>
+
+
+	</StackLayout>
+
+
+</ContentPage>

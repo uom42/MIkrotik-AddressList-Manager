@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ViewCell
+	x:Class="MALM.Pages.Controls.AddressListItemRowCell"
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:localCtl="clr-namespace:MALM.Pages.Controls"
+	xmlns:localModel="clr-namespace:MALM.Model">
+
+	<StackLayout HorizontalOptions="FillAndExpand" Orientation="Horizontal">
+
+		<Switch
+			HorizontalOptions="Start"
+			IsToggled="{Binding Checked}"
+			VerticalOptions="Center" />
+
+
+		<Grid HorizontalOptions="FillAndExpand">
+
+			<!--  Created  -->
+			<Label
+				FontSize="Micro"
+				HorizontalOptions="Start"
+				Text="{Binding CreatedTimestamp}"
+				TextColor="{StaticResource Gray400}"
+				VerticalTextAlignment="End" />
+
+
+			<!--  ID  -->
+			<Label
+				FontSize="Micro"
+				HorizontalOptions="End"
+				Text="{Binding ID}"
+				TextColor="{StaticResource Gray400}"
+				VerticalTextAlignment="End" />
+
+
+			<!--  Address  -->
+			<Label
+				HorizontalOptions="Start"
+				HorizontalTextAlignment="Start"
+				LineBreakMode="TailTruncation"
+				Text="{Binding Title}"
+				VerticalTextAlignment="Center" />
+
+		</Grid>
+
+	</StackLayout>
+
+</ViewCell>
+
+
+<!--
+		
+<ViewCell
+	x:Class="MALM.Pages.Controls.MySwitchCell"
+	xmlns="http://xamarin.com/schemas/2014/forms"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons">
+
+
+	<StackLayout Orientation="Horizontal">
+		<Label
+			Text="{Binding Source={x:Reference MyViewCell}, Path=Text, StringFormat='    {0}'}"
+			TextColor="{Binding Source={x:Reference MyViewCell}, Path=TextColor}"
+			VerticalOptions="Center" />
+
+		<Switch
+			HorizontalOptions="EndAndExpand"
+			IsToggled="{Binding Source={x:Reference MyViewCell}, Path=IsToggled}"
+			VerticalOptions="Center" />
+	</StackLayout>
+
+	</ViewCell>
+	-->

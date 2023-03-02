@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+	x:Class="MALM.UI.DevicesListUI"
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+	Title="DevsList"
+	SemanticProperties.HeadingLevel="Level1"
+	Shell.NavBarHasShadow="true">
+
+
+	<Shell.BackButtonBehavior>
+		<BackButtonBehavior IsEnabled="False" IsVisible="False" />
+	</Shell.BackButtonBehavior>
+
+
+	<ContentPage.ToolbarItems>
+
+
+
+
+
+
+		<ToolbarItem
+			x:Name="btnAdd"
+			IconImageSource="{mi:MaterialOutlined Icon=Add,
+			                                      IconColor={StaticResource White}}"
+			Order="Primary" />
+
+		<ToolbarItem
+			x:Name="btnSetMasterKey"
+			IconImageSource="{mi:MaterialOutlined Icon=Password}"
+			Order="Secondary"
+			Text="_SetMasterKey" />
+
+		<ToolbarItem x:Name="btnExitApp" Order="Secondary" />
+
+	</ContentPage.ToolbarItems>
+
+	<StackLayout
+		Padding="8,0,8,0"
+		HorizontalOptions="FillAndExpand"
+		Orientation="Vertical"
+		VerticalOptions="FillAndExpand">
+
+
+		<StackLayout Orientation="Vertical" VerticalOptions="FillAndExpand">
+
+			<!--  Devices List  -->
+
+			<CollectionView
+				x:Name="lvwDevices"
+				CanMixGroups="False"
+				CanReorderItems="False"
+				HorizontalOptions="FillAndExpand"
+				IsGrouped="true"
+				ItemsUpdatingScrollMode="KeepItemsInView"
+				SelectionMode="None"
+				VerticalOptions="FillAndExpand">
+
+
+
+				<CollectionView.ItemTemplate>
+					<DataTemplate>
+						<StackLayout Padding="10">
+
+							<Border
+								Background="{StaticResource Gray200}"
+								Stroke="DarkGray"
+								StrokeThickness="1">
+								<Border.StrokeShape>
+									<RoundRectangle CornerRadius="10" />
+								</Border.StrokeShape>
+
+								<StackLayout
+									Padding="10,20,10,20"
+									HorizontalOptions="FillAndExpand"
+									Orientation="Horizontal">
+
+
+									<StackLayout
+										HorizontalOptions="FillAndExpand"
+										Orientation="Vertical"
+										VerticalOptions="FillAndExpand">
+
+
+										<StackLayout
+											HorizontalOptions="Fill"
+											Orientation="Horizontal"
+											VerticalOptions="FillAndExpand">
+
+
+											<Label
+												FontAttributes="Bold"
+												FontFamily="OpenSansSemibold"
+												FontSize="Large"
+												HorizontalOptions="Start"
+												LineBreakMode="TailTruncation"
+												Text="{Binding AddressString}"
+												VerticalTextAlignment="Center" />
+
+											<Label
+												FontFamily="OpenSansSemibold"
+												FontSize="Caption"
+												HorizontalOptions="Start"
+												Text="{Binding PortString2}"
+												VerticalTextAlignment="Center" />
+
+										</StackLayout>
+
+										<Label
+											FontFamily="OpenSansSemibold"
+											Text="{Binding UserName}"
+											TextColor="{StaticResource Tertiary}"
+											VerticalOptions="End"
+											VerticalTextAlignment="End" />
+
+										<!--	  									
+										<Label BackgroundColor="DarkSalmon" Text="{Binding Group}" />
+										-->
+
+										<StackLayout.GestureRecognizers>
+											<TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnDeviceRow_Tapped" />
+										</StackLayout.GestureRecognizers>
+
+
+									</StackLayout>
+
+
+									<StackLayout
+										HorizontalOptions="End"
+										Orientation="Horizontal"
+										VerticalOptions="FillAndExpand">
+
+
+										<Button
+											BackgroundColor="Transparent"
+											Clicked="OnEdit"
+											HorizontalOptions="End"
+											Text="{mi:MaterialOutlined Icon=Edit}"
+											TextColor="{StaticResource Primary}"
+											VerticalOptions="Center">
+											<Button.Shadow>
+												<Shadow
+													Brush="Black"
+													Opacity="0.5"
+													Radius="10"
+													Offset="4,4" />
+											</Button.Shadow>
+
+										</Button>
+
+										<Button
+											BackgroundColor="Transparent"
+											Clicked="OnDelete"
+											HorizontalOptions="End"
+											Text="{mi:MaterialOutlined Icon=Delete}"
+											TextColor="{StaticResource Primary}"
+											VerticalOptions="Center">
+											<Button.Shadow>
+												<Shadow
+													Brush="Black"
+													Opacity="0.5"
+													Radius="10"
+													Offset="4,4" />
+											</Button.Shadow>
+
+										</Button>
+
+									</StackLayout>
+
+
+								</StackLayout>
+								<Border.Shadow>
+									<Shadow
+										Brush="Black"
+										Opacity="0.8"
+										Radius="20"
+										Offset="4,4" />
+								</Border.Shadow>
+
+
+
+
+
+							</Border>
+
+
+						</StackLayout>
+
+					</DataTemplate>
+				</CollectionView.ItemTemplate>
+
+
+				<CollectionView.GroupHeaderTemplate>
+
+
+					<DataTemplate>
+
+
+						<StackLayout HorizontalOptions="FillAndExpand" Orientation="Horizontal">
+
+
+
+							<StackLayout
+								Padding="8,0,4,0"
+								HorizontalOptions="Start"
+								Orientation="Horizontal">
+
+								<!--
+								-->
+
+								<StackLayout.Shadow>
+									<Shadow
+										Brush="Black"
+										Opacity="0.5"
+										Radius="8"
+										Offset="4,4" />
+								</StackLayout.Shadow>
+
+								<Label
+									FontAttributes="Bold"
+									FontSize="Subtitle"
+									HorizontalOptions="Start"
+									HorizontalTextAlignment="Start"
+									LineBreakMode="TailTruncation"
+									Text="{Binding DisplayName}"
+									TextColor="{StaticResource Primary}"
+									VerticalTextAlignment="Center" />
+
+								<Label
+									Padding="4,0,0,0"
+									FontSize="Subtitle"
+									HorizontalOptions="End"
+									HorizontalTextAlignment="Center"
+									Text="{Binding ItemsCountString}"
+									TextColor="{StaticResource Tertiary}"
+									VerticalTextAlignment="Center" />
+
+							</StackLayout>
+
+
+
+
+
+
+							<StackLayout HorizontalOptions="FillAndExpand" Orientation="Horizontal">
+
+								<StackLayout.Shadow>
+									<Shadow
+										Brush="Black"
+										Opacity="0.5"
+										Radius="8"
+										Offset="4,4" />
+								</StackLayout.Shadow>
+
+								<Line
+									HorizontalOptions="FillAndExpand"
+									Stroke="{StaticResource Primary}"
+									StrokeThickness="1"
+									VerticalOptions="Center"
+									X2="{Binding Width, Source={RelativeSource Self}}" />
+
+							</StackLayout>
+
+
+
+							<StackLayout
+								Padding="4,0,4,0"
+								HorizontalOptions="End"
+								Orientation="Horizontal">
+
+								<StackLayout.Shadow>
+									<Shadow
+										Brush="Black"
+										Opacity="0.5"
+										Radius="8"
+										Offset="4,4" />
+								</StackLayout.Shadow>
+
+								<Label
+									x:Name="lblCollapseGroupGlyph"
+									FontSize="Body"
+									HorizontalTextAlignment="Center"
+									IsVisible="{Binding IsCollapsed}"
+									LineBreakMode="NoWrap"
+									Text="{mi:MaterialOutlined Icon=ArrowDropDown,
+									                           IconColor={StaticResource Primary}}"
+									VerticalTextAlignment="Center" />
+
+
+								<Label
+									x:Name="lblExpandGroupGlyph"
+									FontSize="Title"
+									HorizontalTextAlignment="Center"
+									IsVisible="{Binding NotCollapsed}"
+									LineBreakMode="NoWrap"
+									Text="{mi:MaterialOutlined Icon=ArrowDropUp,
+									                           IconColor={StaticResource Primary}}"
+									VerticalTextAlignment="Center" />
+							</StackLayout>
+
+
+
+							<StackLayout.GestureRecognizers>
+								<TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnGroupTap" />
+							</StackLayout.GestureRecognizers>
+							<!--
+							-->
+
+
+						</StackLayout>
+
+
+
+					</DataTemplate>
+
+
+
+
+				</CollectionView.GroupHeaderTemplate>
+
+
+			</CollectionView>
+
+		</StackLayout>
+
+
+		<!--  Bottom Buttons
+		
+
+		<StackLayout
+			Padding="10"
+			Orientation="Vertical"
+			VerticalOptions="End">
+
+			<Button x:Name="btnConnect" Text="_conect">
+
+				<Button.Shadow>
+					<Shadow
+						Brush="Black"
+						Opacity="0.8"
+						Radius="40"
+						Offset="16,16" />
+				</Button.Shadow>
+
+			</Button>
+
+		</StackLayout>
+
+
+		-->
+
+
+	</StackLayout>
+
+</ContentPage>
