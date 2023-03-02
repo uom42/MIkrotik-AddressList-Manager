@@ -1,0 +1,266 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>net8.0-android</TargetFrameworks>
+		<!--
+		<TargetFrameworks>net7.0-android;net7.0-windows10.0.19041.0</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net7.0-windows10.0.19041.0</TargetFrameworks>
+		<TargetFrameworks>net7.0</TargetFrameworks>
+		-->
+		<SingleProject>true</SingleProject>
+		<OutputType>Exe</OutputType>
+		<UseMaui>true</UseMaui>
+
+
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<CodePage>1251</CodePage>
+		<LangVersion>Latest</LangVersion>
+
+		<!--		
+		<SelfContained>true</SelfContained>		
+		-->
+
+		<RootNamespace>MALM</RootNamespace>
+
+		<!-- Display name -->
+		<ApplicationTitle>Mikrotik AddressList Manager</ApplicationTitle>
+		<Title>Mikrotik AddressList Manager</Title>
+		<Product>Mikrotik AddressList Manager</Product>
+		<Authors>UOM</Authors>
+		<Description>UOM Mikrotik AddressList Manager</Description>
+		<Copyright>(C)UOM 2010-2024</Copyright>
+
+		<NeutralLanguage>en-US</NeutralLanguage>
+
+		<!-- App Identifier -->
+		<ApplicationId>com.uom.malm</ApplicationId>
+		<ApplicationIdGuid>2588a561-31cb-45a0-9100-5a7e1ccb7691</ApplicationIdGuid>
+
+		<!-- Versions -->
+		<ApplicationDisplayVersion>3.0.0</ApplicationDisplayVersion>
+		<ApplicationVersion>3</ApplicationVersion>
+
+
+
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
+		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)'))=='android'">
+		<EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+		<RuntimeIdentifiers>android-arm;android-arm64;android-x86;android-x64</RuntimeIdentifiers>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- App Icon -->
+		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#66B3FF" ForegroundScale="0.45" />
+
+
+		<!-- Splash Screen For Light Theme
+		<MauiSplashScreen Include="Resources\AppIcon\splash.svg" Color="#CBC8E2" BaseSize="128,128" />
+		-->
+		<!-- Splash Screen universal with transparent background -->
+		<MauiSplashScreen Include="Resources\AppIcon\splash.svg" Color="#00000000" BaseSize="128,128" />
+
+
+
+
+		<!-- Images -->
+		<MauiImage Include="Resources\Images\*" />
+
+		<!-- Custom Fonts -->
+		<MauiFont Include="Resources\Fonts\*" />
+
+		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
+		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+
+
+	<!-- Android Resource Localization - Include all Platforms\Android\Resources... https://learn.microsoft.com/en-us/dotnet/maui/fundamentals/localization?view=net-maui-8.0 -->
+	<ItemGroup Condition="$(TargetFramework.Contains('-android'))">
+		<AndroidResource Include="Platforms\Android\Resources\**" TargetPath="%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+
+	<!-- IOs Resource Localization - Include all Platforms\iOS\Resources... https://learn.microsoft.com/en-us/dotnet/maui/fundamentals/localization?view=net-maui-8.0 -->
+	<ItemGroup Condition="$(TargetFramework.Contains('-ios'))">
+		<BundleResource Include="Platforms\iOS\Resources\**" TargetPath="%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+	<PropertyGroup Condition="$(TargetFramework.Contains('-ios'))">
+		<IPhoneResourcePrefix>Platforms/iOS/Resources</IPhoneResourcePrefix>
+	</PropertyGroup>
+
+	<!-- MacCatalyst Resource Localization - Include all Platforms\MacCatalyst\Resources... https://learn.microsoft.com/en-us/dotnet/maui/fundamentals/localization?view=net-maui-8.0 -->
+	<ItemGroup Condition="$(TargetFramework.Contains('-maccatalyst'))">
+		<BundleResource Include="Platforms\MacCatalyst\Resources\**" TargetPath="%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+	<PropertyGroup Condition="$(TargetFramework.Contains('-maccatalyst'))">
+		<IPhoneResourcePrefix>Platforms/MacCatalyst/Resources</IPhoneResourcePrefix>
+	</PropertyGroup>
+
+
+
+
+
+	<!-- Package Reference  -->
+	<ItemGroup>
+		<PackageReference Include="AathifMahir.Maui.MauiIcons.Cupertino" Version="3.0.0" />
+		<PackageReference Include="AathifMahir.Maui.MauiIcons.Fluent" Version="3.0.0" />
+		<PackageReference Include="AathifMahir.Maui.MauiIcons.FontAwesome" Version="3.0.0" />
+		<PackageReference Include="AathifMahir.Maui.MauiIcons.FontAwesome.Brand" Version="3.0.0" />
+		<PackageReference Include="AathifMahir.Maui.MauiIcons.FontAwesome.Solid" Version="3.0.0" />
+		<PackageReference Include="AathifMahir.Maui.MauiIcons.Material" Version="3.0.0" />
+		<PackageReference Include="AathifMahir.Maui.MauiIcons.Material.Outlined" Version="3.0.0" />
+		<PackageReference Include="AathifMahir.Maui.MauiIcons.Material.Rounded" Version="3.0.0" />
+		<PackageReference Include="AathifMahir.Maui.MauiIcons.Material.Sharp" Version="3.0.0" />
+		<PackageReference Include="AathifMahir.Maui.MauiIcons.SegoeFluent" Version="3.0.0" />
+
+		<PackageReference Include="CommunityToolkit.Maui" Version="9.1.0" />
+		<PackageReference Include="CommunityToolkit.Maui.Core" Version="9.1.0" />
+		<PackageReference Include="CommunityToolkit.Maui.Markup" Version="4.1.0" />
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+
+		<PackageReference Include="Microsoft.Maui.Controls" Version="8.0.91" />
+		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.21" />
+
+
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
+
+		<PackageReference Include="Plugin.CurrentActivity" Version="2.1.0.4" />
+		<PackageReference Include="Plugin.Fingerprint" Version="2.1.5" />
+
+		<PackageReference Include="Refractored.MvvmHelpers" Version="1.6.2" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\..\..\_LIB\CS_UOM\Network\Mikrotik\MikrotikDotNet\MDN_Git\Mikrotik.Net\Mikrotik.Net.csproj" />
+	</ItemGroup>
+
+
+	<ItemGroup>
+
+		<!-- Localization\Strings-->
+		<EmbeddedResource Update="Localization\LStrings.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+			<LastGenOutput>LStrings.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+		<Compile Update="Localization\LStrings.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>LStrings.resx</DependentUpon>
+		</Compile>
+		<Compile Update="UI\DataTemplates\DeviceRecord\ConnectionParamsTemplate.xaml.cs">
+			<DependentUpon>ConnectionParamsTemplate.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="UI\DataTemplates\DeviceRecord\OnlineStatusTemplate.xaml.cs">
+			<DependentUpon>OnlineStatusTemplate.xaml</DependentUpon>
+		</Compile>
+		<EmbeddedResource Update="Localization\LStrings.ru.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+		</EmbeddedResource>
+		<EmbeddedResource Update="Localization\LStrings.uk.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+		</EmbeddedResource>
+
+	</ItemGroup>
+
+
+
+
+	<ItemGroup>
+
+		<!-- LIBs\Controls\ -->
+		<Compile Update="LIBs\Controls\CollectionViews\uom.controls.MAUI.CollectionViews.CollapsibleGroupTemplate.xaml.cs">
+			<DependentUpon>CollapsibleGroupTemplate.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="LIBs\Controls\CollectionViews\uom.controls.MAUI.CollectionViews.CollectionViewEx.xaml.cs">
+			<DependentUpon>CollectionViewEx.xaml</DependentUpon>
+		</Compile>
+
+
+		<!-- Model\ -->
+		<None Include="Model\DevicesListRecord_Multiplatform.cs">
+			<DependentUpon>DevicesListRecord.cs</DependentUpon>
+		</None>
+
+
+
+		<!-- UI\DataTemplates\ -->
+		<Compile Update="UI\DataTemplates\DeviceRecord\DevicesRecordTemplate.xaml.cs">
+			<DependentUpon>DevicesRecordTemplate.xaml</DependentUpon>
+		</Compile>
+
+		<Compile Update="UI\DataTemplates\MikrotikAddressTableRecordTemplate.xaml.cs">
+			<DependentUpon>MikrotikAddressTableRecordTemplate.xaml</DependentUpon>
+		</Compile>
+
+
+		<!-- UI\ -->
+		<Compile Update="UI\MasterKeyUI.xaml.cs; UI\MasterKeyUI_Multiplatform.cs">
+			<DependentUpon>MasterKeyUI.xaml</DependentUpon>
+		</Compile>
+
+		<Compile Update="UI\DevicesListUI.xaml.cs; UI\DevicesListUI_Multiplatform.cs">
+			<DependentUpon>DevicesListUI.xaml</DependentUpon>
+		</Compile>
+
+		<Compile Update="UI\DevicesListRecordEditorUI.xaml.cs">
+			<DependentUpon>DevicesListRecordEditorUI.xaml</DependentUpon>
+		</Compile>
+
+		<Compile Update="UI\MikrotikAddressTableRecord_ListUI.xaml.cs; UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs">
+			<DependentUpon>MikrotikAddressTableRecord_ListUI.xaml</DependentUpon>
+		</Compile>
+
+
+
+
+
+	</ItemGroup>
+
+
+
+	<ItemGroup>
+		<MauiXaml Update="Controls\ListViewEx.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Controls\AddressListItemRowCell.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="LIBs\Controls\CollectionViews\uom.controls.MAUI.CollectionViews.CollapsibleGroupTemplate.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="LIBs\Controls\CollectionViews\uom.controls.MAUI.CollectionViews.CollectionViewEx.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Resources\Styles\Consts.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="UI\DataTemplates\DeviceRecord\ConnectionParamsTemplate.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="UI\DataTemplates\DeviceRecord\OnlineStatusTemplate.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="UI\DataTemplates\DeviceRecord\DevicesRecordTemplate.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="UI\DevicesListUI.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="UI\DevicesListRecordEditorUI.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="UI\MikrotikAddressTableRecordsListUI.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="UI\MasterKeyUI.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Update="Microsoft.Maui.Controls.Compatibility" Version="8.0.91" />
+	</ItemGroup>
+
+</Project>

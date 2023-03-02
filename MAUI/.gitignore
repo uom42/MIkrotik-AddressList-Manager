@@ -1,0 +1,24 @@
+# Ignore Visual Studio build output
+bin/
+obj/
+
+# Ignore build files for .NET projects
+*.dll
+*.exe
+*.pdb
+*.dll.config
+
+# Ignore Node.js modules
+node_modules/
+
+# Ignore macOS hidden files
+.DS_Store
+
+# Ignore files with log extensions
+*.log
+
+# Ignore NuGet packages
+*.nupkg
+
+# Ignore user-specific files for Visual Studio Code
+.vscode/

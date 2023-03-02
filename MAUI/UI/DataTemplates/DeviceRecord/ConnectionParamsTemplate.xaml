@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Grid
+	x:Class="MALM.UI.DataTemplates.DeviceRecord.ConnectionParamsTemplate"
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:l_loc="clr-namespace:MALM.Localization"
+	xmlns:l_m="clr-namespace:MALM.Model"
+	xmlns:l_ui="clr-namespace:MALM.UI"
+	xmlns:l_ui_t="clr-namespace:MALM.UI.DataTemplates"
+	xmlns:mct="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+	xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+	xmlns:uom_ctl_ani="clr-namespace:uom.controls.MAUI.Animations"
+	xmlns:uom_ctl_cv="clr-namespace:uom.controls.MAUI.CollectionViews"
+	x:ClassModifier="NotPublic"
+	x:DataType="l_m:DevicesListRecord"
+	ColumnSpacing="4">
+
+
+	<Grid.ColumnDefinitions>
+		<ColumnDefinition Width="Auto" />
+		<ColumnDefinition Width="Auto" />
+		<ColumnDefinition Width="*" />
+		<ColumnDefinition Width="Auto" />
+		<ColumnDefinition Width="Auto" />
+	</Grid.ColumnDefinitions>
+	<Grid.RowDefinitions>
+		<RowDefinition Height="Auto" />
+		<RowDefinition Height="Auto" />
+		<RowDefinition Height="Auto" />
+	</Grid.RowDefinitions>
+
+
+	<Label
+		Grid.Row="0"
+		Grid.Column="0"
+		Grid.ColumnSpan="3"
+		FontAttributes="Bold"
+		FontSize="Large"
+		LineBreakMode="TailTruncation"
+		Text="{Binding AddressString, Mode=OneWay}"
+		VerticalTextAlignment="Center" />
+
+
+
+	<Label
+		Grid.Row="1"
+		Grid.Column="0"
+		FontAttributes="Bold"
+		FontSize="Caption"
+		Text="{x:Static l_loc:LStrings.L_DEVICE_USER}"
+		TextColor="{AppThemeBinding Light={StaticResource Gray500},
+		                            Dark={StaticResource Gray400}}"
+		VerticalTextAlignment="Center" />
+	<Label
+		Grid.Row="2"
+		Grid.Column="0"
+		FontAttributes="Bold"
+		FontSize="Caption"
+		Text="{x:Static l_loc:LStrings.L_DEVICE_PORT}"
+		TextColor="{AppThemeBinding Light={StaticResource Gray500},
+		                            Dark={StaticResource Gray400}}"
+		VerticalTextAlignment="Center" />
+
+
+
+	<Label
+		Grid.Row="1"
+		Grid.Column="1"
+		Text="{Binding UserName}"
+		TextColor="{AppThemeBinding Light={StaticResource Tertiary},
+		                            Dark={StaticResource Gray400}}" />
+	<Label
+		Grid.Row="2"
+		Grid.Column="1"
+		Text="{Binding PortInt, TargetNullValue={x:Static l_loc:LStrings.L_DEFAULT}, Mode=OneWay}"
+		TextColor="{AppThemeBinding Light={StaticResource Tertiary},
+		                            Dark={StaticResource Gray400}}" />
+
+
+
+
+
+
+	<Label
+		Grid.Row="0"
+		Grid.RowSpan="3"
+		Grid.Column="3"
+		Background="Yellow"
+		IsVisible="False"
+		Text="{mi:MaterialOutlined Icon=NetworkCheck,
+		                           IconSize=50,
+		                           IconColor=Green}"
+		VerticalTextAlignment="Center" />
+
+	<Label
+		Grid.Row="0"
+		Grid.RowSpan="3"
+		Grid.Column="4"
+		IsVisible="{Binding IsOnline.Invert, Mode=OneWay}"
+		Text="{mi:MaterialOutlined Icon=MonitorHeart,
+		                           IconSize=50,
+		                           IconColor=Green}"
+		VerticalTextAlignment="Center">
+
+		<Label.Behaviors>
+			<mct:AnimationBehavior AnimateCommand="{Binding PulseAnimationCommand}">
+				<mct:AnimationBehavior.AnimationType>
+					<uom_ctl_ani:FadeFlashAnimation />
+				</mct:AnimationBehavior.AnimationType>
+			</mct:AnimationBehavior>
+		</Label.Behaviors>
+
+
+	</Label>
+
+
+</Grid>

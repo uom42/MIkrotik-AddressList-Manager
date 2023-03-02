@@ -1,0 +1,117 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
+
+		<UseWindowsForms>true</UseWindowsForms>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<CodePage>1251</CodePage>
+		<LangVersion>Latest</LangVersion>
+
+		<IsPublishable>False</IsPublishable>
+
+
+		<RootNamespace>MALM</RootNamespace>
+
+		<!-- Display name -->
+		<ApplicationTitle>Mikrotik AddressList Manager</ApplicationTitle>
+		<Title>Mikrotik AddressList Manager</Title>
+		<Product>Mikrotik AddressList Manager</Product>
+		<Authors>UOM</Authors>
+		<Description>UOM Mikrotik AddressList Manager</Description>
+		<Copyright>(C)UOM 2010-2024</Copyright>
+
+		<NeutralLanguage>en-US</NeutralLanguage>
+
+		<!--
+		Uncomment for inclute add net core dll's to output dir.
+		<SelfContained>True</SelfContained>
+		-->
+
+		<!-- Versions -->
+		<AssemblyVersion>3.0.0.1</AssemblyVersion>
+		<FileVersion>3.0.0.1</FileVersion>
+		<ProductVersion>3.0.0.1</ProductVersion>
+
+		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+		<ApplicationIcon>Router.ico</ApplicationIcon>
+
+	</PropertyGroup>
+
+
+
+
+	<!-- Resources -->
+	<ItemGroup>
+
+		<EmbeddedResource Include="Media\ball_green.svg" />
+
+		<EmbeddedResource Include="Media\Router\Router_gray.svg" />
+
+		<EmbeddedResource Include="OUI\oui.txt" />
+
+	</ItemGroup>
+
+
+
+	<!-- Partial files -->
+	<ItemGroup>
+
+		<EmbeddedResource Update="Localization\LStrings.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+			<LastGenOutput>LStrings.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+
+		<Compile Update="Localization\LStrings.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>LStrings.resx</DependentUpon>
+		</Compile>
+
+		<EmbeddedResource Update="Localization\LStrings.ru.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+		</EmbeddedResource>
+
+		<EmbeddedResource Update="Localization\LStrings.uk.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+		</EmbeddedResource>
+
+
+
+
+		<None Include="UI\MasterKeyUI_Multiplatform.cs">
+			<DependentUpon>MasterKeyUI.cs</DependentUpon>
+		</None>
+
+		<None Include="UI\DevicesListUI_Multiplatform.cs">
+			<DependentUpon>DevicesListUI.cs</DependentUpon>
+		</None>
+
+		<None Include="UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs">
+			<DependentUpon>MikrotikAddressTableRecord_ListUI.cs</DependentUpon>
+		</None>
+
+		<None Include="Model\DevicesListRecord_Multiplatform.cs">
+			<DependentUpon>DevicesListRecord.cs</DependentUpon>
+		</None>
+
+	</ItemGroup>
+
+
+
+	<!-- References -->
+	<ItemGroup>
+		<ProjectReference Include="..\..\..\..\_LIB\CS_UOM\Network\Mikrotik\MikrotikDotNet\MDN_Git\Mikrotik.Net\Mikrotik.Net.csproj" />
+
+		<PackageReference Include="Svg" Version="3.4.7" />
+
+		<PackageReference Include="System.Management" Version="8.0.0" />
+	</ItemGroup>
+
+
+
+
+</Project>

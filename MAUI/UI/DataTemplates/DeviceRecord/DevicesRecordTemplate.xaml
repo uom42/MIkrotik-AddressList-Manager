@@ -1,0 +1,342 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<DataTemplate
+	x:Class="MALM.UI.DataTemplates.DeviceRecord.DevicesRecordTemplate"
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:l_loc="clr-namespace:MALM.Localization"
+	xmlns:l_m="clr-namespace:MALM.Model"
+	xmlns:l_ui="clr-namespace:MALM.UI"
+	xmlns:l_ui_t="clr-namespace:MALM.UI.DataTemplates"
+	xmlns:l_ui_t_dr="clr-namespace:MALM.UI.DataTemplates.DeviceRecord"
+	xmlns:mct="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+	xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+	xmlns:uom_ctl_ani="clr-namespace:uom.controls.MAUI.Animations"
+	xmlns:uom_ctl_cv="clr-namespace:uom.controls.MAUI.CollectionViews"
+	x:ClassModifier="NotPublic"
+	x:DataType="l_m:DevicesListRecord">
+
+
+
+	<Border Padding="4" StrokeThickness="0">
+
+		<SwipeView Padding="4">
+			<SwipeView.LeftItems>
+				<SwipeItems>
+					<SwipeItem
+						Command="{Binding Source={RelativeSource AncestorType={x:Type l_ui:DevicesListUI}}, Path=Device_EditCommand}"
+						CommandParameter="{Binding}"
+						IconImageSource="{mi:MaterialOutlined Icon=Edit}" />
+					<SwipeItem
+						Command="{Binding Source={RelativeSource AncestorType={x:Type l_ui:DevicesListUI}}, Path=Device_DeleteCommand}"
+						CommandParameter="{Binding}"
+						IconImageSource="{mi:MaterialOutlined Icon=Delete}" />
+				</SwipeItems>
+			</SwipeView.LeftItems>
+			<!--  Content  -->
+
+			<Border
+				Padding="10"
+				Background="{AppThemeBinding Light={StaticResource Pantone_GreenBlue},
+				                             Dark={StaticResource Gray900}}"
+				Stroke="{AppThemeBinding Light={StaticResource Gray400},
+				                         Dark={StaticResource Gray600}}"
+				StrokeThickness="0">
+
+				<Border.StrokeShape>
+					<RoundRectangle CornerRadius="10" />
+				</Border.StrokeShape>
+
+				<Border.Shadow>
+					<Shadow
+						Brush="Black"
+						Opacity="0.6"
+						Radius="8"
+						Offset="4,4" />
+				</Border.Shadow>
+
+				<Grid>
+
+					<Grid.Behaviors>
+						<mct:AnimationBehavior AnimateCommand="{Binding ClickedAnimationCommand}">
+							<mct:AnimationBehavior.AnimationType>
+								<uom_ctl_ani:FadeFlashAnimation />
+							</mct:AnimationBehavior.AnimationType>
+						</mct:AnimationBehavior>
+					</Grid.Behaviors>
+
+
+					<Grid.Resources>
+
+						<!--  Error Colors  -->
+						<Color x:Key="Error_Back_Light">#80FF0000</Color>
+						<Color x:Key="Error_Back_Dark">#30FF0000</Color>
+
+						<Color x:Key="Error_Text_Light">Yellow</Color>
+						<Color x:Key="Error_Text_Dark">Yellow</Color>
+
+
+						<x:Int32 x:Key="GridLineSize">2</x:Int32>
+						<x:Int32 x:Key="GridLineSpacing">4</x:Int32>
+
+
+
+						<!--#region Standart Styles-->
+
+
+
+
+						<Style x:Key="DeviceInfo_Value" TargetType="Label">
+							<Setter Property="FontSize" Value="Header" />
+							<Setter Property="VerticalTextAlignment" Value="Center" />
+
+							<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+
+						</Style>
+
+						<Style
+							x:Key="DeviceInfo_Value_C"
+							BasedOn="{StaticResource DeviceInfo_Value}"
+							TargetType="Label">
+							<Setter Property="HorizontalTextAlignment" Value="Center" />
+						</Style>
+
+						<Style
+							x:Key="DeviceInfo_Value_R"
+							BasedOn="{StaticResource DeviceInfo_Value}"
+							TargetType="Label">
+							<Setter Property="HorizontalTextAlignment" Value="End" />
+						</Style>
+
+						<Style
+							x:Key="DeviceInfo_HDR"
+							BasedOn="{StaticResource DeviceInfo_Value}"
+							TargetType="Label">
+							<Setter Property="FontAttributes" Value="Bold" />
+							<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray600}}" />
+						</Style>
+
+						<Style
+							x:Key="DeviceInfo_HDR_C"
+							BasedOn="{StaticResource DeviceInfo_HDR}"
+							TargetType="Label">
+							<Setter Property="HorizontalTextAlignment" Value="Center" />
+						</Style>
+
+						<Style
+							x:Key="DeviceInfo_HDR_R"
+							BasedOn="{StaticResource DeviceInfo_HDR}"
+							TargetType="Label">
+							<Setter Property="HorizontalTextAlignment" Value="End" />
+						</Style>
+
+
+						<!--#endregion-->
+
+						<!--  Labels with Errors  -->
+
+						<!--#region HDD Bad Blocks-->
+
+						<Style
+							x:Key="DeviceInfo_HDR_BadBlocks"
+							BasedOn="{StaticResource DeviceInfo_HDR_R}"
+							TargetType="Label">
+							<Setter Property="HorizontalTextAlignment" Value="End" />
+
+							<Style.Triggers>
+								<DataTrigger
+									Binding="{Binding OnlineDeviceStatus.ErrorStste_BadBlocks.Value}"
+									TargetType="Label"
+									Value="True">
+									<Setter Property="Background" Value="{AppThemeBinding Light={StaticResource Error_Back_Light}, Dark={StaticResource Error_Back_Dark}}" />
+									<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Error_Text_Light}, Dark={StaticResource Error_Text_Dark}}" />
+								</DataTrigger>
+							</Style.Triggers>
+						</Style>
+
+						<Style
+							x:Key="DeviceInfo_Value_BadBlocks"
+							BasedOn="{StaticResource DeviceInfo_Value_C}"
+							TargetType="Label">
+							<Style.Triggers>
+								<DataTrigger
+									Binding="{Binding OnlineDeviceStatus.ErrorStste_BadBlocks.Value}"
+									TargetType="Label"
+									Value="True">
+									<Setter Property="Background" Value="{AppThemeBinding Light={StaticResource Error_Back_Light}, Dark={StaticResource Error_Back_Dark}}" />
+									<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Error_Text_Light}, Dark={StaticResource Error_Text_Dark}}" />
+								</DataTrigger>
+							</Style.Triggers>
+						</Style>
+
+						<!--#endregion-->
+
+
+						<!--#region CPU Load, Temperature, Voltage-->
+
+						<!--  CPU Usage percent  -->
+						<Style
+							x:Key="DeviceInfo_Value_CPUUsage"
+							BasedOn="{StaticResource DeviceInfo_Value_R}"
+							TargetType="Label">
+							<Style.Triggers>
+								<DataTrigger
+									Binding="{Binding OnlineDeviceStatus.ErrorStste_HighCPUUsage.Value}"
+									TargetType="Label"
+									Value="True">
+									<Setter Property="Background" Value="{AppThemeBinding Light={StaticResource Error_Back_Light}, Dark={StaticResource Error_Back_Dark}}" />
+									<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Error_Text_Light}, Dark={StaticResource Error_Text_Dark}}" />
+								</DataTrigger>
+							</Style.Triggers>
+						</Style>
+						<!--  CPU Temperature  -->
+						<Style
+							x:Key="DeviceInfo_Value_Temperature"
+							BasedOn="{StaticResource DeviceInfo_Value_R}"
+							TargetType="Label">
+							<Style.Triggers>
+								<DataTrigger
+									Binding="{Binding OnlineDeviceStatus.ErrorStste_HighTemp.Value}"
+									TargetType="Label"
+									Value="True">
+									<Setter Property="Background" Value="{AppThemeBinding Light={StaticResource Error_Back_Light}, Dark={StaticResource Error_Back_Dark}}" />
+									<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Error_Text_Light}, Dark={StaticResource Error_Text_Dark}}" />
+								</DataTrigger>
+							</Style.Triggers>
+						</Style>
+						<!--  CPU Voltage  -->
+						<Style
+							x:Key="DeviceInfo_Value_Voltage"
+							BasedOn="{StaticResource DeviceInfo_Value_R}"
+							TargetType="Label">
+							<Style.Triggers>
+								<DataTrigger
+									Binding="{Binding OnlineDeviceStatus.ErrorStste_LowVoltage.Value}"
+									TargetType="Label"
+									Value="True">
+									<Setter Property="Background" Value="{AppThemeBinding Light={StaticResource Error_Back_Light}, Dark={StaticResource Error_Back_Dark}}" />
+									<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Error_Text_Light}, Dark={StaticResource Error_Text_Dark}}" />
+								</DataTrigger>
+							</Style.Triggers>
+						</Style>
+
+						<!--#endregion-->
+
+
+						<!--#region Free RAM-->
+
+						<!--  RAM_Free_Bytes  -->
+						<Style
+							x:Key="DeviceInfo_Value_RAM_Free_Bytes"
+							BasedOn="{StaticResource DeviceInfo_Value_R}"
+							TargetType="Label">
+							<Style.Triggers>
+								<DataTrigger
+									Binding="{Binding OnlineDeviceStatus.ErrorStste_LowRAM.Value}"
+									TargetType="Label"
+									Value="True">
+									<Setter Property="Background" Value="{AppThemeBinding Light={StaticResource Error_Back_Light}, Dark={StaticResource Error_Back_Dark}}" />
+									<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Error_Text_Light}, Dark={StaticResource Error_Text_Dark}}" />
+								</DataTrigger>
+							</Style.Triggers>
+						</Style>
+						<!--  RAM_Free_Percent  -->
+						<Style
+							x:Key="DeviceInfo_Value_RAM_Free_Percent"
+							BasedOn="{StaticResource DeviceInfo_Value}"
+							TargetType="Label">
+							<Style.Triggers>
+								<DataTrigger
+									Binding="{Binding OnlineDeviceStatus.ErrorStste_LowRAM.Value}"
+									TargetType="Label"
+									Value="True">
+									<Setter Property="Background" Value="{AppThemeBinding Light={StaticResource Error_Back_Light}, Dark={StaticResource Error_Back_Dark}}" />
+									<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Error_Text_Light}, Dark={StaticResource Error_Text_Dark}}" />
+								</DataTrigger>
+							</Style.Triggers>
+						</Style>
+
+
+						<!--#endregion-->
+
+
+						<!--#region Free HDD-->
+
+						<!--  HDD Free Bytes  -->
+						<Style
+							x:Key="DeviceInfo_Value_HDD_Free_Bytes"
+							BasedOn="{StaticResource DeviceInfo_Value_R}"
+							TargetType="Label">
+							<Style.Triggers>
+								<DataTrigger
+									Binding="{Binding OnlineDeviceStatus.ErrorStste_LowHddSpace.Value}"
+									TargetType="Label"
+									Value="True">
+									<Setter Property="Background" Value="{AppThemeBinding Light={StaticResource Error_Back_Light}, Dark={StaticResource Error_Back_Dark}}" />
+									<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Error_Text_Light}, Dark={StaticResource Error_Text_Dark}}" />
+								</DataTrigger>
+							</Style.Triggers>
+						</Style>
+						<!--  HDD Free Percent  -->
+						<Style
+							x:Key="DeviceInfo_Value_HDD_Free_Percent"
+							BasedOn="{StaticResource DeviceInfo_Value}"
+							TargetType="Label">
+							<Style.Triggers>
+								<DataTrigger
+									Binding="{Binding OnlineDeviceStatus.ErrorStste_LowHddSpace.Value}"
+									TargetType="Label"
+									Value="True">
+									<Setter Property="Background" Value="{AppThemeBinding Light={StaticResource Error_Back_Light}, Dark={StaticResource Error_Back_Dark}}" />
+									<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Error_Text_Light}, Dark={StaticResource Error_Text_Dark}}" />
+								</DataTrigger>
+							</Style.Triggers>
+						</Style>
+
+
+						<!--#endregion-->
+
+
+						<!--#region Resources Table Grid Lines-->
+
+
+						<Style x:Key="DeviceInfo_HorizontalLine" TargetType="Line">
+							<Setter Property="StrokeThickness" Value="{StaticResource GridLineSize}" />
+							<Setter Property="StrokeLineCap" Value="Round" />
+							<Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray500}}" />
+							<Setter Property="X2" Value="{Binding Width, Source={RelativeSource Self}}" />
+							<Setter Property="VerticalOptions" Value="Center" />
+						</Style>
+
+
+						<!--#endregion-->
+
+					</Grid.Resources>
+
+
+					<Grid.GestureRecognizers>
+						<TapGestureRecognizer Command="{Binding DeviceConnectCommand}" NumberOfTapsRequired="1" />
+					</Grid.GestureRecognizers>
+
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto" />
+						<RowDefinition Height="Auto" />
+					</Grid.RowDefinitions>
+
+
+					<!--  Address User Port  -->
+					<l_ui_t_dr:ConnectionParamsTemplate Grid.Row="0" />
+
+					<!--  Online Device Status  -->
+					<l_ui_t_dr:OnlineStatusTemplate Grid.Row="1" IsVisible="{Binding IsOnline.Value, Mode=OneWay}" />
+
+
+				</Grid>
+
+			</Border>
+
+		</SwipeView>
+	</Border>
+
+
+
+</DataTemplate>

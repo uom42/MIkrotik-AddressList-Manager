@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<CollectionView
+	x:Class="uom.controls.MAUI.CollectionViews.CollectionViewEx"
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:uom_ctl_cv="clr-namespace:uom.controls.MAUI.CollectionViews"
+	x:ClassModifier="NotPublic"
+	CanMixGroups="False"
+	CanReorderItems="False"
+	IsGrouped="true"
+	ItemsUpdatingScrollMode="KeepItemsInView"
+	SelectionMode="None">
+
+	<CollectionView.ItemsLayout>
+		<LinearItemsLayout ItemSpacing="0" Orientation="Vertical" />
+	</CollectionView.ItemsLayout>
+
+	<CollectionView.GroupHeaderTemplate>
+		<DataTemplate>
+			<uom_ctl_cv:CollapsibleGroupTemplate />
+		</DataTemplate>
+	</CollectionView.GroupHeaderTemplate>
+
+
+</CollectionView>

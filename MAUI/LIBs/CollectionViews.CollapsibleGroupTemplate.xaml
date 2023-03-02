@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+	x:Class="uom.controls.MAUI.CollectionViews.CollapsibleGroupTemplate"
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+	xmlns:uom_ctl_cv="clr-namespace:uom.controls.MAUI.CollectionViews"
+	x:Name="thisRoot"
+	x:ClassModifier="NotPublic">
+
+	<!--
+		TODO: still in progress with dotnet git...
+		https://github.com/dotnet/maui/issues/20616
+		https://github.com/xamarin/Xamarin.Forms/issues/7161
+		
+		//Use ONLY IN DEBUG Mode! In RELEASE this will generate ERROR!
+		x:DataType="{x:Type uom_ctl_cv:ExpandableGroupsCollection`1}"
+	-->
+
+
+
+	<ContentView.Resources>
+
+
+		<!--#region CollectionView.GroupHeaderTemplate Style NEW (ContentView with Grig)-->
+
+
+		<Style x:Key="GroupHeader_base" TargetType="View">
+			<Setter Property="VerticalOptions" Value="Center" />
+		</Style>
+		<Style
+			x:Key="GroupHeader_GridLabel"
+			BasedOn="{StaticResource GroupHeader_base}"
+			TargetType="Label">
+			<Setter Property="VerticalTextAlignment" Value="Center" />
+			<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray500}}" />
+		</Style>
+
+		<Style
+			x:Key="GroupHeader_DisplayName"
+			BasedOn="{StaticResource GroupHeader_GridLabel}"
+			TargetType="Label">
+			<Setter Property="FontSize" Value="Header" />
+			<Setter Property="FontAttributes" Value="Bold" />
+		</Style>
+
+		<Style
+			x:Key="GroupHeader_ItemsCount"
+			BasedOn="{StaticResource GroupHeader_GridLabel}"
+			TargetType="Label">
+			<Setter Property="FontSize" Value="Micro" />
+		</Style>
+
+		<Style
+			x:Key="GroupHeader_HorizontalLine"
+			BasedOn="{StaticResource GroupHeader_base}"
+			TargetType="Line">
+			<Setter Property="StrokeThickness" Value="{AppThemeBinding Light=1, Dark=1}" />
+			<Setter Property="StrokeLineCap" Value="Round" />
+			<Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray950}}" />
+			<Setter Property="X2" Value="{Binding Width, Source={RelativeSource Self}}" />
+		</Style>
+
+
+
+		<Style
+			x:Key="GroupHeader_ExpandCollapseGroupGlyphBackground"
+			BasedOn="{StaticResource GroupHeader_base}"
+			TargetType="Ellipse">
+			<Setter Property="WidthRequest" Value="25" />
+			<Setter Property="HeightRequest" Value="{Binding WidthRequest, Source={RelativeSource Self}}" />
+			<Setter Property="Fill" Value="{AppThemeBinding Light={StaticResource Pantone_GreenBlue}, Dark=Transparent}" />
+			<Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource Pantone_GreenBlue}, Dark={StaticResource Gray400}}" />
+			<Setter Property="StrokeThickness" Value="{AppThemeBinding Light=0, Dark=1}" />
+		</Style>
+
+		<Style
+			x:Key="GroupHeader_ExpandCollapseGroupGlyph"
+			BasedOn="{StaticResource GroupHeader_GridLabel}"
+			TargetType="Label">
+			<Setter Property="LineBreakMode" Value="NoWrap" />
+			<Setter Property="FontSize" Value="Title" />
+		</Style>
+
+		<!--#endregion-->
+
+
+
+
+
+
+	</ContentView.Resources>
+
+
+
+	<Grid ColumnSpacing="4">
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="Auto" />
+			<ColumnDefinition Width="Auto" />
+			<ColumnDefinition Width="*" />
+			<ColumnDefinition Width="Auto" />
+			<ColumnDefinition Width="Auto" />
+		</Grid.ColumnDefinitions>
+
+
+		<!--  DisplayName (ItemsCountString)  -->
+		<Label
+			LineBreakMode="TailTruncation"
+			Style="{StaticResource GroupHeader_DisplayName}"
+			Text="{Binding DisplayName, Mode=OneWay}" />
+
+		<Label
+			Grid.Column="1"
+			Style="{StaticResource GroupHeader_ItemsCount}"
+			Text="{Binding CachedItemsCount, StringFormat='({0:G})', Mode=OneWay}" />
+
+
+		<!--  Horizontal separator line  -->
+		<Line Grid.Column="2" Style="{StaticResource GroupHeader_HorizontalLine}" />
+
+
+		<!--#region Expand / collapse glyph-->
+		<Ellipse
+			xmlns:mct="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+			xmlns:uom_ctl_ani="clr-namespace:uom.controls.MAUI.Animations"
+			x:Name="Ellipse1"
+			Grid.Column="3"
+			Style="{StaticResource GroupHeader_ExpandCollapseGroupGlyphBackground}" />
+
+
+
+
+
+
+		<!--
+			//https://github.com/AathifMahir/MauiIcons#properties
+			
+			
+			Text="{mi:MaterialOutlined Icon=ArrowDropUp,
+			IconColor={StaticResource Primary}}">
+			
+			IsVisible="{Binding IsCollapsed.Invert, Mode=OneWay}"
+		-->
+
+		<!--
+
+		<Label
+			Grid.Column="3"
+			IsVisible="{Binding IsCollapsed.Invert, Mode=OneWay}"
+			Style="{StaticResource GroupHeader_ExpandCollapseGroupGlyph}"
+			Text="{mi:MaterialOutlined Icon=ArrowDropUp,
+					IconColor={StaticResource Primary}}">
+			
+			<Label.Triggers>
+				<DataTrigger
+			
+					Binding="{Binding IsCollapsed.Invert}"
+			
+					//Binding="{Binding Source={RelativeSource AncestorType={x:Type toolkit:Expander}}, Path=IsExpanded}"
+			
+					TargetType="Label"
+					Value="True">
+					<Setter Property="Text" Value="ArrowDropDownCircle" />
+				</DataTrigger>
+			</Label.Triggers>
+		</Label>
+		
+
+		
+		
+		
+		
+		
+		
+		<mi:MauiIcon
+			Grid.Column="3"
+			Icon="{mi:MaterialOutlined Icon=ArrowDropUp,
+			                           IconColor={StaticResource Primary}}"
+			IsVisible="{Binding IsCollapsed.Invert}" />
+
+
+
+		<mi:MauiIcon
+			Grid.Column="3"
+			Icon="{mi:MaterialOutlined Icon=ArrowDropDown,
+			                           IconColor={StaticResource Primary}}"
+			IsVisible="{Binding IsCollapsed.Value}" />
+		
+		
+		
+		
+		
+		
+				
+		<mi:MauiIcon
+			Grid.Column="3"
+			x:DataType="{x:Type uom_ctl_cv:ExpandableGroupsCollection`1}"
+			Icon="{mi:MaterialOutlined Icon=ArrowDropDown,
+			                           IconColor={StaticResource Primary}}">
+
+			<mi:MauiIcon.Triggers>
+				<DataTrigger
+					Binding="{x:Binding IsCollapsed.Value}"
+					TargetType="mi:MauiIcon"
+					Value="True">
+					<Setter Property="Icon" Value="{mi:MaterialOutlined Icon=ArrowCircleLeft}" />
+				</DataTrigger>
+			</mi:MauiIcon.Triggers>
+
+		</mi:MauiIcon>
+
+
+		
+		
+		
+	
+
+		
+		-->
+
+
+
+		<mi:MauiIcon
+			Grid.Column="3"
+			Icon="{mi:MaterialOutlined Icon=ArrowDropUp,
+			                           IconColor={StaticResource Primary}}"
+			IsVisible="{Binding IsCollapsed.Invert}" />
+
+
+
+		<mi:MauiIcon
+			Grid.Column="3"
+			Icon="{mi:MaterialOutlined Icon=ArrowDropDown,
+			                           IconColor={StaticResource Primary}}"
+			IsVisible="{Binding IsCollapsed.Value}" />
+
+
+		<!--#endregion-->
+
+	</Grid>
+
+
+	<ContentView.GestureRecognizers>
+		<TapGestureRecognizer
+			x:Name="grTap"
+			Command="{Binding SwitchExpandedStateCommand}"
+			CommandParameter="{Binding}"
+			NumberOfTapsRequired="1" />
+
+		<TapGestureRecognizer Command="{Binding Source={x:Reference thisRoot}, Path=TappedCommand}" NumberOfTapsRequired="1" />
+	</ContentView.GestureRecognizers>
+
+</ContentView>
+
+
+
+<!-- Get other control property to set value
+			<Ellipse Visibility="{Binding ElementName=MyCheckBox,Path=IsChecked,
+                                Converter={StaticResource MyConverter}}"/>
+		-->

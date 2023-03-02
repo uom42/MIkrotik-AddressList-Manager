@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+	x:Class="MALM.UI.MikrotikAddressTableRecord_ListUI"
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:l_m="clr-namespace:MALM.Model"
+	xmlns:l_mm="clr-namespace:MALM.Model.Mikrotik"
+	xmlns:l_ui_t="clr-namespace:MALM.UI.DataTemplates"
+	xmlns:mct="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+	xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+	xmlns:uom_ctl_ani="clr-namespace:uom.controls.MAUI.Animations"
+	xmlns:uom_ctl_cv="clr-namespace:uom.controls.MAUI.CollectionViews"
+	Title="MkAddressList"
+	x:ClassModifier="NotPublic"
+	SemanticProperties.HeadingLevel="Level1">
+
+
+	<ContentPage.ToolbarItems>
+		<ToolbarItem
+			x:Name="btnRows_Refresh"
+			IconImageSource="{mi:MaterialOutlined Icon=Refresh,
+			                                      IconColor={StaticResource White}}"
+			Order="Primary" />
+
+
+		<ToolbarItem
+			x:Name="btnRows_Add"
+			Order="Secondary"
+			Text="_Add" />
+
+		<ToolbarItem x:Name="btnExitApp" Order="Secondary" />
+
+
+	</ContentPage.ToolbarItems>
+
+
+	<!--  List of Mikrotik Rows  -->
+
+
+	<RefreshView
+		x:Name="rvData"
+		Margin="10"
+		VerticalOptions="FillAndExpand">
+
+		<RefreshView.Behaviors>
+			<mct:AnimationBehavior EventName="Loaded">
+				<mct:AnimationBehavior.AnimationType>
+					<uom_ctl_ani:FadeInAnimation Length="1000" />
+				</mct:AnimationBehavior.AnimationType>
+			</mct:AnimationBehavior>
+		</RefreshView.Behaviors>
+
+		<uom_ctl_cv:CollectionViewEx
+			x:Name="lvwRows"
+			CanMixGroups="False"
+			CanReorderItems="False"
+			IsGrouped="true"
+			ItemsUpdatingScrollMode="KeepItemsInView"
+			SelectionMode="None"
+			VerticalOptions="FillAndExpand">
+
+
+			<CollectionView.ItemTemplate>
+				<l_ui_t:MikrotikAddressTableRecordTemplate />
+			</CollectionView.ItemTemplate>
+
+
+			<CollectionView.GroupHeaderTemplate>
+				<DataTemplate>
+					<uom_ctl_cv:CollapsibleGroupTemplate />
+				</DataTemplate>
+			</CollectionView.GroupHeaderTemplate>
+
+
+		</uom_ctl_cv:CollectionViewEx>
+
+
+	</RefreshView>
+
+</ContentPage>

@@ -1,0 +1,336 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="E_ENCRYPT_FAILED" xml:space="preserve">
+    <value>Wrong Master Key or AddressBook file corrupted!</value>
+  </data>
+  <data name="E_FAILED_TO_ADD_ITEM" xml:space="preserve">
+    <value>Failed to add new item '{0}'!</value>
+  </data>
+  <data name="E_FW_TOO_OLD" xml:space="preserve">
+    <value>Too old, need update!</value>
+  </data>
+  <data name="E_MIKROTIK_CONNECTION_FAILED" xml:space="preserve">
+    <value>Failed to connect to Mikrotik!</value>
+  </data>
+  <data name="E_OUI_FAILED_TO_PARSE_OUI_CONTENT" xml:space="preserve">
+    <value>Failed to parse OUI database!</value>
+  </data>
+  <data name="E_PERMISSION_NETWORK_ERROR" xml:space="preserve">
+    <value>Required network permission!</value>
+  </data>
+  <data name="E_TITLE_DEFAULT" xml:space="preserve">
+    <value>Failed to execute!</value>
+  </data>
+  <data name="E_TITLE_LOGIN_FAILED" xml:space="preserve">
+    <value>Login failed!</value>
+  </data>
+  <data name="L_ADD" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="L_APPLY" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="L_APP_EXIT" xml:space="preserve">
+    <value>Close Application</value>
+  </data>
+  <data name="L_ATR_SAMPLE_GROUP" xml:space="preserve">
+    <value>Or select a sample from list below:</value>
+  </data>
+  <data name="L_CANCEL" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="L_COMMENT" xml:space="preserve">
+    <value>Comment</value>
+  </data>
+  <data name="L_CONNECT" xml:space="preserve">
+    <value>Connect</value>
+  </data>
+  <data name="L_CONNECTING_TO" xml:space="preserve">
+    <value>Connecting to {0}...</value>
+  </data>
+  <data name="L_CREATED" xml:space="preserve">
+    <value>Created</value>
+  </data>
+  <data name="L_DEFAULT" xml:space="preserve">
+    <value>default</value>
+  </data>
+  <data name="L_DELETE" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="L_DEVICES_LIST" xml:space="preserve">
+    <value>Devices List</value>
+  </data>
+  <data name="L_DEVICES_LIST_EDITOR" xml:space="preserve">
+    <value>Edit Devices List</value>
+  </data>
+  <data name="L_DEVICE_ADDRESS" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="L_DEVICE_BOARD" xml:space="preserve">
+    <value>Board</value>
+  </data>
+  <data name="L_DEVICE_CPU" xml:space="preserve">
+    <value>CPU</value>
+  </data>
+  <data name="L_DEVICE_CPU_INFO" xml:space="preserve">
+    <value>Processor</value>
+  </data>
+  <data name="L_DEVICE_GROUP" xml:space="preserve">
+    <value>Group</value>
+  </data>
+  <data name="L_DEVICE_HDD" xml:space="preserve">
+    <value>Storage</value>
+  </data>
+  <data name="L_DEVICE_HDD_BAD_BLOCKS" xml:space="preserve">
+    <value>Bad blocks</value>
+  </data>
+  <data name="L_DEVICE_PASSWORD" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="L_DEVICE_PORT" xml:space="preserve">
+    <value>Port</value>
+  </data>
+  <data name="L_DEVICE_UPTIME" xml:space="preserve">
+    <value>Up time</value>
+  </data>
+  <data name="L_DEVICE_USER" xml:space="preserve">
+    <value>User</value>
+  </data>
+  <data name="L_DISABLE" xml:space="preserve">
+    <value>Disable</value>
+  </data>
+  <data name="L_EDIT" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="L_EMPTY_GROUP_NAME" xml:space="preserve">
+    <value>Группа</value>
+  </data>
+  <data name="L_ENABLE" xml:space="preserve">
+    <value>Enable</value>
+  </data>
+  <data name="L_ENTER_" xml:space="preserve">
+    <value>Enter </value>
+  </data>
+  <data name="L_FILTER" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="L_FILTERED_DATA_EMPTY" xml:space="preserve">
+    <value>No rows were found with '{0}'.</value>
+  </data>
+  <data name="L_FILTERING_DATA" xml:space="preserve">
+    <value>Filtering data...</value>
+  </data>
+  <data name="L_FREE" xml:space="preserve">
+    <value>Free</value>
+  </data>
+  <data name="L_ID" xml:space="preserve">
+    <value>ID</value>
+  </data>
+  <data name="L_INITIALIZING" xml:space="preserve">
+    <value>Initializing...</value>
+  </data>
+  <data name="L_LEAVE_EMPTY_FOR_DEFAULT" xml:space="preserve">
+    <value>Leave empty for default</value>
+  </data>
+  <data name="L_LIST_IS_EMPTY" xml:space="preserve">
+    <value>List is empty</value>
+  </data>
+  <data name="L_MASTER_KEY" xml:space="preserve">
+    <value>Master Password</value>
+  </data>
+  <data name="L_MASTER_KEY_CACHING" xml:space="preserve">
+    <value>Remember and don't ask</value>
+  </data>
+  <data name="L_MASTER_KEY_CACHING_USE_BIO" xml:space="preserve">
+    <value>Don't ask (use biometrics)</value>
+  </data>
+  <data name="L_MEMORY" xml:space="preserve">
+    <value>Memory</value>
+  </data>
+  <data name="L_MIKROTIK_ADDRESS_LIST" xml:space="preserve">
+    <value>Mikrotik List (Group)</value>
+  </data>
+  <data name="L_MIKROTIK_CONNECTION_INPROGRESS" xml:space="preserve">
+    <value>Connecting {0}...</value>
+  </data>
+  <data name="L_MK_ADDRESS_LIST_EDITOR" xml:space="preserve">
+    <value>Add new item to Mikrotik AddressList</value>
+  </data>
+  <data name="L_NEW_" xml:space="preserve">
+    <value>New </value>
+  </data>
+  <data name="L_NEW_ELEMENT_WILL_BE_DISABLED" xml:space="preserve">
+    <value>New element will be created in disabled state for safety!</value>
+  </data>
+  <data name="L_NO" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="L_OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="L_QUERING_DATA" xml:space="preserve">
+    <value>Quering data...</value>
+  </data>
+  <data name="L_REFRESH" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="L_REPEAT" xml:space="preserve">
+    <value>Re-enter</value>
+  </data>
+  <data name="L_SAVE" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="L_SET" xml:space="preserve">
+    <value>Set</value>
+  </data>
+  <data name="L_SINCE_REBOOT" xml:space="preserve">
+    <value>Since reboot</value>
+  </data>
+  <data name="L_TOTAL" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="L_VERSION" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="L_WE_USE_FREE_ICONS" xml:space="preserve">
+    <value>This programm uses icons from '{0}</value>
+  </data>
+  <data name="L_WRITE_SECT" xml:space="preserve">
+    <value>Write sect.</value>
+  </data>
+  <data name="L_YES" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Q_ADDRESSBOOK_DELETE_RECORD" xml:space="preserve">
+    <value>Delete record '{0}'?</value>
+  </data>
+  <data name="Q_MASTERKEY_BIO_REQ" xml:space="preserve">
+    <value>Authentication required</value>
+  </data>
+  <data name="Q_MASTERKEY_BIO_REQ_2" xml:space="preserve">
+    <value>Confirm login</value>
+  </data>
+  <data name="Q_MASTERKEY_BIO_USE_PIN" xml:space="preserve">
+    <value>Use PIN</value>
+  </data>
+  <data name="Q_RESET_MASTER_KEY" xml:space="preserve">
+    <value>A forgotten master password cannot be recovered, it is not saved anywhere. You can reset it by setting a new one, but the data (address book) encrypted with the old key will be lost.||Reset the master password?</value>
+  </data>
+</root>

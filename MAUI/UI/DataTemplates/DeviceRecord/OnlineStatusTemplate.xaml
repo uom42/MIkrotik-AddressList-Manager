@@ -1,0 +1,687 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Grid
+	x:Class="MALM.UI.DataTemplates.DeviceRecord.OnlineStatusTemplate"
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:l_loc="clr-namespace:MALM.Localization"
+	xmlns:l_m="clr-namespace:MALM.Model"
+	xmlns:l_ui="clr-namespace:MALM.UI"
+	xmlns:mct="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+	xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+	xmlns:uom_ctl_ani="clr-namespace:uom.controls.MAUI.Animations"
+	xmlns:uom_ctl_cv="clr-namespace:uom.controls.MAUI.CollectionViews"
+	x:ClassModifier="NotPublic"
+	x:DataType="l_m:DevicesListRecord">
+
+	<Grid.Resources>
+
+		<!--  Error Colors  -->
+		<Color x:Key="Error_Back_Light">#FFFF0000</Color>
+		<Color x:Key="Error_Back_Dark">#30FF0000</Color>
+
+		<Color x:Key="Error_Text_Light">Yellow</Color>
+		<Color x:Key="Error_Text_Dark">Yellow</Color>
+
+
+		<x:Int32 x:Key="GridLineSize">2</x:Int32>
+		<x:Int32 x:Key="GridLineSpacing">4</x:Int32>
+
+
+
+		<!--#region Standart Styles-->
+
+		<Style x:Key="DeviceInfo_Value" TargetType="Label">
+			<Setter Property="FontSize" Value="Header" />
+			<Setter Property="VerticalTextAlignment" Value="Center" />
+			<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+
+		</Style>
+
+		<Style
+			x:Key="DeviceInfo_Value_C"
+			BasedOn="{StaticResource DeviceInfo_Value}"
+			TargetType="Label">
+			<Setter Property="HorizontalTextAlignment" Value="Center" />
+		</Style>
+
+		<Style
+			x:Key="DeviceInfo_Value_R"
+			BasedOn="{StaticResource DeviceInfo_Value}"
+			TargetType="Label">
+			<Setter Property="HorizontalTextAlignment" Value="End" />
+		</Style>
+
+		<Style
+			x:Key="DeviceInfo_HDR"
+			BasedOn="{StaticResource DeviceInfo_Value}"
+			TargetType="Label">
+			<Setter Property="FontAttributes" Value="Bold" />
+			<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray600}}" />
+		</Style>
+
+		<Style
+			x:Key="DeviceInfo_HDR_C"
+			BasedOn="{StaticResource DeviceInfo_HDR}"
+			TargetType="Label">
+			<Setter Property="HorizontalTextAlignment" Value="Center" />
+		</Style>
+
+		<Style
+			x:Key="DeviceInfo_HDR_R"
+			BasedOn="{StaticResource DeviceInfo_HDR}"
+			TargetType="Label">
+			<Setter Property="HorizontalTextAlignment" Value="End" />
+		</Style>
+
+
+		<!--#endregion-->
+
+		<!--  Labels with Errors  -->
+
+		<!--#region HDD Bad Blocks-->
+
+		<Style
+			x:Key="DeviceInfo_HDR_BadBlocks"
+			BasedOn="{StaticResource DeviceInfo_HDR_R}"
+			TargetType="Label">
+			<Setter Property="HorizontalTextAlignment" Value="End" />
+
+			<Style.Triggers>
+				<DataTrigger
+					Binding="{Binding OnlineDeviceStatus.ErrorStste_BadBlocks.Value}"
+					TargetType="Label"
+					Value="True">
+					<Setter Property="Background" Value="{AppThemeBinding Light={StaticResource Error_Back_Light}, Dark={StaticResource Error_Back_Dark}}" />
+					<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Error_Text_Light}, Dark={StaticResource Error_Text_Dark}}" />
+				</DataTrigger>
+			</Style.Triggers>
+		</Style>
+
+		<Style
+			x:Key="DeviceInfo_Value_BadBlocks"
+			BasedOn="{StaticResource DeviceInfo_Value_C}"
+			TargetType="Label">
+			<Style.Triggers>
+				<DataTrigger
+					Binding="{Binding OnlineDeviceStatus.ErrorStste_BadBlocks.Value}"
+					TargetType="Label"
+					Value="True">
+					<Setter Property="Background" Value="{AppThemeBinding Light={StaticResource Error_Back_Light}, Dark={StaticResource Error_Back_Dark}}" />
+					<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Error_Text_Light}, Dark={StaticResource Error_Text_Dark}}" />
+				</DataTrigger>
+			</Style.Triggers>
+		</Style>
+
+		<!--#endregion-->
+
+
+		<!--#region CPU Load, Temperature, Voltage-->
+
+		<!--  CPU Usage percent  -->
+		<Style
+			x:Key="DeviceInfo_Value_CPUUsage"
+			BasedOn="{StaticResource DeviceInfo_Value_R}"
+			TargetType="Label">
+			<Style.Triggers>
+				<DataTrigger
+					Binding="{Binding OnlineDeviceStatus.ErrorStste_HighCPUUsage.Value}"
+					TargetType="Label"
+					Value="True">
+					<Setter Property="Background" Value="{AppThemeBinding Light={StaticResource Error_Back_Light}, Dark={StaticResource Error_Back_Dark}}" />
+					<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Error_Text_Light}, Dark={StaticResource Error_Text_Dark}}" />
+				</DataTrigger>
+			</Style.Triggers>
+		</Style>
+		<!--  CPU Temperature  -->
+		<Style
+			x:Key="DeviceInfo_Value_Temperature"
+			BasedOn="{StaticResource DeviceInfo_Value_R}"
+			TargetType="Label">
+			<Style.Triggers>
+				<DataTrigger
+					Binding="{Binding OnlineDeviceStatus.ErrorStste_HighTemp.Value}"
+					TargetType="Label"
+					Value="True">
+					<Setter Property="Background" Value="{AppThemeBinding Light={StaticResource Error_Back_Light}, Dark={StaticResource Error_Back_Dark}}" />
+					<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Error_Text_Light}, Dark={StaticResource Error_Text_Dark}}" />
+				</DataTrigger>
+			</Style.Triggers>
+		</Style>
+		<!--  CPU Voltage  -->
+		<Style
+			x:Key="DeviceInfo_Value_Voltage"
+			BasedOn="{StaticResource DeviceInfo_Value_R}"
+			TargetType="Label">
+			<Style.Triggers>
+				<DataTrigger
+					Binding="{Binding OnlineDeviceStatus.ErrorStste_LowVoltage.Value}"
+					TargetType="Label"
+					Value="True">
+					<Setter Property="Background" Value="{AppThemeBinding Light={StaticResource Error_Back_Light}, Dark={StaticResource Error_Back_Dark}}" />
+					<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Error_Text_Light}, Dark={StaticResource Error_Text_Dark}}" />
+				</DataTrigger>
+			</Style.Triggers>
+		</Style>
+
+		<!--#endregion-->
+
+
+		<!--#region Free RAM-->
+
+		<!--  RAM_Free_Bytes  -->
+		<Style
+			x:Key="DeviceInfo_Value_RAM_Free_Bytes"
+			BasedOn="{StaticResource DeviceInfo_Value_R}"
+			TargetType="Label">
+			<Style.Triggers>
+				<DataTrigger
+					Binding="{Binding OnlineDeviceStatus.ErrorStste_LowRAM.Value}"
+					TargetType="Label"
+					Value="True">
+					<Setter Property="Background" Value="{AppThemeBinding Light={StaticResource Error_Back_Light}, Dark={StaticResource Error_Back_Dark}}" />
+					<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Error_Text_Light}, Dark={StaticResource Error_Text_Dark}}" />
+				</DataTrigger>
+			</Style.Triggers>
+		</Style>
+		<!--  RAM_Free_Percent  -->
+		<Style
+			x:Key="DeviceInfo_Value_RAM_Free_Percent"
+			BasedOn="{StaticResource DeviceInfo_Value}"
+			TargetType="Label">
+			<Style.Triggers>
+				<DataTrigger
+					Binding="{Binding OnlineDeviceStatus.ErrorStste_LowRAM.Value}"
+					TargetType="Label"
+					Value="True">
+					<Setter Property="Background" Value="{AppThemeBinding Light={StaticResource Error_Back_Light}, Dark={StaticResource Error_Back_Dark}}" />
+					<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Error_Text_Light}, Dark={StaticResource Error_Text_Dark}}" />
+				</DataTrigger>
+			</Style.Triggers>
+		</Style>
+
+
+		<!--#endregion-->
+
+
+		<!--#region Free HDD-->
+
+		<!--  HDD Free Bytes  -->
+		<Style
+			x:Key="DeviceInfo_Value_HDD_Free_Bytes"
+			BasedOn="{StaticResource DeviceInfo_Value_R}"
+			TargetType="Label">
+			<Style.Triggers>
+				<DataTrigger
+					Binding="{Binding OnlineDeviceStatus.ErrorStste_LowHddSpace.Value}"
+					TargetType="Label"
+					Value="True">
+					<Setter Property="Background" Value="{AppThemeBinding Light={StaticResource Error_Back_Light}, Dark={StaticResource Error_Back_Dark}}" />
+					<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Error_Text_Light}, Dark={StaticResource Error_Text_Dark}}" />
+				</DataTrigger>
+			</Style.Triggers>
+		</Style>
+		<!--  HDD Free Percent  -->
+		<Style
+			x:Key="DeviceInfo_Value_HDD_Free_Percent"
+			BasedOn="{StaticResource DeviceInfo_Value}"
+			TargetType="Label">
+			<Style.Triggers>
+				<DataTrigger
+					Binding="{Binding OnlineDeviceStatus.ErrorStste_LowHddSpace.Value}"
+					TargetType="Label"
+					Value="True">
+					<Setter Property="Background" Value="{AppThemeBinding Light={StaticResource Error_Back_Light}, Dark={StaticResource Error_Back_Dark}}" />
+					<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Error_Text_Light}, Dark={StaticResource Error_Text_Dark}}" />
+				</DataTrigger>
+			</Style.Triggers>
+		</Style>
+
+
+		<!--#endregion-->
+
+
+		<!--#region Resources Table Grid Lines-->
+
+
+		<Style x:Key="DeviceInfo_HorizontalLine" TargetType="Line">
+			<Setter Property="StrokeThickness" Value="{StaticResource GridLineSize}" />
+			<Setter Property="StrokeLineCap" Value="Round" />
+			<Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray500}}" />
+			<Setter Property="X2" Value="{Binding Width, Source={RelativeSource Self}}" />
+			<Setter Property="VerticalOptions" Value="Center" />
+		</Style>
+
+
+		<!--#endregion-->
+
+	</Grid.Resources>
+
+
+
+	<Grid.ColumnDefinitions>
+		<ColumnDefinition Width="*" />
+		<ColumnDefinition Width="*" />
+		<ColumnDefinition Width="*" />
+		<ColumnDefinition Width="*" />
+	</Grid.ColumnDefinitions>
+	<Grid.RowDefinitions>
+		<RowDefinition Height="{StaticResource GridLineSpacing}" />
+		<RowDefinition Height="Auto" />
+		<RowDefinition Height="Auto" />
+		<RowDefinition Height="{StaticResource GridLineSpacing}" />
+		<RowDefinition Height="Auto" />
+		<RowDefinition Height="Auto" />
+		<RowDefinition Height="{StaticResource GridLineSpacing}" />
+		<RowDefinition Height="Auto" />
+	</Grid.RowDefinitions>
+
+
+
+	<!--  ROW 0 - Horizontal separator line  -->
+	<Line
+		Grid.Row="0"
+		Grid.Column="0"
+		Grid.ColumnSpan="4"
+		Style="{StaticResource DeviceInfo_HorizontalLine}" />
+
+
+	<!--#region ROW 1 - UpTime, CPU, CPU load, Temp, voltage-->
+
+
+	<!--#region UpTime-->
+
+
+	<Label
+		Grid.Row="1"
+		Grid.Column="0"
+		Style="{StaticResource DeviceInfo_HDR}"
+		Text="{x:Static l_loc:LStrings.L_DEVICE_UPTIME}" />
+
+
+	<Label
+		Grid.Row="1"
+		Grid.Column="1"
+		Style="{StaticResource DeviceInfo_Value}"
+		Text="{Binding OnlineDeviceStatus.UpTimeString, Mode=OneWay}" />
+
+
+	<!--#endregion-->
+
+	<!--#region CPU Load, Temp, Voltage-->
+
+
+	<Grid
+		Grid.Row="1"
+		Grid.Column="2"
+		Grid.ColumnSpan="2">
+
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="*" />
+			<ColumnDefinition Width="*" />
+			<ColumnDefinition Width="*" />
+			<ColumnDefinition Width="*" />
+		</Grid.ColumnDefinitions>
+
+		<Label
+			Grid.Column="0"
+			Style="{StaticResource DeviceInfo_HDR_R}"
+			Text="{x:Static l_loc:LStrings.L_DEVICE_CPU}" />
+		<Label
+			Grid.Column="1"
+			Style="{StaticResource DeviceInfo_Value_CPUUsage}"
+			Text="{Binding OnlineDeviceStatus.CpuLoad, StringFormat='{0:N0}%', Mode=OneWay}" />
+		<Label
+			Grid.Column="2"
+			Style="{StaticResource DeviceInfo_Value_Temperature}"
+			Text="{Binding OnlineDeviceStatus.Temperature, StringFormat='{0}°', Mode=OneWay}" />
+		<Label
+			Grid.Column="3"
+			Style="{StaticResource DeviceInfo_Value_Voltage}"
+			Text="{Binding OnlineDeviceStatus.Voltage, StringFormat='{0:N1}v', Mode=OneWay}" />
+	</Grid>
+
+
+	<!--#endregion-->
+
+
+	<!--#endregion-->
+
+
+	<!--#region ROW 2 - Memory, HDD-->
+
+
+	<Grid
+		Grid.Row="2"
+		Grid.Column="0"
+		Grid.ColumnSpan="4">
+
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="*" />
+			<ColumnDefinition Width="*" />
+			<ColumnDefinition Width="*" />
+			<ColumnDefinition Width="*" />
+		</Grid.ColumnDefinitions>
+
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="{StaticResource GridLineSpacing}" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="{StaticResource GridLineSpacing}" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="{StaticResource GridLineSpacing}" />
+			<RowDefinition Height="Auto" />
+		</Grid.RowDefinitions>
+
+
+		<Label
+			Grid.Row="0"
+			Grid.Column="1"
+			Grid.ColumnSpan="2"
+			Style="{StaticResource DeviceInfo_HDR_C}"
+			Text="{x:Static l_loc:LStrings.L_FREE}" />
+
+		<Label
+			Grid.Row="0"
+			Grid.Column="3"
+			Style="{StaticResource DeviceInfo_HDR_C}"
+			Text="{x:Static l_loc:LStrings.L_TOTAL}" />
+
+
+		<!--  Memory  -->
+		<Label
+			Grid.Row="1"
+			Grid.Column="0"
+			Style="{StaticResource DeviceInfo_HDR}"
+			Text="{x:Static l_loc:LStrings.L_MEMORY}" />
+
+		<Label
+			Grid.Row="1"
+			Grid.Column="1"
+			Style="{StaticResource DeviceInfo_Value_RAM_Free_Bytes}"
+			Text="{Binding OnlineDeviceStatus.FreeMemory_String, Mode=OneWay}" />
+
+		<Label
+			Grid.Row="1"
+			Grid.Column="2"
+			Style="{StaticResource DeviceInfo_Value_RAM_Free_Percent}"
+			Text="{Binding OnlineDeviceStatus.FreeMemory_Percent, StringFormat=' ({0:P1})', Mode=OneWay}" />
+
+		<Label
+			Grid.Row="1"
+			Grid.Column="3"
+			Style="{StaticResource DeviceInfo_Value_R}"
+			Text="{Binding OnlineDeviceStatus.TotalMemory_String, Mode=OneWay}" />
+
+
+		<!--  Horizontal separator line  -->
+		<Line
+			Grid.Row="2"
+			Grid.Column="0"
+			Grid.ColumnSpan="4"
+			Style="{StaticResource DeviceInfo_HorizontalLine}" />
+
+
+
+		<!--  HDD  -->
+		<Label
+			Grid.Row="3"
+			Grid.RowSpan="6"
+			Grid.Column="0"
+			Style="{StaticResource DeviceInfo_HDR}"
+			Text="{x:Static l_loc:LStrings.L_DEVICE_HDD}" />
+
+		<Label
+			Grid.Row="3"
+			Grid.Column="1"
+			Style="{StaticResource DeviceInfo_Value_HDD_Free_Bytes}"
+			Text="{Binding OnlineDeviceStatus.FreeHddSpace_String, Mode=OneWay}" />
+
+		<Label
+			Grid.Row="3"
+			Grid.Column="2"
+			Style="{StaticResource DeviceInfo_Value_HDD_Free_Percent}"
+			Text="{Binding OnlineDeviceStatus.FreeHddSpace_Percent, StringFormat=' ({0:P1})', Mode=OneWay}" />
+
+		<Label
+			Grid.Row="3"
+			Grid.Column="3"
+			Style="{StaticResource DeviceInfo_Value_R}"
+			Text="{Binding OnlineDeviceStatus.TotalHddSpace_String, Mode=OneWay}" />
+
+
+
+
+
+		<!--  Write sect  -->
+
+		<!--  Horizontal separator line  -->
+		<Line
+			Grid.Row="4"
+			Grid.Column="1"
+			Grid.ColumnSpan="3"
+			Style="{StaticResource DeviceInfo_HorizontalLine}" />
+
+
+
+		<Label
+			Grid.Row="5"
+			Grid.RowSpan="2"
+			Grid.Column="1"
+			FontSize="Caption"
+			Style="{StaticResource DeviceInfo_HDR_R}"
+			Text="{x:Static l_loc:LStrings.L_WRITE_SECT}" />
+
+
+
+		<Label
+			Grid.Row="5"
+			Grid.Column="2"
+			FontSize="Caption"
+			Style="{StaticResource DeviceInfo_HDR_R}"
+			Text="{x:Static l_loc:LStrings.L_SINCE_REBOOT}" />
+
+		<Label
+			Grid.Row="5"
+			Grid.Column="3"
+			FontSize="Caption"
+			Style="{StaticResource DeviceInfo_Value_R}"
+			Text="{Binding OnlineDeviceStatus.WriteSectSinceReboot, StringFormat='{0:N0}', Mode=OneWay}" />
+
+
+
+
+		<Label
+			Grid.Row="6"
+			Grid.Column="2"
+			FontSize="Caption"
+			Style="{StaticResource DeviceInfo_HDR_R}"
+			Text="{x:Static l_loc:LStrings.L_TOTAL}" />
+
+		<Label
+			Grid.Row="6"
+			Grid.Column="3"
+			FontSize="Caption"
+			Style="{StaticResource DeviceInfo_Value_R}"
+			Text="{Binding OnlineDeviceStatus.WriteSectTotal, StringFormat='{0:N0}', Mode=OneWay}" />
+
+
+
+
+
+		<!--#region Bad blocks-->
+
+		<!--  Horizontal separator line  -->
+		<Line
+			Grid.Row="7"
+			Grid.Column="1"
+			Grid.ColumnSpan="3"
+			Style="{StaticResource DeviceInfo_HorizontalLine}" />
+
+		<Label
+			Grid.Row="8"
+			Grid.Column="1"
+			FontSize="Caption"
+			Style="{StaticResource DeviceInfo_HDR_BadBlocks}"
+			Text="{x:Static l_loc:LStrings.L_DEVICE_HDD_BAD_BLOCKS}" />
+
+		<Label
+			Grid.Row="8"
+			Grid.Column="2"
+			Grid.ColumnSpan="2"
+			Style="{StaticResource DeviceInfo_Value_BadBlocks}"
+			Text="{Binding OnlineDeviceStatus.BadBlocks, StringFormat='{0:N0}', TargetNullValue={x:Static l_loc:LStrings.L_NO}, Mode=OneWay}" />
+
+
+		<!--#endregion-->
+
+	</Grid>
+
+
+	<!--#endregion-->
+
+
+	<!--  ROW 3 - Horizontal separator line  -->
+	<Line
+		Grid.Row="3"
+		Grid.Column="0"
+		Grid.ColumnSpan="4"
+		Style="{StaticResource DeviceInfo_HorizontalLine}" />
+
+
+
+	<!--#region ROW 4 - CPU info-->
+
+
+	<Label
+		Grid.Row="4"
+		Grid.Column="0"
+		Style="{StaticResource DeviceInfo_HDR}"
+		Text="{x:Static l_loc:LStrings.L_DEVICE_CPU_INFO}" />
+
+	<Grid
+		Grid.Row="4"
+		Grid.Column="1"
+		Grid.ColumnSpan="3">
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="Auto" />
+			<ColumnDefinition Width="Auto" />
+			<ColumnDefinition Width="*" />
+		</Grid.ColumnDefinitions>
+
+		<Label
+			Grid.Column="0"
+			Style="{StaticResource DeviceInfo_Value_C}"
+			Text="{Binding OnlineDeviceStatus.CpuCount, Mode=OneWay}" />
+
+		<Label
+			Grid.Column="1"
+			Style="{StaticResource DeviceInfo_Value}"
+			Text="{Binding OnlineDeviceStatus.CpuFrequency, StringFormat=' ({0:N0}mHz)', Mode=OneWay}" />
+
+		<Label
+			Grid.Column="2"
+			Style="{StaticResource DeviceInfo_Value_C}"
+			Text="{Binding OnlineDeviceStatus.Cpu, TargetNullValue={x:Static l_loc:LStrings.L_NO}, Mode=OneWay}" />
+
+	</Grid>
+
+
+	<!--#endregion-->
+
+
+	<!--#region ROW 5 - Platform and Board-->
+
+
+	<Label
+		Grid.Row="5"
+		Grid.Column="0"
+		Style="{StaticResource DeviceInfo_HDR}"
+		Text="{x:Static l_loc:LStrings.L_DEVICE_BOARD}" />
+
+	<Label
+		Grid.Row="5"
+		Grid.Column="1"
+		Style="{StaticResource DeviceInfo_Value}"
+		Text="{Binding OnlineDeviceStatus.Platform, TargetNullValue={x:Static l_loc:LStrings.L_NO}, Mode=OneWay}" />
+
+	<Label
+		Grid.Row="5"
+		Grid.Column="2"
+		Style="{StaticResource DeviceInfo_Value_C}"
+		Text="{Binding OnlineDeviceStatus.BoardName, TargetNullValue={x:Static l_loc:LStrings.L_NO}, Mode=OneWay}" />
+
+	<Label
+		Grid.Row="5"
+		Grid.Column="3"
+		Style="{StaticResource DeviceInfo_Value_C}"
+		Text="{Binding OnlineDeviceStatus.ArchitectureName, TargetNullValue={x:Static l_loc:LStrings.L_NO}, Mode=OneWay}" />
+
+
+	<!--#endregion-->
+
+
+	<!--#region ROW 6 - Horizontal separator line-->
+
+	<Line
+		Grid.Row="6"
+		Grid.Column="0"
+		Grid.ColumnSpan="4"
+		Style="{StaticResource DeviceInfo_HorizontalLine}" />
+
+
+	<!--#endregion-->
+
+
+	<!--#region ROW 7 - Version-->
+
+
+	<Label
+		Grid.Row="7"
+		Grid.Column="0"
+		Style="{StaticResource DeviceInfo_HDR}"
+		Text="{x:Static l_loc:LStrings.L_VERSION}" />
+
+
+	<Grid
+		Grid.Row="7"
+		Grid.Column="1"
+		Grid.ColumnSpan="3">
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="Auto" />
+			<ColumnDefinition Width="*" />
+		</Grid.ColumnDefinitions>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+		</Grid.RowDefinitions>
+
+
+		<Label
+			Grid.Column="0"
+			Style="{StaticResource DeviceInfo_Value_C}"
+			Text="{Binding OnlineDeviceStatus.Version, TargetNullValue={x:Static l_loc:LStrings.L_NO}, Mode=OneWay}" />
+
+		<Label
+			Grid.Column="1"
+			Grid.ColumnSpan="2"
+			Style="{StaticResource DeviceInfo_Value_C}"
+			Text="{Binding OnlineDeviceStatus.BuildTime_Friendly, TargetNullValue={x:Static l_loc:LStrings.L_NO}, Mode=OneWay}" />
+
+		<Label
+			Grid.Row="1"
+			Grid.Column="0"
+			Grid.ColumnSpan="2"
+			IsVisible="{Binding OnlineDeviceStatus.ErrorStste_FWtooOld.Value}"
+			Style="{StaticResource DeviceInfo_Value_C}"
+			Text="{x:Static l_loc:LStrings.E_FW_TOO_OLD}"
+			TextColor="Red" />
+
+	</Grid>
+
+
+	<!--#endregion-->
+
+
+</Grid>

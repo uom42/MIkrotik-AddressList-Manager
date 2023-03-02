@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+	x:Class="MALM.UI.DevicesListUI"
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:l_m="clr-namespace:MALM.Model"
+	xmlns:l_mm="clr-namespace:MALM.Model.Mikrotik"
+	xmlns:l_ui_t="clr-namespace:MALM.UI.DataTemplates"
+	xmlns:l_ui_t_dt="clr-namespace:MALM.UI.DataTemplates.DeviceRecord"
+	xmlns:mct="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+	xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+	xmlns:uom_ctl_ani="clr-namespace:uom.controls.MAUI.Animations"
+	xmlns:uom_ctl_cv="clr-namespace:uom.controls.MAUI.CollectionViews"
+	x:ClassModifier="NotPublic"
+	SemanticProperties.HeadingLevel="Level1"
+	Shell.NavBarHasShadow="true">
+
+
+	<Shell.BackButtonBehavior>
+		<BackButtonBehavior IsEnabled="False" IsVisible="False" />
+	</Shell.BackButtonBehavior>
+
+
+	<ContentPage.ToolbarItems>
+
+
+		<ToolbarItem
+			x:Name="btnAdd"
+			IconImageSource="{mi:MaterialOutlined Icon=Add,
+			                                      IconColor={StaticResource White}}"
+			Order="Primary" />
+
+		<ToolbarItem
+			x:Name="btnSetMasterKey"
+			IconImageSource="{mi:MaterialOutlined Icon=Password}"
+			Order="Secondary"
+			Text="_SetMasterKey" />
+
+		<ToolbarItem x:Name="btnExitApp" Order="Secondary" />
+
+	</ContentPage.ToolbarItems>
+
+	<StackLayout
+		Margin="10"
+		HorizontalOptions="FillAndExpand"
+		Orientation="Vertical"
+		VerticalOptions="FillAndExpand">
+
+		<StackLayout.Behaviors>
+			<mct:AnimationBehavior EventName="Loaded">
+				<mct:AnimationBehavior.AnimationType>
+					<uom_ctl_ani:FadeInAnimation Length="500" />
+				</mct:AnimationBehavior.AnimationType>
+			</mct:AnimationBehavior>
+		</StackLayout.Behaviors>
+
+
+		<!--  Devices List  -->
+		<uom_ctl_cv:CollectionViewEx
+			x:Name="lvwDevices"
+			HorizontalOptions="FillAndExpand"
+			VerticalOptions="FillAndExpand">
+
+			<CollectionView.ItemTemplate>
+				<l_ui_t_dt:DevicesRecordTemplate />
+			</CollectionView.ItemTemplate>
+
+		</uom_ctl_cv:CollectionViewEx>
+
+
+	</StackLayout>
+
+</ContentPage>
