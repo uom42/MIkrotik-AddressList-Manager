@@ -31,9 +31,9 @@
 		-->
 
 		<!-- Versions -->
-		<AssemblyVersion>2.0.0.1</AssemblyVersion>
-		<FileVersion>2.0.0.1</FileVersion>
-		<ProductVersion>2.0.0.1</ProductVersion>
+		<AssemblyVersion>3.0.0.1</AssemblyVersion>
+		<FileVersion>3.0.0.1</FileVersion>
+		<ProductVersion>3.0.0.1</ProductVersion>
 
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>

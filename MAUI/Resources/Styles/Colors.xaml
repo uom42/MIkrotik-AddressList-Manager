@@ -39,4 +39,8 @@
 	<Color x:Key="Blue200Accent">#72ACF1</Color>
 	<Color x:Key="Blue300Accent">#A7CBF6</Color>
 
+	<Color x:Key="Pantone_GreenBlue">#CBC8E2</Color>
+	<SolidColorBrush x:Key="Pantone_GreenBlueBrush" Color="{StaticResource Pantone_GreenBlue}" />
+
+
 </ResourceDictionary>
