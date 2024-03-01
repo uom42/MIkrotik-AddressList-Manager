@@ -9,6 +9,8 @@ using System.Collections.Concurrent;
 using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.Mvvm.Messaging.Messages;
 
+using static Microsoft.Maui.ApplicationModel.Permissions;
+
 
 
 #region .NET MAUI Community Toolkit (https://github.com/CommunityToolkit/Maui)
@@ -62,6 +64,19 @@ using CommunityToolkit.Mvvm.Messaging.Messages;
 #endregion
 
 /*
+ 
+ using CommunityToolkit.Maui.Alerts; // For the Toast
+
+#if ANDROID
+using Android.Content;
+	using Android.Locations;
+#elif IOS || MACCATALYST
+	using CoreLocation;
+#elif WINDOWS
+	using Windows.Devices.Geolocation;
+#endif
+
+
 
 #if !WINDOWS
             handler.PlatformView.SetSelectAllOnFocus(true);
@@ -120,6 +135,9 @@ App.Xaml I like to put all my converter statics in the app.xaml file so I don't 
 
  
  */
+
+
+
 
 namespace uom.maui
 {
@@ -195,6 +213,132 @@ namespace uom.maui
 		public static implicit operator bool(InvertableBool b) => b._value;
 	}
 
+
+
+	namespace security
+	{
+
+
+		/*
+		 Usage:
+		var status = await PermissionsHelper.CheckAndRequestPermissionAsync<Permissions.LocationWhenInUse>();
+		if (status != PermissionStatus.Granted)
+		{
+			//whatever you like 
+		}
+		 */
+
+		/// <summary>
+		/// https://learn.microsoft.com/ru-ru/dotnet/maui/platform-integration/appmodel/permissions?view=net-maui-8.0&tabs=android
+		/// </summary>
+		internal static class PermissionsHelper
+		{
+
+			public static async Task<PermissionStatus> CheckAndRequestPermissionAsync<TPermission>() where TPermission : BasePermission, new()
+			{
+				return await MainThread.InvokeOnMainThreadAsync(async () =>
+				{
+					TPermission permission = new();
+					var status = await permission.CheckStatusAsync();
+					if (status != PermissionStatus.Granted)
+					{
+						status = await permission.RequestAsync();
+					}
+
+					return status;
+				});
+			}
+
+			public class Permission_Biometric_Fingerprint : Permissions.BasePlatformPermission
+			{
+				public override (string androidPermission, bool isRuntime)[] RequiredPermissions =>
+					new List<(string androidPermission, bool isRuntime)>
+					{
+						(global::Android.Manifest.Permission.UseBiometric, true),
+						(global::Android.Manifest.Permission.UseFingerprint, true)
+					}.ToArray();
+			}
+
+			internal static async Task<bool> CheckAndRequestPermissionAsync_Biometric_Fingerprint()
+				=> (await CheckAndRequestPermissionAsync<Permission_Biometric_Fingerprint>()).IsGranted();
+
+
+			public class Permission_Net_AccessNetworkStateAndInternet : Permissions.BasePlatformPermission
+			{
+				public override (string androidPermission, bool isRuntime)[] RequiredPermissions =>
+					new List<(string androidPermission, bool isRuntime)>
+					{
+						(global::Android.Manifest.Permission.AccessNetworkState, true),
+						(global::Android.Manifest.Permission.Internet, true)
+					}.ToArray();
+			}
+			internal static async Task<bool> CheckAndRequestPermissionAsync_Net_AccessNetworkStateAndInternet()
+							=> (await CheckAndRequestPermissionAsync<Permission_Net_AccessNetworkStateAndInternet>()).IsGranted();
+
+
+			public class Permission_ReadWriteStorage : Permissions.BasePlatformPermission
+			{
+				public override (string androidPermission, bool isRuntime)[] RequiredPermissions =>
+					new List<(string androidPermission, bool isRuntime)>
+					{
+						(global::Android.Manifest.Permission.ReadExternalStorage, true),
+						(global::Android.Manifest.Permission.WriteExternalStorage, true)
+					}.ToArray();
+			}
+
+
+
+
+
+
+			/*
+			private async Task<bool> CheckPermissions()
+			{
+				PermissionStatus bluetoothStatus = await CheckBluetoothPermissions();
+				PermissionStatus cameraStatus = await CheckPermissions<Permissions.Camera>();
+				PermissionStatus mediaStatus = await CheckPermissions<Permissions.Media>();
+				PermissionStatus storageWriteStatus = await CheckPermissions<Permissions.StorageWrite>();
+				//PermissionStatus photosStatus = await CheckPermissions<Permissions.Photos>();
+				...
+
+        bool locationServices = IsLocationServiceEnabled();
+
+				return IsGranted(cameraStatus) && IsGranted(mediaStatus) && IsGranted(storageWriteStatus) && IsGranted(bluetoothStatus);
+			}
+			 */
+
+
+
+			internal static async Task<PermissionStatus> CheckPermission_Bluetooth()
+			{
+
+				throw new NotImplementedException();
+				/*
+
+				PermissionStatus bluetoothStatus = PermissionStatus.Granted;
+
+				if (DeviceInfo.Platform == DevicePlatform.Android)
+				{
+					if (DeviceInfo.Version.Major >= 12)
+					{
+						bluetoothStatus = await CheckPermissions<BluetoothPermissions>();
+					}
+					else
+					{
+						bluetoothStatus = await CheckPermissions<Permissions.LocationWhenInUse>();
+					}
+				}
+
+				return bluetoothStatus;
+				 */
+			}
+
+		}
+
+
+
+
+	}
 
 
 
@@ -425,6 +569,19 @@ namespace uom.maui
 
 
 	}
+
+
+
+	internal static class Extensions_MAUI_Security
+	{
+
+
+		public static bool IsGranted(this PermissionStatus status)
+			=> (status == PermissionStatus.Granted || status == PermissionStatus.Limited);
+
+
+	}
+
 
 
 	internal static class Extensions_MAUI_SecureStorage
@@ -816,6 +973,8 @@ return await Application.Current.MainPage.DisplayAlert(title, message, accept, c
 
 		}
 	}
+
+
 
 
 

@@ -57,124 +57,42 @@
 				</CollectionView.ItemTemplate>
 
 
-
-
 				<CollectionView.GroupHeaderTemplate>
-
-
 					<DataTemplate>
-
-
 						<StackLayout HorizontalOptions="FillAndExpand" Orientation="Horizontal">
 
-
-
-							<StackLayout
-								Padding="8,0,4,0"
-								HorizontalOptions="Start"
-								Orientation="Horizontal">
-
-								<!--
-								-->
-
-								<StackLayout.Shadow>
-									<Shadow
-										Brush="Black"
-										Opacity="0.5"
-										Radius="8"
-										Offset="4,4" />
-								</StackLayout.Shadow>
-
-								<Label
-									FontAttributes="Bold"
-									FontSize="Subtitle"
-									HorizontalOptions="Start"
-									HorizontalTextAlignment="Start"
-									LineBreakMode="TailTruncation"
-									Text="{Binding DisplayName}"
-									TextColor="{StaticResource Primary}"
-									VerticalTextAlignment="Center" />
-
-								<Label
-									Padding="4,0,0,0"
-									FontSize="Subtitle"
-									HorizontalOptions="End"
-									HorizontalTextAlignment="Center"
-									Text="{Binding ItemsCountString}"
-									TextColor="{StaticResource Tertiary}"
-									VerticalTextAlignment="Center" />
-
+							<StackLayout Style="{StaticResource GroupHeader_Name_Count}">
+								<Label Style="{StaticResource GroupHeader_Name}" />
+								<Label Style="{StaticResource GroupHeader_Count}" />
 							</StackLayout>
-
-
-
-
-
 
 							<StackLayout HorizontalOptions="FillAndExpand" Orientation="Horizontal">
-
-								<StackLayout.Shadow>
-									<Shadow
-										Brush="Black"
-										Opacity="0.5"
-										Radius="8"
-										Offset="4,4" />
-								</StackLayout.Shadow>
-
-								<Line
-									HorizontalOptions="FillAndExpand"
-									Stroke="{StaticResource Primary}"
-									StrokeThickness="1"
-									VerticalOptions="Center"
-									X2="{Binding Width, Source={RelativeSource Self}}" />
-
+								<Line Style="{StaticResource GroupHeader_HorizontalLine}" />
 							</StackLayout>
-
-
 
 							<StackLayout
 								Padding="4,0,4,0"
 								HorizontalOptions="End"
 								Orientation="Horizontal">
 
-								<StackLayout.Shadow>
-									<Shadow
-										Brush="Black"
-										Opacity="0.5"
-										Radius="8"
-										Offset="4,4" />
-								</StackLayout.Shadow>
-
 								<Label
 									x:Name="lblCollapseGroupGlyph"
-									FontSize="Body"
-									HorizontalTextAlignment="Center"
 									IsVisible="{Binding IsCollapsed}"
-									LineBreakMode="NoWrap"
+									Style="{StaticResource GroupHeader_ExpandCollapseGroupGlyph}"
 									Text="{mi:MaterialOutlined Icon=ArrowDropDown,
-									                           IconColor={StaticResource Primary}}"
-									VerticalTextAlignment="Center" />
-
+									                           IconColor={StaticResource Primary}}" />
 
 								<Label
 									x:Name="lblExpandGroupGlyph"
-									FontSize="Title"
-									HorizontalTextAlignment="Center"
 									IsVisible="{Binding NotCollapsed}"
-									LineBreakMode="NoWrap"
+									Style="{StaticResource GroupHeader_ExpandCollapseGroupGlyph}"
 									Text="{mi:MaterialOutlined Icon=ArrowDropUp,
-									                           IconColor={StaticResource Primary}}"
-									VerticalTextAlignment="Center" />
+									                           IconColor={StaticResource Primary}}" />
 							</StackLayout>
-
-
 
 							<StackLayout.GestureRecognizers>
 								<TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnGroupTap" />
 							</StackLayout.GestureRecognizers>
-							<!--
-							-->
-
 
 						</StackLayout>
 
@@ -184,6 +102,9 @@
 
 
 				</CollectionView.GroupHeaderTemplate>
+
+
+
 
 
 

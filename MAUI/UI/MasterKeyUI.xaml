@@ -22,55 +22,24 @@
 				Spacing="16"
 				VerticalOptions="Start">
 
-				<!--  Edit fields  -->
+				<!--  Password edit fields  -->
 				<Entry
 					x:Name="txtMasterKey1"
-					ClearButtonVisibility="WhileEditing"
-					IsPassword="True"
-					IsTextPredictionEnabled="False"
-					Keyboard="Text"
-					MaxLength="100"
-					Placeholder="P"
+					Placeholder="P1"
 					ReturnType="Next"
-					Text="">
-					<Entry.Shadow>
-						<Shadow
-							Brush="Black"
-							Opacity="0.8"
-							Radius="40"
-							Offset="16,16" />
-					</Entry.Shadow>
-				</Entry>
-
+					Style="{StaticResource EntryPassword_100}"
+					Text="" />
 
 				<Entry
 					x:Name="txtMasterKey2"
-					ClearButtonVisibility="WhileEditing"
-					IsPassword="True"
-					IsTextPredictionEnabled="False"
-					Keyboard="Text"
-					MaxLength="100"
-					Placeholder="P"
+					Placeholder="P2"
 					ReturnType="Next"
-					Text="">
-					<Entry.Shadow>
-						<Shadow
-							Brush="Black"
-							Opacity="0.8"
-							Radius="40"
-							Offset="16,16" />
-					</Entry.Shadow>
-				</Entry>
-
-
-
+					Style="{StaticResource EntryPassword_100}"
+					Text="" />
 
 			</StackLayout>
 
 			<uomMAUIctl:SwitchLabel x:Name="chkRememberMK" Text="dont ask" />
-
-
-
 
 		</StackLayout>
 
@@ -78,29 +47,15 @@
 		<StackLayout Margin="16" Spacing="30">
 			<!--  Bottom Buttons  -->
 
-			<Button x:Name="btnOk" Text="ok">
+			<Button
+				x:Name="btnOk"
+				Style="{StaticResource ButtonWithShadow}"
+				Text="ok" />
 
-				<Button.Shadow>
-					<Shadow
-						Brush="Black"
-						Opacity="0.8"
-						Radius="40"
-						Offset="16,16" />
-				</Button.Shadow>
-
-			</Button>
-
-			<Button x:Name="btnCancel" Text="cancel">
-
-				<Button.Shadow>
-					<Shadow
-						Brush="Black"
-						Opacity="0.8"
-						Radius="40"
-						Offset="16,16" />
-				</Button.Shadow>
-
-			</Button>
+			<Button
+				x:Name="btnCancel"
+				Style="{StaticResource ButtonWithShadow}"
+				Text="cancel" />
 
 		</StackLayout>
 

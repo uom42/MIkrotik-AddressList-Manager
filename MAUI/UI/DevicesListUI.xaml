@@ -65,9 +65,11 @@
 						<StackLayout Padding="10">
 
 							<Border
-								Background="{StaticResource Gray200}"
-								Stroke="DarkGray"
-								StrokeThickness="1">
+								Background="{AppThemeBinding Light={StaticResource Pantone_GreenBlue},
+								                             Dark={StaticResource Gray900}}"
+								Stroke="{AppThemeBinding Light={StaticResource Gray400},
+								                         Dark={StaticResource Gray600}}"
+								StrokeThickness="0">
 								<Border.StrokeShape>
 									<RoundRectangle CornerRadius="10" />
 								</Border.StrokeShape>
@@ -111,7 +113,8 @@
 										<Label
 											FontFamily="OpenSansSemibold"
 											Text="{Binding UserName}"
-											TextColor="{StaticResource Tertiary}"
+											TextColor="{AppThemeBinding Light={StaticResource Tertiary},
+											                            Dark={StaticResource Gray400}}"
 											VerticalOptions="End"
 											VerticalTextAlignment="End" />
 
@@ -138,7 +141,8 @@
 											Clicked="OnEdit"
 											HorizontalOptions="End"
 											Text="{mi:MaterialOutlined Icon=Edit}"
-											TextColor="{StaticResource Primary}"
+											TextColor="{AppThemeBinding Light={StaticResource Primary},
+											                            Dark={StaticResource Gray400}}"
 											VerticalOptions="Center">
 											<Button.Shadow>
 												<Shadow
@@ -155,7 +159,8 @@
 											Clicked="OnDelete"
 											HorizontalOptions="End"
 											Text="{mi:MaterialOutlined Icon=Delete}"
-											TextColor="{StaticResource Primary}"
+											TextColor="{AppThemeBinding Light={StaticResource Primary},
+											                            Dark={StaticResource Gray400}}"
 											VerticalOptions="Center">
 											<Button.Shadow>
 												<Shadow
@@ -198,106 +203,59 @@
 					<DataTemplate>
 
 
+
+
 						<StackLayout HorizontalOptions="FillAndExpand" Orientation="Horizontal">
 
 
 
-							<StackLayout
-								Padding="8,0,4,0"
-								HorizontalOptions="Start"
-								Orientation="Horizontal">
-
-								<!--
-								-->
-
-								<StackLayout.Shadow>
-									<Shadow
-										Brush="Black"
-										Opacity="0.5"
-										Radius="8"
-										Offset="4,4" />
-								</StackLayout.Shadow>
-
-								<Label
-									FontAttributes="Bold"
-									FontSize="Subtitle"
-									HorizontalOptions="Start"
-									HorizontalTextAlignment="Start"
-									LineBreakMode="TailTruncation"
-									Text="{Binding DisplayName}"
-									TextColor="{StaticResource Primary}"
-									VerticalTextAlignment="Center" />
-
-								<Label
-									Padding="4,0,0,0"
-									FontSize="Subtitle"
-									HorizontalOptions="End"
-									HorizontalTextAlignment="Center"
-									Text="{Binding ItemsCountString}"
-									TextColor="{StaticResource Tertiary}"
-									VerticalTextAlignment="Center" />
-
+							<StackLayout Style="{StaticResource GroupHeader_Name_Count}">
+								<Label Style="{StaticResource GroupHeader_Name}" />
+								<Label Style="{StaticResource GroupHeader_Count}" />
 							</StackLayout>
-
-
-
-
-
 
 							<StackLayout HorizontalOptions="FillAndExpand" Orientation="Horizontal">
-
-								<StackLayout.Shadow>
-									<Shadow
-										Brush="Black"
-										Opacity="0.5"
-										Radius="8"
-										Offset="4,4" />
-								</StackLayout.Shadow>
-
-								<Line
-									HorizontalOptions="FillAndExpand"
-									Stroke="{StaticResource Primary}"
-									StrokeThickness="1"
-									VerticalOptions="Center"
-									X2="{Binding Width, Source={RelativeSource Self}}" />
-
+								<Line Style="{StaticResource GroupHeader_HorizontalLine}" />
 							</StackLayout>
-
-
 
 							<StackLayout
 								Padding="4,0,4,0"
 								HorizontalOptions="End"
 								Orientation="Horizontal">
 
-								<StackLayout.Shadow>
-									<Shadow
-										Brush="Black"
-										Opacity="0.5"
-										Radius="8"
-										Offset="4,4" />
-								</StackLayout.Shadow>
 
-								<Label
-									x:Name="lblCollapseGroupGlyph"
-									FontSize="Body"
-									HorizontalTextAlignment="Center"
+								<Border
+									Background="{AppThemeBinding Light={StaticResource Pantone_GreenBlue},
+									                             Dark={StaticResource Gray900}}"
 									IsVisible="{Binding IsCollapsed}"
-									LineBreakMode="NoWrap"
-									Text="{mi:MaterialOutlined Icon=ArrowDropDown,
-									                           IconColor={StaticResource Primary}}"
-									VerticalTextAlignment="Center" />
+									Stroke="{AppThemeBinding Light={StaticResource Gray400},
+									                         Dark={StaticResource Gray600}}"
+									StrokeThickness="0">
+
+									<Border.StrokeShape>
+										<RoundRectangle CornerRadius="20" />
+									</Border.StrokeShape>
+
+									<Label Style="{StaticResource GroupHeader_ExpandCollapseGroupGlyph}" Text="{mi:MaterialOutlined Icon=ArrowDropDown, IconColor={StaticResource Primary}}" />
+
+								</Border>
 
 
-								<Label
-									x:Name="lblExpandGroupGlyph"
-									FontSize="Title"
-									HorizontalTextAlignment="Center"
+
+								<Border
+									Background="{AppThemeBinding Light={StaticResource Pantone_GreenBlue},
+									                             Dark={StaticResource Gray900}}"
 									IsVisible="{Binding NotCollapsed}"
-									LineBreakMode="NoWrap"
-									Text="{mi:MaterialOutlined Icon=ArrowDropUp,
-									                           IconColor={StaticResource Primary}}"
-									VerticalTextAlignment="Center" />
+									Stroke="{AppThemeBinding Light={StaticResource Gray400},
+									                         Dark={StaticResource Gray600}}"
+									StrokeThickness="0">
+
+									<Border.StrokeShape>
+										<RoundRectangle CornerRadius="20" />
+									</Border.StrokeShape>
+
+									<Label Style="{StaticResource GroupHeader_ExpandCollapseGroupGlyph}" Text="{mi:MaterialOutlined Icon=ArrowDropUp, IconColor={StaticResource Primary}}" />
+								</Border>
 							</StackLayout>
 
 
@@ -305,8 +263,6 @@
 							<StackLayout.GestureRecognizers>
 								<TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnGroupTap" />
 							</StackLayout.GestureRecognizers>
-							<!--
-							-->
 
 
 						</StackLayout>

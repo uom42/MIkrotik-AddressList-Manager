@@ -9,6 +9,7 @@ using MALM.Model;
 
 using Android.OS;
 using CommunityToolkit.Maui.Markup;
+using CommunityToolkit.Maui.Alerts;
 
 using uom.maui;
 
@@ -76,7 +77,34 @@ namespace MALM.UI
 		private async Task InitOnLoad()
 		{
 
+
+
+
 #if !WINDOWS
+
+			var bp = await uom.maui.security.PermissionsHelper.CheckAndRequestPermissionAsync_Biometric_Fingerprint();
+			if (!bp)
+			{
+				Application.Current?.Quit();
+				return;
+			}
+
+			bp = await uom.maui.security.PermissionsHelper.CheckAndRequestPermissionAsync_Net_AccessNetworkStateAndInternet();
+			if (!bp)
+			{
+				Application.Current?.Quit();
+				return;
+			}
+
+
+
+
+
+
+
+
+
+
 			Entry[] txt;
 #else
 			TextBox[] txt;
