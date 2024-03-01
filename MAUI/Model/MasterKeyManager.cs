@@ -2,12 +2,6 @@
 
 using MALM.UI;
 
-
-
-
-
-
-
 #if !WINDOWS
 
 using uom.controls.MAUI;
@@ -141,14 +135,25 @@ namespace MALM.Model
 			static async Task<(string?, bool)> GetMasterKey()
 			{
 #if !WINDOWS
+				//await Task.Delay(1000);
 
-				//var ddd = DeviceInfo.Current.DeviceType == DeviceType.Virtual;
-				//await $"{Secure.AndroidId
-				//AppInfo.Current.DeviceInfo.Current.DeviceType}				".e_MsgboxShow(); //await DisplayAlert("DEBUG", , "");
-				//uom.AppInfo.AlgorithmId
+				string? loadedKeyString = null;
+				try
+				{
+					loadedKeyString = await SecureStorage.GetAsync(MKey_Value) ?? string.Empty;
+					//await $"loadedKeyString = '{loadedKeyString}'".e_MsgboxShow("SecureStorage.GetAsync");
+				}
+				catch (Exception ex)
+				{
+					await ex.e_LogError(false, supressAnyModalPopEvenInDEBUG: true);
+					loadedKeyString = string.Empty;
+				}
 
-				string? key = await SecureStorage.Default.GetAsync(MKey_Value);
-				bool dontAskKey = (key != null);
+				bool dontAskKey = loadedKeyString.e_IsNOTNullOrWhiteSpace();
+#if DEBUG
+				Debug.WriteLine($"loadedKeyString = '{loadedKeyString}'");
+#endif
+
 				if (!dontAskKey) return (null, false);//Saved key nof found, need ask key always!
 #else
 				using IsolatedStorageFile isoStore = GetISO();
@@ -175,9 +180,9 @@ namespace MALM.Model
 					return null;
 
 				}
-				var key = await Task.Factory.StartNew(() => DecryptMasterKey(isoStore));
+				var loadedKeyString = await Task.Factory.StartNew(() => DecryptMasterKey(isoStore));
 #endif
-				return (key, dontAskKey);
+				return (loadedKeyString, dontAskKey);
 			}
 
 			(Key, SavePasswordAndDontAsk) = await GetMasterKey();
@@ -190,8 +195,6 @@ namespace MALM.Model
 			_lm = HasSavedKey
 				? LoginModes.Login
 				: LoginModes.InitialSetupMK;
-
-
 		}
 
 
@@ -212,9 +215,10 @@ namespace MALM.Model
 			if (userKey.e_IsNullOrWhiteSpace()) throw new ArgumentNullException("MasterKey");
 
 			//We never store user entered Masterkey, we encrypt it...
-			//Key = userKey;
 			Key = userKey.e_Encrypt_AES_ToBase64String(GetEntrophyString(), createSaltFromPassword: true);
-
+#if DEBUG
+			Debug.WriteLine($"\n\nuserKey: '{userKey}'\nKey: '{Key}'\n\n");
+#endif
 			//In Logon mode chk == null andwe dont save any changes
 			if (chk != null) SavePasswordAndDontAsk = chk.Checked;
 		}
@@ -254,9 +258,6 @@ namespace MALM.Model
 				: null);
 		}
 
-
-
-
 		private static async Task WriteOrDeleteMK(string? masterKey)
 		{
 
@@ -264,22 +265,38 @@ namespace MALM.Model
 			using IsolatedStorageFile isoStore = GetISO();
 #endif
 
-			if (masterKey == null)
+			//if (masterKey == null) //Delete value allways!
 			{
 				//Deleting saved masterkey
 #if !WINDOWS
-				SecureStorage.Default.Remove(MKey_Value);
+				try
+				{
+					//DONT WORKS!!! SecureStorage.RemoveAll() is Broken: https://github.com/dotnet/maui/issues/19983
+					//SecureStorage.RemoveAll();
+
+					SecureStorage.Remove(MKey_Value);
+				}
+				catch { }
 #else
 				if (ISOExist(isoStore)) isoStore.DeleteFile(I_STORE_FILE);
 #endif
+				if (masterKey == null) return;
 			}
-			else
+			//else
 			{
 				if (masterKey.e_IsNullOrWhiteSpace()) throw new ArgumentNullException("MasterKey");
 				//Saving Masterkey
 
 #if !WINDOWS
-				await SecureStorage.Default.SetAsync(MKey_Value, masterKey);
+				await SecureStorage.SetAsync(MKey_Value, masterKey);
+
+				//Try to read ancrypted data
+				var readedKey = await SecureStorage.GetAsync(MKey_Value);
+				if (readedKey != masterKey)
+				{
+					throw new Exception("Failed to ckeck saved key - data is not equal!");
+				}
+				//await $"Saved Key = '{masterKey}'\n\nLoaded Key: '{readedKey}'".e_MsgboxShow("SecureStorage.SetAsync");
 #else
 				await Task.Factory.StartNew(delegate
 				{

@@ -33,15 +33,13 @@ public static class MauiProgram
 				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
 			});
 
-
 		builder.Services.AddTransient<uom.maui.IGetDeviceInfo, uom.maui.GetDeviceInfo>();
 
 #if DEBUG
 		builder.Logging.AddDebug();
 #endif
-
-		builder.Services.AddSingleton(typeof(IFingerprint), CrossFingerprint.Current);
-		builder.Services.AddSingleton<MasterKeyUI>();
+		//builder.Services.AddSingleton(typeof(IFingerprint), CrossFingerprint.Current);
+		//builder.Services.AddSingleton<MasterKeyUI>();
 		return builder.Build();
 	}
 }

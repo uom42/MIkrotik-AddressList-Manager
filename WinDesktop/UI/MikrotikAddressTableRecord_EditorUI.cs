@@ -8,7 +8,7 @@ using Mikrotik.API.Model.IP.Firewall.AddressList;
 
 namespace MALM.UI
 {
-	internal partial class MikrotikDevicesListRecordEditorUI : Form
+	internal partial class MikrotikAddressTableRecord_EditorUI : Form
 	{
 
 		private const string DOUBLE_DOT = ":";
@@ -20,7 +20,7 @@ namespace MALM.UI
 
 		internal AddressListItem? _dialogResult;
 
-		public MikrotikDevicesListRecordEditorUI(MKConnection connection, MikrotikObjectBase[] addressSuggestions, string[] groupNames, string selectedGroupName) : base()
+		public MikrotikAddressTableRecord_EditorUI(MKConnection connection, MikrotikObjectBase[] addressSuggestions, string[] groupNames, string selectedGroupName) : base()
 		{
 			InitializeComponent();
 

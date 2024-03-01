@@ -150,13 +150,13 @@
 		</Compile>
 
 
-		<Compile Update="UI\MikrotikAddressTableRecordsListUI_Multiplatform.cs">
-			<DependentUpon>MikrotikAddressTableRecordsListUI.xaml</DependentUpon>
+		<Compile Update="UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs">
+			<DependentUpon>MikrotikAddressTableRecord_ListUI.xaml</DependentUpon>
 		</Compile>
 
 
-		<Compile Update="UI\MikrotikDevicesListRecordEditorPage.xaml.cs">
-			<DependentUpon>MikrotikDevicesListRecordEditorPage.xaml</DependentUpon>
+		<Compile Update="UI\DevicesListRecordEditorUI.xaml.cs">
+			<DependentUpon>DevicesListRecordEditorUI.xaml</DependentUpon>
 		</Compile>
 		<Compile Update="UI\MikrotikAddressTableRecordsListUI.xaml.cs">
 			<DependentUpon>MikrotikAddressTableRecordsListUI.xaml</DependentUpon>
@@ -184,7 +184,7 @@
 		<MauiXaml Update="UI\DevicesListUI.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
-		<MauiXaml Update="UI\MikrotikDevicesListRecordEditorPage.xaml">
+		<MauiXaml Update="UI\DevicesListRecordEditorUI.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="UI\MikrotikAddressTableRecordsListUI.xaml">

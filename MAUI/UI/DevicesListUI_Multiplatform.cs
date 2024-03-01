@@ -180,9 +180,9 @@ partial class DevicesListUI
 
 		DevicesListRecord md = new();
 		await this.e_GoToWithReturnAsync<DevicesListRecord>(
-			nameof(MikrotikDevicesListRecordEditorPage),
+			nameof(DevicesListRecordEditorUI),
 			retDev => addDevice(retDev),
-			MikrotikDevicesListRecordEditorPage.C_INPUT_PARAM_KEY, md);
+			DevicesListRecordEditorUI.C_INPUT_PARAM_KEY, md);
 
 #else
 
@@ -247,9 +247,9 @@ partial class DevicesListUI
 
 		int idx = _devices.IndexOf(md);
 		await this.e_GoToWithReturnAsync<DevicesListRecord>(
-			nameof(MikrotikDevicesListRecordEditorPage),
+			nameof(DevicesListRecordEditorUI),
 			retDev => updateDevice(idx, retDev),
-			MikrotikDevicesListRecordEditorPage.C_INPUT_PARAM_KEY, md);
+			DevicesListRecordEditorUI.C_INPUT_PARAM_KEY, md);
 
 
 #else
@@ -420,7 +420,7 @@ partial class DevicesListUI
 	{
 #if !WINDOWS
 		//await DisplayAlert("Connection OK", "Connection OK", L_OK);
-		MikrotikAddressTableRecordsListUI p = new(con!);
+		MikrotikAddressTableRecord_ListUI p = new(con!);
 		await Shell.Current.Navigation.PushAsync(p);
 #else
 		await Task.Delay(1);

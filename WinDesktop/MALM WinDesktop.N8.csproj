@@ -82,8 +82,8 @@
 			<DependentUpon>DevicesListUI.cs</DependentUpon>
 		</Compile>
 
-		<Compile Update="UI\MikrotikAddressTableRecordsListUI_Multiplatform.cs">
-			<DependentUpon>MikrotikAddressTableRecordsListUI.cs</DependentUpon>
+		<Compile Update="UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs">
+			<DependentUpon>MikrotikAddressTableRecord_ListUI.cs</DependentUpon>
 		</Compile>
 
 

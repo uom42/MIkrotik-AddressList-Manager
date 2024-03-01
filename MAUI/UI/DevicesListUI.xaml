@@ -44,268 +44,202 @@
 		VerticalOptions="FillAndExpand">
 
 
-		<StackLayout Orientation="Vertical" VerticalOptions="FillAndExpand">
+		<!--  Devices List  -->
 
-			<!--  Devices List  -->
-
-			<CollectionView
-				x:Name="lvwDevices"
-				CanMixGroups="False"
-				CanReorderItems="False"
-				HorizontalOptions="FillAndExpand"
-				IsGrouped="true"
-				ItemsUpdatingScrollMode="KeepItemsInView"
-				SelectionMode="None"
-				VerticalOptions="FillAndExpand">
+		<CollectionView
+			x:Name="lvwDevices"
+			CanMixGroups="False"
+			CanReorderItems="False"
+			HorizontalOptions="FillAndExpand"
+			IsGrouped="true"
+			ItemsUpdatingScrollMode="KeepItemsInView"
+			SelectionMode="None"
+			VerticalOptions="FillAndExpand">
 
 
 
-				<CollectionView.ItemTemplate>
-					<DataTemplate>
-						<StackLayout Padding="10">
+			<CollectionView.ItemTemplate>
+				<DataTemplate>
+					<StackLayout Padding="10">
 
-							<Border
-								Background="{AppThemeBinding Light={StaticResource Pantone_GreenBlue},
-								                             Dark={StaticResource Gray900}}"
-								Stroke="{AppThemeBinding Light={StaticResource Gray400},
-								                         Dark={StaticResource Gray600}}"
-								StrokeThickness="0">
-								<Border.StrokeShape>
-									<RoundRectangle CornerRadius="10" />
-								</Border.StrokeShape>
+						<Border
+							Background="{AppThemeBinding Light={StaticResource Pantone_GreenBlue},
+							                             Dark={StaticResource Gray900}}"
+							Stroke="{AppThemeBinding Light={StaticResource Gray400},
+							                         Dark={StaticResource Gray600}}"
+							StrokeThickness="0">
+							<Border.StrokeShape>
+								<RoundRectangle CornerRadius="10" />
+							</Border.StrokeShape>
+
+							<StackLayout
+								Padding="10,20,10,20"
+								HorizontalOptions="FillAndExpand"
+								Orientation="Horizontal">
+
 
 								<StackLayout
-									Padding="10,20,10,20"
 									HorizontalOptions="FillAndExpand"
-									Orientation="Horizontal">
+									Orientation="Vertical"
+									VerticalOptions="FillAndExpand">
 
 
 									<StackLayout
-										HorizontalOptions="FillAndExpand"
-										Orientation="Vertical"
-										VerticalOptions="FillAndExpand">
-
-
-										<StackLayout
-											HorizontalOptions="Fill"
-											Orientation="Horizontal"
-											VerticalOptions="FillAndExpand">
-
-
-											<Label
-												FontAttributes="Bold"
-												FontFamily="OpenSansSemibold"
-												FontSize="Large"
-												HorizontalOptions="Start"
-												LineBreakMode="TailTruncation"
-												Text="{Binding AddressString}"
-												VerticalTextAlignment="Center" />
-
-											<Label
-												FontFamily="OpenSansSemibold"
-												FontSize="Caption"
-												HorizontalOptions="Start"
-												Text="{Binding PortString2}"
-												VerticalTextAlignment="Center" />
-
-										</StackLayout>
-
-										<Label
-											FontFamily="OpenSansSemibold"
-											Text="{Binding UserName}"
-											TextColor="{AppThemeBinding Light={StaticResource Tertiary},
-											                            Dark={StaticResource Gray400}}"
-											VerticalOptions="End"
-											VerticalTextAlignment="End" />
-
-										<!--	  									
-										<Label BackgroundColor="DarkSalmon" Text="{Binding Group}" />
-										-->
-
-										<StackLayout.GestureRecognizers>
-											<TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnDeviceRow_Tapped" />
-										</StackLayout.GestureRecognizers>
-
-
-									</StackLayout>
-
-
-									<StackLayout
-										HorizontalOptions="End"
+										HorizontalOptions="Fill"
 										Orientation="Horizontal"
 										VerticalOptions="FillAndExpand">
 
 
-										<Button
-											BackgroundColor="Transparent"
-											Clicked="OnEdit"
-											HorizontalOptions="End"
-											Text="{mi:MaterialOutlined Icon=Edit}"
-											TextColor="{AppThemeBinding Light={StaticResource Primary},
-											                            Dark={StaticResource Gray400}}"
-											VerticalOptions="Center">
-											<Button.Shadow>
-												<Shadow
-													Brush="Black"
-													Opacity="0.5"
-													Radius="10"
-													Offset="4,4" />
-											</Button.Shadow>
+										<Label
+											FontAttributes="Bold"
+											FontFamily="OpenSansSemibold"
+											FontSize="Large"
+											HorizontalOptions="Start"
+											LineBreakMode="TailTruncation"
+											Text="{Binding AddressString}"
+											VerticalTextAlignment="Center" />
 
-										</Button>
-
-										<Button
-											BackgroundColor="Transparent"
-											Clicked="OnDelete"
-											HorizontalOptions="End"
-											Text="{mi:MaterialOutlined Icon=Delete}"
-											TextColor="{AppThemeBinding Light={StaticResource Primary},
-											                            Dark={StaticResource Gray400}}"
-											VerticalOptions="Center">
-											<Button.Shadow>
-												<Shadow
-													Brush="Black"
-													Opacity="0.5"
-													Radius="10"
-													Offset="4,4" />
-											</Button.Shadow>
-
-										</Button>
+										<Label
+											FontFamily="OpenSansSemibold"
+											FontSize="Caption"
+											HorizontalOptions="Start"
+											Text="{Binding PortString2}"
+											VerticalTextAlignment="Center" />
 
 									</StackLayout>
 
+									<Label
+										FontFamily="OpenSansSemibold"
+										Text="{Binding UserName}"
+										TextColor="{AppThemeBinding Light={StaticResource Tertiary},
+										                            Dark={StaticResource Gray400}}"
+										VerticalOptions="End"
+										VerticalTextAlignment="End" />
+
+									<!--	  									
+										<Label BackgroundColor="DarkSalmon" Text="{Binding Group}" />
+										-->
+
+									<StackLayout.GestureRecognizers>
+										<TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnDeviceRow_Tapped" />
+									</StackLayout.GestureRecognizers>
+
 
 								</StackLayout>
-								<Border.Shadow>
-									<Shadow
-										Brush="Black"
-										Opacity="0.8"
-										Radius="20"
-										Offset="4,4" />
-								</Border.Shadow>
 
 
+								<StackLayout
+									HorizontalOptions="End"
+									Orientation="Horizontal"
+									VerticalOptions="FillAndExpand">
 
 
+									<Button
+										BackgroundColor="Transparent"
+										Clicked="OnEdit"
+										HorizontalOptions="End"
+										Text="{mi:MaterialOutlined Icon=Edit}"
+										TextColor="{AppThemeBinding Light={StaticResource Primary},
+										                            Dark={StaticResource Gray400}}"
+										VerticalOptions="Center">
+										<Button.Shadow>
+											<Shadow
+												Brush="Black"
+												Opacity="0.5"
+												Radius="10"
+												Offset="4,4" />
+										</Button.Shadow>
 
-							</Border>
+									</Button>
+
+									<Button
+										BackgroundColor="Transparent"
+										Clicked="OnDelete"
+										HorizontalOptions="End"
+										Text="{mi:MaterialOutlined Icon=Delete}"
+										TextColor="{AppThemeBinding Light={StaticResource Primary},
+										                            Dark={StaticResource Gray400}}"
+										VerticalOptions="Center">
+										<Button.Shadow>
+											<Shadow
+												Brush="Black"
+												Opacity="0.5"
+												Radius="10"
+												Offset="4,4" />
+										</Button.Shadow>
+
+									</Button>
+
+								</StackLayout>
 
 
-						</StackLayout>
-
-					</DataTemplate>
-				</CollectionView.ItemTemplate>
-
-
-				<CollectionView.GroupHeaderTemplate>
-
-
-					<DataTemplate>
-
-
-
-
-						<StackLayout HorizontalOptions="FillAndExpand" Orientation="Horizontal">
-
-
-
-							<StackLayout Style="{StaticResource GroupHeader_Name_Count}">
-								<Label Style="{StaticResource GroupHeader_Name}" />
-								<Label Style="{StaticResource GroupHeader_Count}" />
 							</StackLayout>
-
-							<StackLayout HorizontalOptions="FillAndExpand" Orientation="Horizontal">
-								<Line Style="{StaticResource GroupHeader_HorizontalLine}" />
-							</StackLayout>
-
-							<StackLayout
-								Padding="4,0,4,0"
-								HorizontalOptions="End"
-								Orientation="Horizontal">
-
-
-								<Border
-									Background="{AppThemeBinding Light={StaticResource Pantone_GreenBlue},
-									                             Dark={StaticResource Gray900}}"
-									IsVisible="{Binding IsCollapsed}"
-									Stroke="{AppThemeBinding Light={StaticResource Gray400},
-									                         Dark={StaticResource Gray600}}"
-									StrokeThickness="0">
-
-									<Border.StrokeShape>
-										<RoundRectangle CornerRadius="20" />
-									</Border.StrokeShape>
-
-									<Label Style="{StaticResource GroupHeader_ExpandCollapseGroupGlyph}" Text="{mi:MaterialOutlined Icon=ArrowDropDown, IconColor={StaticResource Primary}}" />
-
-								</Border>
-
-
-
-								<Border
-									Background="{AppThemeBinding Light={StaticResource Pantone_GreenBlue},
-									                             Dark={StaticResource Gray900}}"
-									IsVisible="{Binding NotCollapsed}"
-									Stroke="{AppThemeBinding Light={StaticResource Gray400},
-									                         Dark={StaticResource Gray600}}"
-									StrokeThickness="0">
-
-									<Border.StrokeShape>
-										<RoundRectangle CornerRadius="20" />
-									</Border.StrokeShape>
-
-									<Label Style="{StaticResource GroupHeader_ExpandCollapseGroupGlyph}" Text="{mi:MaterialOutlined Icon=ArrowDropUp, IconColor={StaticResource Primary}}" />
-								</Border>
-							</StackLayout>
-
-
-
-							<StackLayout.GestureRecognizers>
-								<TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnGroupTap" />
-							</StackLayout.GestureRecognizers>
-
-
-						</StackLayout>
-
-
-
-					</DataTemplate>
+							<Border.Shadow>
+								<Shadow
+									Brush="Black"
+									Opacity="0.8"
+									Radius="20"
+									Offset="4,4" />
+							</Border.Shadow>
 
 
 
 
-				</CollectionView.GroupHeaderTemplate>
+
+						</Border>
 
 
-			</CollectionView>
+					</StackLayout>
 
-		</StackLayout>
-
-
-		<!--  Bottom Buttons
-		
-
-		<StackLayout
-			Padding="10"
-			Orientation="Vertical"
-			VerticalOptions="End">
-
-			<Button x:Name="btnConnect" Text="_conect">
-
-				<Button.Shadow>
-					<Shadow
-						Brush="Black"
-						Opacity="0.8"
-						Radius="40"
-						Offset="16,16" />
-				</Button.Shadow>
-
-			</Button>
-
-		</StackLayout>
+				</DataTemplate>
+			</CollectionView.ItemTemplate>
 
 
-		-->
+			<CollectionView.GroupHeaderTemplate>
+				<DataTemplate>
+
+					<ContentView>
+						<Grid ColumnSpacing="4">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="Auto" />
+								<ColumnDefinition Width="Auto" />
+								<ColumnDefinition Width="*" />
+								<ColumnDefinition Width="Auto" />
+							</Grid.ColumnDefinitions>
+
+							<Label Style="{StaticResource GroupHeader_DisplayName}" />
+							<Label Grid.Column="1" Style="{StaticResource GroupHeader_ItemsCount}" />
+							<Line Grid.Column="2" Style="{StaticResource GroupHeader_HorizontalLine2}" />
+
+
+							<Ellipse Grid.Column="3" Style="{StaticResource GroupHeader_ExpandCollapseGroupGlyphBackground}" />
+							<Label
+								Grid.Column="3"
+								IsVisible="{Binding IsCollapsed}"
+								Style="{StaticResource GroupHeader_ExpandCollapseGroupGlyph2}"
+								Text="{mi:MaterialOutlined Icon=ArrowDropDown,
+								                           IconColor={StaticResource Primary}}" />
+							<Label
+								Grid.Column="3"
+								IsVisible="{Binding NotCollapsed}"
+								Style="{StaticResource GroupHeader_ExpandCollapseGroupGlyph2}"
+								Text="{mi:MaterialOutlined Icon=ArrowDropUp,
+								                           IconColor={StaticResource Primary}}" />
+
+						</Grid>
+
+						<ContentView.GestureRecognizers>
+							<TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnGroupTap" />
+						</ContentView.GestureRecognizers>
+					</ContentView>
+
+
+				</DataTemplate>
+			</CollectionView.GroupHeaderTemplate>
+
+
+		</CollectionView>
+
 
 
 	</StackLayout>

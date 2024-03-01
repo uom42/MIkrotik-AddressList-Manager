@@ -97,6 +97,15 @@ namespace MALM.Localization {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Login failed!.
+        /// </summary>
+        internal static string E_TITLE_LOGIN_FAILED {
+            get {
+                return ResourceManager.GetString("E_TITLE_LOGIN_FAILED", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Add.
         /// </summary>
         internal static string L_ADD {
@@ -516,6 +525,33 @@ namespace MALM.Localization {
         internal static string Q_ADDRESSBOOK_DELETE_RECORD {
             get {
                 return ResourceManager.GetString("Q_ADDRESSBOOK_DELETE_RECORD", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Authentication required.
+        /// </summary>
+        internal static string Q_MASTERKEY_BIO_REQ {
+            get {
+                return ResourceManager.GetString("Q_MASTERKEY_BIO_REQ", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Confirm login.
+        /// </summary>
+        internal static string Q_MASTERKEY_BIO_REQ_2 {
+            get {
+                return ResourceManager.GetString("Q_MASTERKEY_BIO_REQ_2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Use PIN.
+        /// </summary>
+        internal static string Q_MASTERKEY_BIO_USE_PIN {
+            get {
+                return ResourceManager.GetString("Q_MASTERKEY_BIO_USE_PIN", resourceCulture);
             }
         }
         

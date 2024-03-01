@@ -19,7 +19,7 @@ namespace MALM.UI;
 
 
 
-partial class MikrotikAddressTableRecordsListUI
+partial class MikrotikAddressTableRecord_ListUI
 {
 
 	private bool _tableRowsReady = false;
@@ -41,7 +41,7 @@ partial class MikrotikAddressTableRecordsListUI
 	#region Constructors
 
 	/// <summary>Creates new instance with specifed Connection object</summary>
-	public MikrotikAddressTableRecordsListUI(MKConnection c) : base()
+	public MikrotikAddressTableRecord_ListUI(MKConnection c) : base()
 	{
 		_connection = c;
 

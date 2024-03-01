@@ -8,13 +8,13 @@ namespace MALM.Pages;
 
 
 [QueryProperty(nameof(DeviceToEdit), C_INPUT_PARAM_KEY)]
-public partial class MikrotikDevicesListRecordEditorPage : ContentPage
+public partial class DevicesListRecordEditorUI : ContentPage
 {
 
 	public const string C_INPUT_PARAM_KEY = "EditDevice";
 
 
-	public MikrotikDevicesListRecordEditorPage()
+	public DevicesListRecordEditorUI()
 	{
 		InitializeComponent();
 

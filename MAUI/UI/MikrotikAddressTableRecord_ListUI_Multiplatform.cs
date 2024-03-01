@@ -19,7 +19,7 @@ namespace MALM.UI;
 
 
 
-partial class MikrotikAddressTableRecordsListUI
+partial class MikrotikAddressTableRecord_ListUI
 {
 
 	private bool _tableRowsReady = false;
@@ -41,7 +41,7 @@ partial class MikrotikAddressTableRecordsListUI
 	#region Constructors
 
 	/// <summary>Creates new instance with specifed Connection object</summary>
-	public MikrotikAddressTableRecordsListUI(MKConnection c) : base()
+	public MikrotikAddressTableRecord_ListUI(MKConnection c) : base()
 	{
 		_connection = c;
 
@@ -97,7 +97,7 @@ partial class MikrotikAddressTableRecordsListUI
 		btnExitApp.Clicked += (_, _) => OnExit();
 
 		btnRows_Refresh.Clicked += async (_, _) => await RefreshList();
-		refRows.Refreshing += async (_, _) =>
+		rvData.Refreshing += async (_, _) =>
 		{
 			if (_isRefreshingState) return;
 			await RefreshList();
@@ -165,7 +165,7 @@ partial class MikrotikAddressTableRecordsListUI
 
 #if !WINDOWS
 			_isRefreshingState = true;
-			if (!refRows.IsRefreshing) refRows.IsRefreshing = true;
+			if (!rvData.IsRefreshing) rvData.IsRefreshing = true;
 #endif
 
 			await QueryDataFromDevice();
@@ -174,7 +174,7 @@ partial class MikrotikAddressTableRecordsListUI
 		finally
 		{
 #if !WINDOWS
-			if (refRows.IsRefreshing) refRows.IsRefreshing = false;
+			if (rvData.IsRefreshing) rvData.IsRefreshing = false;
 			_isRefreshingState = false;
 #endif
 		}

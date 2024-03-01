@@ -947,13 +947,14 @@ return await Application.Current.MainPage.DisplayAlert(title, message, accept, c
 			Page? ctx = null,
 			[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0)
 		{
-			string errorDump = ex.Message;// .e_FullDump(callerName, callerFile, callerLine);
+
 			string msg = ex.Message;
 #if DEBUG
-			$"{CS_CONSOLE_SEPARATOR}\n{errorDump}\n{CS_CONSOLE_SEPARATOR}".e_DebugWriteLine();
+			string errorDump = ex.e_FullDump(callerName, callerFile, callerLine);
+			$"{CS_SEPARATOR_10}\n{errorDump}\n{CS_SEPARATOR_10}".e_DebugWriteLine();
 
 			//Показываем расширенные данные в DEBUG режиме
-			msg += $"\n{CS_CONSOLE_SEPARATOR}\nUOM DEBUG-MODE DETAILED ERROR INFO:\n{errorDump}";
+			msg += $"\n{CS_SEPARATOR_10}\nUOM DEBUG-MODE DETAILED ERROR INFO:\n{errorDump}";
 #endif
 
 			if (showMessageBox) // Надо показать на экране модальное Сообщение об ошибке
@@ -972,6 +973,41 @@ return await Application.Current.MainPage.DisplayAlert(title, message, accept, c
 			}
 
 		}
+
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static string e_FullDump(this Exception? ex,
+			[CallerMemberName] string callerName = "",
+			[CallerFilePath] string callerFile = "",
+			[CallerLineNumber] int callerLine = 0)
+		{
+			if (ex == null) return string.Empty;
+
+			StringBuilder sbExceptionTree = new();
+			using StringWriter sw = new(sbExceptionTree);
+			try
+			{
+
+				sw.WriteLine($"{ex.GetType()}: '{ex.Message}'");
+				sw.WriteLine($"Caller: '{callerName}', File: '{callerFile}', Line: {callerLine}");
+				sw.WriteLine($"StackTrace:\n{ex.StackTrace}");
+
+
+				if (ex.InnerException != null)
+				{
+					sw.WriteLine($"Exception Stack Tree:");
+					while (ex.InnerException != null)
+					{
+						ex = ex.InnerException;
+						sw.WriteLine($"{ex.GetType()}\n{ex.Message}");
+					}
+				}
+			}
+			catch { }
+			return sbExceptionTree.ToString();
+		}
+
+
 	}
 
 

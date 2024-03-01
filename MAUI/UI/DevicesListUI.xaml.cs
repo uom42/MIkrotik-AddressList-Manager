@@ -106,8 +106,8 @@ public partial class DevicesListUI : ContentPage
 
 	private async void OnDeviceRow_Tapped(object sender, TappedEventArgs e)
 	{
-		var ss = sender as Layout;
-		var md = ss?.BindingContext as DevicesListRecord;
+		var v = sender as View;
+		var md = v?.BindingContext as DevicesListRecord;
 		if (md == null) return;
 
 		await OnTryConnectDevice(md, EventArgs.Empty);
@@ -117,12 +117,12 @@ public partial class DevicesListUI : ContentPage
 
 	private async void OnGroupTap(object sender, TappedEventArgs e)
 	{
-		var l = sender as Layout;
-		if (l == null) return;
+		var v = sender as View;
+		if (v == null) return;
 
 		try
 		{
-			var grp = l?.BindingContext as DevicesListRecordRowsGroup;
+			var grp = v?.BindingContext as DevicesListRecordRowsGroup;
 			if (grp == null) return;
 
 			if (grp.SwitchCollapsed()) lvwDevices.ItemsSource = _deviceGroups;
@@ -131,6 +131,7 @@ public partial class DevicesListUI : ContentPage
 		{
 			Debug.WriteLine($"\t*****\t {ex.Message}");
 		}
+		await Task.Delay(1);
 	}
 
 

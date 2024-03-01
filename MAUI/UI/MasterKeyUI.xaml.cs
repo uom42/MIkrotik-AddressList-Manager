@@ -7,22 +7,40 @@ using Plugin.Fingerprint.Abstractions;
 
 using uom.maui;
 
+using static MALM.Localization.Strings;
 
 
 public partial class MasterKeyUI : ContentPage
 {
 
-	private readonly IFingerprint fingerprint;
-
+	/*
+	private readonly IFingerprint _fingerprint;
 
 	/// <summary>EntryPoint for Non Windows Login</summary>
 	public MasterKeyUI(IFingerprint fingerprint) : this()
 	{
-		this.fingerprint = fingerprint;
+		this._fingerprint = fingerprint;
 	}
+	 */
 
+	private async Task<bool> IsBiometricAvailableAsync()
+	{
+		var bp = await uom.maui.security.PermissionsHelper.CheckAndRequestPermissionAsync_Biometric_Fingerprint();
+		if (!bp)
+		{
+			return false;
+		}
 
-	private async Task<bool> IsBiometricAvailableAsync() => await CrossFingerprint.Current.IsAvailableAsync(true);
+		/*
+		bp = await uom.maui.security.PermissionsHelper.CheckAndRequestPermissionAsync_Net_AccessNetworkStateAndInternet();
+		if (!bp)
+		{
+			return (false, false);
+		}
+		 */
+
+		return await CrossFingerprint.Current.IsAvailableAsync(true);
+	}
 
 	private async Task<(bool Available, bool Authenticated)> AuthAuthenticateFingerprintAsync()
 	{
@@ -30,9 +48,9 @@ public partial class MasterKeyUI : ContentPage
 		Debug.WriteLine($"IsBiometricAvailableAsync: {isAvailable}");
 		if (isAvailable)
 		{
-			AuthenticationRequestConfiguration request = new("Login using biometrics", "Confirm login with your biometrics")
+			AuthenticationRequestConfiguration request = new(Q_MASTERKEY_BIO_REQ, Q_MASTERKEY_BIO_REQ_2)
 			{
-				FallbackTitle = "Use PIN",
+				FallbackTitle = Q_MASTERKEY_BIO_USE_PIN,
 				AllowAlternativeAuthentication = true,
 			};
 			var fpResult = await CrossFingerprint.Current.AuthenticateAsync(request);
@@ -43,24 +61,6 @@ public partial class MasterKeyUI : ContentPage
 		return (isAvailable, false);
 	}
 
-
-	/*
-private async static Task<(bool, bool)> AuthAuthenticateFingerprintAsync()
-{
-var isAvailable = await CrossFingerprint.Current.IsAvailableAsync(true);
-if (isAvailable)
-{
-AuthenticationRequestConfiguration request = new("Login using biometrics", "Confirm login with your biometrics");
-request.AllowAlternativeAuthentication = true;
-var fpResult = await CrossFingerprint.Current.AuthenticateAsync(request);
-
-return (fpResult.Authenticated, true);
-
-}
-return (false, false);
-}
-
-	 */
 
 	private async void OnCancel(object sender, EventArgs e)
 	{

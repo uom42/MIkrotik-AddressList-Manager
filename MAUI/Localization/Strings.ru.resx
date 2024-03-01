@@ -129,6 +129,9 @@
   <data name="E_TITLE_DEFAULT" xml:space="preserve">
     <value>Не удалось выполнить!</value>
   </data>
+  <data name="E_TITLE_LOGIN_FAILED" xml:space="preserve">
+    <value>Авторизация не удалась!</value>
+  </data>
   <data name="L_ADD" xml:space="preserve">
     <value>Добавить</value>
   </data>
@@ -269,6 +272,15 @@
   </data>
   <data name="Q_ADDRESSBOOK_DELETE_RECORD" xml:space="preserve">
     <value>Удалить запись '{0}'?</value>
+  </data>
+  <data name="Q_MASTERKEY_BIO_REQ" xml:space="preserve">
+    <value>Требуется авторизация</value>
+  </data>
+  <data name="Q_MASTERKEY_BIO_REQ_2" xml:space="preserve">
+    <value>Подтвердите вход</value>
+  </data>
+  <data name="Q_MASTERKEY_BIO_USE_PIN" xml:space="preserve">
+    <value>Использовать ПИН</value>
   </data>
   <data name="Q_RESET_MASTER_KEY" xml:space="preserve">
     <value>Забытый мастер-пароль нельзя восстановить, он нигде не сохраняется. Его можно сбросить, задав новый, при этом потеряются данные (адресная книга) зашифрованные старым ключом.||Сбросить мастер-пароль?</value>

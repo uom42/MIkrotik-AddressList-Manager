@@ -2,7 +2,7 @@
 
 namespace MALM.UI
 {
-	partial class MikrotikAddressTableRecordsListUI
+	partial class MikrotikAddressTableRecord_ListUI
 	{
 		/// <summary>
 		///  Required designer variable.
@@ -30,7 +30,7 @@ namespace MALM.UI
 		/// </summary>
 		private void InitializeComponent()
 		{
-			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MikrotikAddressTableRecordsListUI));
+			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MikrotikAddressTableRecord_ListUI));
 			this.lvwRows = new uom.controls.ListViewEx();
 			this.colAddress = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
 			this.colComment = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));

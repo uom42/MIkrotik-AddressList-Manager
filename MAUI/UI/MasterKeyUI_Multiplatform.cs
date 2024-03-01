@@ -32,7 +32,7 @@ namespace MALM.UI
 		private bool _isBiometricLoginOk = false;
 
 
-		private MasterKeyUI() : base()
+		public MasterKeyUI() : base()
 		{
 			InitializeComponent();
 			LocalizeUI();
@@ -77,49 +77,18 @@ namespace MALM.UI
 		private async Task InitOnLoad()
 		{
 
-
-
-
 #if !WINDOWS
-
-			var bp = await uom.maui.security.PermissionsHelper.CheckAndRequestPermissionAsync_Biometric_Fingerprint();
-			if (!bp)
-			{
-				Application.Current?.Quit();
-				return;
-			}
-
-			bp = await uom.maui.security.PermissionsHelper.CheckAndRequestPermissionAsync_Net_AccessNetworkStateAndInternet();
-			if (!bp)
-			{
-				Application.Current?.Quit();
-				return;
-			}
-
-
-
-
-
-
-
-
-
-
 			Entry[] txt;
 #else
 			TextBox[] txt;
 #endif
-
 			txt = [txtMasterKey1, txtMasterKey2];
 			foreach (var t in txt)
 			{
 				t.MaxLength = MasterKeyManager.MAX_MASTERKEY_LEN;
 				t.Text = string.Empty;
 #if WINDOWS
-				//t.PasswordChar = '*';
 				t.UseSystemPasswordChar = true;
-#else
-				t.IsPassword = true;
 #endif
 			}
 
@@ -135,7 +104,6 @@ namespace MALM.UI
 			chkRememberMK.Checked = false;
 
 			//btnOk.Text = L_OK;
-
 			await InitUIFromLoginMode();
 		}
 
@@ -144,15 +112,24 @@ namespace MALM.UI
 			_isBiometricLoginOk = false;
 			chkRememberMK.Text = L_MASTER_KEY_CACHING;
 
-			_mkm ??= await MasterKeyManager.Load();
+			try
+			{
+				_mkm ??= await MasterKeyManager.Load();
+			}
+			catch (Exception ex)
+			{
+#if !WINDOWS
+				await
+#endif
+				ex.e_LogError(true);
+			}
 
-			btnOk.Text = _mkm.LoginMode switch
+			btnOk.Text = _mkm!.LoginMode switch
 			{
 				MasterKeyManager.LoginModes.InitialSetupMK => $"{L_SET} {L_MASTER_KEY.ToLower()}",
 				MasterKeyManager.LoginModes.Edit2 => L_APPLY,
 				_ => L_OK
 			};
-
 
 			bool _2EditControls = _mkm.LoginMode != MasterKeyManager.LoginModes.Login;
 #if !WINDOWS
@@ -164,16 +141,12 @@ namespace MALM.UI
 			chkRememberMK.Visible = _2EditControls;
 #endif
 
+
 			switch (_mkm.LoginMode)
 			{
 				case MasterKeyManager.LoginModes.Login:
 					{
 #if !WINDOWS
-						/*
-						txtMasterKey2.IsVisible = false;
-						chkRememberMK.IsVisible = false;
-						 */
-
 						try
 						{
 							if (_mkm.CanAutologin)
@@ -192,20 +165,35 @@ namespace MALM.UI
 							//Autologon failed. Need Ask user for password.
 						}
 #endif
-
 						break;
 					}
 
 				case MasterKeyManager.LoginModes.Edit2:
 				case MasterKeyManager.LoginModes.InitialSetupMK:
 					{
+						bool isInitialSetup = _mkm.LoginMode == MasterKeyManager.LoginModes.InitialSetupMK;
+						if (isInitialSetup)
+						{
+#if !WINDOWS
+							Entry[] txt;
+#else
+							TextBox[] txt;
+#endif
+							txt = [txtMasterKey1, txtMasterKey2];
+							foreach (var t in txt)
+							{
+								t.Text = string.Empty;
+							}
+						}
+
 #if !WINDOWS
 						chkRememberMK.Text = !(await IsBiometricAvailableAsync())
 							? L_MASTER_KEY_CACHING
 							: L_MASTER_KEY_CACHING_USE_BIO;
+
+
 #endif
 						txtMasterKey2.TextChanged += (_, _) => OnEdited();
-						//_mkm!.FillTextBoxes(txtMasterKey1, txtMasterKey2);
 
 						chkRememberMK.Checked = _mkm.CanAutologin;
 
@@ -250,7 +238,20 @@ namespace MALM.UI
 			{
 				case MasterKeyManager.LoginModes.Login:
 					{
-						if (!_isBiometricLoginOk) _mkm.InitFromUI(txtMasterKey1);
+						try
+						{
+							if (!_isBiometricLoginOk) _mkm.InitFromUI(txtMasterKey1);
+						}
+						catch (Exception ex)
+						{
+#if !WINDOWS
+							await ex.e_LogError(true,E_TITLE_LOGIN_FAILED);
+#else
+							ex.e_LogError(true, E_TITLE_LOGIN_FAILED);
+#endif
+							return;
+						}
+
 						try
 						{
 							//Trying to load and decrypt database with old saved Masterkey...
@@ -263,13 +264,9 @@ namespace MALM.UI
 							LoginResult = rows;
 							DialogResult = DialogResult.OK;
 #else
-							//if (!_isBiometricLoginOk) await _mkm.Save();//Don't save any changes while logon using biometric login
-
 							LoginResult lr = new(_mkm, rows);
 							var devListUI = new DevicesListUI(lr);
 							await Shell.Current.Navigation.PushAsync(devListUI);
-
-							//await this.e_SetDialogResultAndPopBackAsync(true);
 #endif
 							return;
 						}
@@ -291,9 +288,9 @@ namespace MALM.UI
 								};
 
 #if !WINDOWS
-								await DisplayAlert(E_TITLE_DEFAULT, err, L_OK);
+								await DisplayAlert(E_TITLE_LOGIN_FAILED, err, L_OK);
 #else
-								err.e_MsgboxShow(Extensions_UI_Win.MsgBoxFlags.Btn_OK | Extensions_UI_Win.MsgBoxFlags.Icn_Error, E_TITLE_DEFAULT);
+								err.e_MsgboxShow(Extensions_UI_Win.MsgBoxFlags.Btn_OK | Extensions_UI_Win.MsgBoxFlags.Icn_Error, E_TITLE_LOGIN_FAILED);
 #endif
 								return;
 							}
@@ -308,7 +305,6 @@ namespace MALM.UI
 							if (!result) return;
 
 							//Need to reset pawsword!
-							//await 							//.Reset(false);
 							_mkm.SetPasswordResetMode();
 							await InitUIFromLoginMode();
 							return;
@@ -325,12 +321,34 @@ namespace MALM.UI
 						if (!ValidateUserInput()) return;
 						bool isInitialSetup = _mkm.LoginMode == MasterKeyManager.LoginModes.InitialSetupMK;
 
-						_mkm!.InitFromUI(txtMasterKey1, chkRememberMK);
-						await _mkm.Save();
+						try
+						{
+							_mkm!.InitFromUI(txtMasterKey1, chkRememberMK);
+							await _mkm.Save();
+						}
+						catch (Exception ex)
+						{
+#if !WINDOWS
+							await ex.e_LogError(true);							
+#else
+							ex.e_LogError(true);
+#endif
+							return;
+						}
 
 #if !WINDOWS
-						var ns = Shell.Current.Navigation.NavigationStack;
-						await this.e_SetDialogResultAndPopBackAsync(true);
+						if (isInitialSetup)
+						{
+							var rows = await _mkm.Database_WriteEncryptedEmpty();// Write an empty Datatase.
+							LoginResult lr = new(_mkm, rows);
+							var devListUI = new DevicesListUI(lr);
+							await Shell.Current.Navigation.PushAsync(devListUI);
+						}
+						else
+						{
+							var ns = Shell.Current.Navigation.NavigationStack;
+							await this.e_SetDialogResultAndPopBackAsync(true);
+						}
 #else
 						if (isInitialSetup)
 						{

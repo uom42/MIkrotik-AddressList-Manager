@@ -62,7 +62,7 @@ namespace MALM
 			var conDev = UI.DevicesListUI.SelectDeviceAndConnect(loginResult);
 			if (conDev == null) return;  // User canceleg device selection
 
-			using MikrotikAddressTableRecordsListUI fm = new(conDev);
+			using MikrotikAddressTableRecord_ListUI fm = new(conDev);
 			Application.Run(fm);
 		}
 	}

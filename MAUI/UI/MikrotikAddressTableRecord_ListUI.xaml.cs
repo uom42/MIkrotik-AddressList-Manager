@@ -11,7 +11,7 @@ using static MALM.Localization.Strings;
 
 namespace MALM.UI;
 
-public partial class MikrotikAddressTableRecordsListUI : ContentPage
+public partial class MikrotikAddressTableRecord_ListUI : ContentPage
 {
 
 	private void OnExit() => Application.Current?.Quit();
@@ -20,12 +20,12 @@ public partial class MikrotikAddressTableRecordsListUI : ContentPage
 
 	private async void OnGroupTap(object sender, TappedEventArgs e)
 	{
-		var l = sender as Layout;
-		if (l == null) return;
+		var v = sender as View;
+		if (v == null) return;
 
 		try
 		{
-			var grp = l?.BindingContext as AddressListItemRowsGroup;
+			var grp = v?.BindingContext as AddressListItemRowsGroup;
 			if (grp == null) return;
 
 			if (grp.SwitchCollapsed()) lvwRows.ItemsSource = _groups;

@@ -129,6 +129,9 @@
   <data name="E_TITLE_DEFAULT" xml:space="preserve">
     <value>Failed to execute!</value>
   </data>
+  <data name="E_TITLE_LOGIN_FAILED" xml:space="preserve">
+    <value>Login failed!</value>
+  </data>
   <data name="L_ADD" xml:space="preserve">
     <value>Add</value>
   </data>
@@ -269,6 +272,15 @@
   </data>
   <data name="Q_ADDRESSBOOK_DELETE_RECORD" xml:space="preserve">
     <value>Delete record '{0}'?</value>
+  </data>
+  <data name="Q_MASTERKEY_BIO_REQ" xml:space="preserve">
+    <value>Authentication required</value>
+  </data>
+  <data name="Q_MASTERKEY_BIO_REQ_2" xml:space="preserve">
+    <value>Confirm login</value>
+  </data>
+  <data name="Q_MASTERKEY_BIO_USE_PIN" xml:space="preserve">
+    <value>Use PIN</value>
   </data>
   <data name="Q_RESET_MASTER_KEY" xml:space="preserve">
     <value>A forgotten master password cannot be recovered, it is not saved anywhere. You can reset it by setting a new one, but the data (address book) encrypted with the old key will be lost.||Reset the master password?</value>

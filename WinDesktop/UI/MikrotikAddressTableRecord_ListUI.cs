@@ -10,7 +10,7 @@ using Mikrotik.API.Model.IP.Firewall.AddressList;
 namespace MALM.UI;
 
 
-public partial class MikrotikAddressTableRecordsListUI : Form
+public partial class MikrotikAddressTableRecord_ListUI : Form
 {
 
 
@@ -126,7 +126,7 @@ public partial class MikrotikAddressTableRecordsListUI : Form
 		try
 		{
 
-			using MikrotikDevicesListRecordEditorUI fe = new(_connection, [.. addressSuggestionList], groupNames, groupName);
+			using MikrotikAddressTableRecord_EditorUI fe = new(_connection, [.. addressSuggestionList], groupNames, groupName);
 			if (fe.ShowDialog(this) != DialogResult.OK) return;
 			/*
 

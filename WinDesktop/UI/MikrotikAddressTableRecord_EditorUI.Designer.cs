@@ -1,6 +1,6 @@
 ﻿namespace MALM.UI
 {
-	partial class MikrotikDevicesListRecordEditorUI
+	partial class MikrotikAddressTableRecord_EditorUI
 	{
 		/// <summary>
 		/// Required designer variable.
@@ -28,7 +28,7 @@
 		/// </summary>
 		private void InitializeComponent()
 		{
-			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MikrotikDevicesListRecordEditorUI));
+			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MikrotikAddressTableRecord_EditorUI));
 			this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
 			this.btnCancel = new System.Windows.Forms.Button();
 			this.btnAdd = new System.Windows.Forms.Button();
