@@ -5,7 +5,10 @@ global using static uom.constants;
 global using static uom.Extensions.Extensions_DebugAndErrors;
 
 using System.Collections.Concurrent;
+using System.Runtime.Versioning;
 
+using CommunityToolkit.Maui.Alerts;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.Mvvm.Messaging.Messages;
 
@@ -200,7 +203,7 @@ namespace uom.maui
 	}
 
 
-	public class InvertableBool(bool b)
+	public class InvertableBool(bool b) : ObservableObject
 	{
 		private bool _value = b;
 
@@ -249,20 +252,53 @@ namespace uom.maui
 				});
 			}
 
-			public class Permission_Biometric_Fingerprint : Permissions.BasePlatformPermission
+
+#if ANDROID
+			[SupportedOSPlatform("android")]
+			private class Permission_Biometric_Fingerprint : Permissions.BasePlatformPermission
 			{
-				public override (string androidPermission, bool isRuntime)[] RequiredPermissions =>
-					new List<(string androidPermission, bool isRuntime)>
+				public override (string androidPermission, bool isRuntime)[] RequiredPermissions
+				{
+					get
 					{
-						(global::Android.Manifest.Permission.UseBiometric, true),
-						(global::Android.Manifest.Permission.UseFingerprint, true)
-					}.ToArray();
+						List<(string androidPermission, bool isRuntime)> l = new();
+
+#if ANDROID28_0_OR_GREATER
+#pragma warning disable CA1416
+						l.Add((Android.Manifest.Permission.UseBiometric, true));
+#pragma warning restore CA1416
+#else
+						l.Add((Android.Manifest.Permission.UseFingerprint, true));
+#endif
+
+						return l.ToArray();
+					}
+				}
+			}
+#endif
+
+			[SupportedOSPlatform("windows10.0.18362")]
+			[SupportedOSPlatform("android")]
+			internal static async Task<bool> CheckAndRequestPermissionAsync_Biometric_Fingerprint()
+			{
+#if ANDROID
+#pragma warning disable CA1416
+				return (await CheckAndRequestPermissionAsync<Permission_Biometric_Fingerprint>()).IsGranted();
+#pragma warning restore CA1416
+#else
+				return (await Permissions.RequestAsync<Permissions.Sensors>()).IsGranted();
+#endif
 			}
 
+
+			/*
+
 			internal static async Task<bool> CheckAndRequestPermissionAsync_Biometric_Fingerprint()
-				=> (await CheckAndRequestPermissionAsync<Permission_Biometric_Fingerprint>()).IsGranted();
+				=> (await Permissions.RequestAsync<Permissions.Sensors>()).IsGranted();
 
+			 */
 
+			/*
 			public class Permission_Net_AccessNetworkStateAndInternet : Permissions.BasePlatformPermission
 			{
 				public override (string androidPermission, bool isRuntime)[] RequiredPermissions =>
@@ -272,11 +308,14 @@ namespace uom.maui
 						(global::Android.Manifest.Permission.Internet, true)
 					}.ToArray();
 			}
+			 */
+
 			internal static async Task<bool> CheckAndRequestPermissionAsync_Net_AccessNetworkStateAndInternet()
-							=> (await CheckAndRequestPermissionAsync<Permission_Net_AccessNetworkStateAndInternet>()).IsGranted();
+							=> (await Permissions.RequestAsync<Permissions.NetworkState>()).IsGranted();
 
 
-			public class Permission_ReadWriteStorage : Permissions.BasePlatformPermission
+			[SupportedOSPlatform("Android")]
+			public class Permission_Android_ReadWriteStorage : Permissions.BasePlatformPermission
 			{
 				public override (string androidPermission, bool isRuntime)[] RequiredPermissions =>
 					new List<(string androidPermission, bool isRuntime)>
@@ -301,7 +340,7 @@ namespace uom.maui
 				//PermissionStatus photosStatus = await CheckPermissions<Permissions.Photos>();
 				...
 
-        bool locationServices = IsLocationServiceEnabled();
+		bool locationServices = IsLocationServiceEnabled();
 
 				return IsGranted(cameraStatus) && IsGranted(mediaStatus) && IsGranted(storageWriteStatus) && IsGranted(bluetoothStatus);
 			}
@@ -309,29 +348,29 @@ namespace uom.maui
 
 
 
-			internal static async Task<PermissionStatus> CheckPermission_Bluetooth()
+			/*
+		internal static async Task<PermissionStatus> CheckPermission_Bluetooth()
+		{
+
+			throw new NotImplementedException();
+
+			PermissionStatus bluetoothStatus = PermissionStatus.Granted;
+
+			if (DeviceInfo.Platform == DevicePlatform.Android)
 			{
-
-				throw new NotImplementedException();
-				/*
-
-				PermissionStatus bluetoothStatus = PermissionStatus.Granted;
-
-				if (DeviceInfo.Platform == DevicePlatform.Android)
+				if (DeviceInfo.Version.Major >= 12)
 				{
-					if (DeviceInfo.Version.Major >= 12)
-					{
-						bluetoothStatus = await CheckPermissions<BluetoothPermissions>();
-					}
-					else
-					{
-						bluetoothStatus = await CheckPermissions<Permissions.LocationWhenInUse>();
-					}
+					bluetoothStatus = await CheckPermissions<BluetoothPermissions>();
 				}
-
-				return bluetoothStatus;
-				 */
+				else
+				{
+					bluetoothStatus = await CheckPermissions<Permissions.LocationWhenInUse>();
+				}
 			}
+
+			return bluetoothStatus;
+		}
+			 */
 
 		}
 
@@ -550,7 +589,7 @@ namespace uom.maui
 		/// <remarks>
 		/// THIS MUST NOT BE CALLED FROM <see cref="Page.Appearing"/> event !!!
 		/// In 'ContentPage.Appearing' event, Page is not fully initialized and back button Navigation handlers not wokring correctly!
-		/// Use it from <see cref="ContentPage.Loaded"/> or any other handlers
+		/// Use it from 'ContentPage.Loaded' or any other handlers
 		/// </remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static async Task e_SetDialogResultAndPopBackAsync(this ContentPage ctx, object dialogResultObject)
@@ -657,18 +696,18 @@ namespace uom.maui
 
 
 	/*
-public class DialogService : IDialogService
-{
-public async Task<string> DisplayActionSheet(string title, string cancel, string destruction, params string[] buttons)
-{
-return await Application.Current.MainPage.DisplayActionSheet(title, cancel, destruction, buttons);
-}
+	public class DialogService : IDialogService
+	{
+	public async Task<string> DisplayActionSheet(string title, string cancel, string destruction, params string[] buttons)
+	{
+	return await Application.Current.MainPage.DisplayActionSheet(title, cancel, destruction, buttons);
+	}
 
-public async Task<bool> DisplayConfirm(string title, string message, string accept, string cancel)
-{
-return await Application.Current.MainPage.DisplayAlert(title, message, accept, cancel);
-}
-}
+	public async Task<bool> DisplayConfirm(string title, string message, string accept, string cancel)
+	{
+	return await Application.Current.MainPage.DisplayAlert(title, message, accept, cancel);
+	}
+	}
 	 */
 
 
@@ -815,10 +854,7 @@ return await Application.Current.MainPage.DisplayAlert(title, message, accept, c
 			bool added = dic.TryAdd(id, tmr);
 		}
 
-		/// <summary>
-		/// Usually used when you need to do an action with a slight delay after exiting the current method. 
-		/// For example, if some data will be ready only after exiting the control event handler processing branch
-		/// </summary>
+		/// <inheritdoc cref="e_RunDelayedInUIThread(Action, int)" />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static void e_RunDelayedInUIThread(this Func<Task> delayedAction, int delay = DEFAULT_DELAY)
 		{
@@ -841,7 +877,8 @@ return await Application.Current.MainPage.DisplayAlert(title, message, accept, c
 
 
 
-		/// <inheritdoc cref="e_RunDelayed_OnLoaded" />
+		/// <summary>Executes 'delayedAction' after Page load (before it will displayed).
+		/// Delay starts after 'Page.Loaded' event</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static void e_RunDelayed_OnLoaded(
 			this ContentPage ctx,
@@ -857,7 +894,7 @@ return await Application.Current.MainPage.DisplayAlert(title, message, accept, c
 				{
 					foreach (var tsk in delayedTasks) await tsk.Invoke();
 				}
-				catch (OperationCanceledException ocex) { }                 //catch (TaskCanceledException tcex) { }
+				catch (OperationCanceledException) { }                 //catch (TaskCanceledException tcex) { }
 				catch (Exception ex)
 				{
 					await ex.e_LogError(onErrorShowUI);
@@ -868,7 +905,7 @@ return await Application.Current.MainPage.DisplayAlert(title, message, accept, c
 		}
 
 
-		/// <inheritdoc cref="e_RunDelayed_OnLoaded" />
+		/// <inheritdoc cref="e_RunDelayed_OnLoaded(ContentPage, IEnumerable{Func{Task}}, int, bool, Func{Exception, Task})" />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static void e_RunDelayed_OnLoaded(
 			this ContentPage ctx,
@@ -881,8 +918,7 @@ return await Application.Current.MainPage.DisplayAlert(title, message, accept, c
 
 
 
-		/// <summary>Executes 'delayedAction' after form shown on screen, with specifed delay in UI Thread.
-		/// Delay starts after 'Page.Shown' event</summary>
+		/// <inheritdoc cref="e_RunDelayed_OnLoaded(ContentPage, IEnumerable{Func{Task}}, int, bool, Func{Exception, Task})" />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static void e_RunDelayed_OnLoaded(
 			this ContentPage ctx,
@@ -929,11 +965,11 @@ return await Application.Current.MainPage.DisplayAlert(title, message, accept, c
 
 
 		/*
-		 
- 			MessageBoxIcon icon = MessageBoxIcon.Error,
+
+			MessageBoxIcon icon = MessageBoxIcon.Error,
 			MessageBoxButtons btn = MessageBoxButtons.OK,
 
- */
+	*/
 
 
 
@@ -955,23 +991,60 @@ return await Application.Current.MainPage.DisplayAlert(title, message, accept, c
 
 			//Показываем расширенные данные в DEBUG режиме
 			msg += $"\n{CS_SEPARATOR_10}\nUOM DEBUG-MODE DETAILED ERROR INFO:\n{errorDump}";
+
+			Debug.WriteLine(msg);
+
+#else
+
+#if ANDROID
+			string tag = $"{AppInfo.Title ?? string.Empty} {AppInfo.Version ?? string.Empty}";
+			Android.Util.Log.Error(tag, msg);
 #endif
 
-			if (showMessageBox) // Надо показать на экране модальное Сообщение об ошибке
+#endif
+
+			if (showMessageBox || !supressAnyModalPopEvenInDEBUG)
 			{
-				await msg.e_MsgboxShow(modalMessageBoxTitle, ctx: ctx);
-			}
-			else
-			{
-#if DEBUG
-				if (!supressAnyModalPopEvenInDEBUG)
+
+				MainThread.BeginInvokeOnMainThread(async () =>
 				{
-					//В DEBUG режиме показываем модальное окно с ошибкой, если прямо не запрещено!
-					await msg.e_MsgboxShow(modalMessageBoxTitle, ctx: ctx);
-				}
+					if (showMessageBox) // Надо показать на экране модальное Сообщение об ошибке
+					{
+						await msg.e_MsgboxShow(modalMessageBoxTitle, ctx: ctx);
+					}
+					else
+					{
+#if DEBUG
+						if (!supressAnyModalPopEvenInDEBUG)
+						{
+							//В DEBUG режиме показываем модальное окно с ошибкой, если прямо не запрещено!
+							await msg.e_MsgboxShow(modalMessageBoxTitle, ctx: ctx);
+						}
 #endif
+					}
+				});
 			}
+			await Task.Delay(1);
+		}
 
+
+		/// <summary>Фиксация ошибки в журнале, в DEBUG, вывод сообщения</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static async Task e_LogErrorToast(this Exception ex,
+			int toastFontSize = 14,
+			[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0)
+		{
+			//Write rrror to device log
+			await ex.e_LogError(false, supressAnyModalPopEvenInDEBUG: true);
+
+			MainThread.BeginInvokeOnMainThread(async () =>
+			{
+				//CancellationTokenSource cancellationTokenSource = new();
+				await Toast
+					.Make(ex.Message.Trim(), CommunityToolkit.Maui.Core.ToastDuration.Long, toastFontSize)
+					.Show();
+
+			});
 		}
 
 

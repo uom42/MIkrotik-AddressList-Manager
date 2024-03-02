@@ -29,11 +29,15 @@ namespace Mikrotik.API
 
 	internal class AddressListItemComparer : IComparer<string>
 	{
-		public int Compare(string x, string y)
+		public int Compare(string? x, string? y)
 		{
 			try
 			{
-				IP4AddressWithMask? ipX = IP4AddressWithMask.ParseIPs(x).FirstOrDefault(), ipY = IP4AddressWithMask.ParseIPs(y).FirstOrDefault();
+				IP4AddressWithMask? ipX = IP4AddressWithMask
+					.ParseIPs(x ?? string.Empty)
+					.FirstOrDefault(), ipY = IP4AddressWithMask.ParseIPs(y ?? string.Empty)
+					.FirstOrDefault();
+
 				if (ipX != null && ipY != null) return ipX.CompareTo(ipY);
 			}
 			catch { }
@@ -235,7 +239,8 @@ namespace Mikrotik.API
 					}
 
 
-					public async Task EnableAsync(bool enable) => await SetPropertyAsync(COMMAND_LIST_SET, FIELD_DISABLED, (!enable).e_ToMikrotikBoolString());
+					public async Task EnableAsync(bool enable) 
+						=> await SetPropertyAsync(COMMAND_LIST_SET, FIELD_DISABLED, (!enable).e_ToMikrotikBoolString());
 
 
 

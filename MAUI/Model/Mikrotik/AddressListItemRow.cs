@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Mikrotik.API.Model.IP.Firewall.AddressList;
 
 using uom.maui;
+using CommunityToolkit.Maui.Alerts;
 
 namespace MALM.Model.Mikrotik
 {
@@ -87,7 +88,7 @@ namespace MALM.Model.Mikrotik
 			}
 			catch (Exception ex)
 			{
-				ex.e_LogError(true, E_TITLE_DEFAULT);
+				await ex.e_LogErrorToast();
 				//await QueryMKData();//On any error we refill list with actual data from mikrotik
 			}
 			finally
@@ -105,12 +106,13 @@ namespace MALM.Model.Mikrotik
 		{
 			if (string.IsNullOrWhiteSpace(filter)) return true;
 
-			filter = filter.Trim().ToLower();
+			filter = filter.Trim();
+			const StringComparison sc = StringComparison.OrdinalIgnoreCase;
 
-			if (MikrotikRow.Address.ToLower().Contains(filter)) return true;
-			if (MikrotikRow.List.ToLower().Contains(filter)) return true;
-			if (MikrotikRow.CreationTime.ToLower().Contains(filter)) return true;
-			if (MikrotikRow.Comment != null && MikrotikRow.Comment.ToLower().Contains(filter)) return true;
+			if (MikrotikRow.Address.Contains(filter, sc)) return true;
+			if (MikrotikRow.List.Contains(filter, sc)) return true;
+			if (MikrotikRow.CreationTime.Contains(filter, sc)) return true;
+			if (MikrotikRow.Comment.e_IsNOTNullOrWhiteSpace() && MikrotikRow.Comment.Contains(filter, sc)) return true;
 
 			return false;
 		}

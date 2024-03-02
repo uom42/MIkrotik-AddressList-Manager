@@ -1,6 +1,9 @@
 ﻿<?xml version="1.0" encoding="UTF-8" ?>
 <?xaml-comp compile="true" ?>
-<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+<ResourceDictionary
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons">
 
 	<Style TargetType="ActivityIndicator">
 		<Setter Property="Color" Value="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource White}}" />
@@ -22,11 +25,18 @@
 	</Style>
 
 	<Style TargetType="Button">
-		<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Primary}}" />
-		<Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Pantone_GreenBlue}}" />
+		<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource White}}" />
+		<Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Black}}" />
+
+		<Setter Property="BorderColor" Value="{StaticResource White}" />
+		<Setter Property="BorderWidth" Value="{AppThemeBinding Light=0, Dark=1}" />
+		<!--
+		-->
+
+
 		<Setter Property="FontFamily" Value="OpenSansRegular" />
 		<Setter Property="FontSize" Value="14" />
-		<Setter Property="CornerRadius" Value="8" />
+		<Setter Property="CornerRadius" Value="30" />
 		<Setter Property="Padding" Value="14,10" />
 		<Setter Property="MinimumHeightRequest" Value="44" />
 		<Setter Property="MinimumWidthRequest" Value="44" />
@@ -37,7 +47,8 @@
 					<VisualState x:Name="Disabled">
 						<VisualState.Setters>
 							<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}" />
-							<Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}" />
+							<Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray900}}" />
+							<Setter Property="BorderWidth" Value="0" />
 						</VisualState.Setters>
 					</VisualState>
 				</VisualStateGroup>
@@ -459,8 +470,13 @@
 	<!--#region CollectionView.GroupHeaderTemplate Style NEW (ContentView with Grig)-->
 
 
-	<Style x:Key="GroupHeader_GridLabel" TargetType="Label">
+	<Style x:Key="GroupHeader_base" TargetType="View">
 		<Setter Property="VerticalOptions" Value="Center" />
+	</Style>
+	<Style
+		x:Key="GroupHeader_GridLabel"
+		BasedOn="{StaticResource GroupHeader_base}"
+		TargetType="Label">
 		<Setter Property="VerticalTextAlignment" Value="Center" />
 		<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray500}}" />
 	</Style>
@@ -469,48 +485,46 @@
 		x:Key="GroupHeader_DisplayName"
 		BasedOn="{StaticResource GroupHeader_GridLabel}"
 		TargetType="Label">
-
 		<Setter Property="FontSize" Value="Header" />
 		<Setter Property="FontAttributes" Value="Bold" />
-		<Setter Property="LineBreakMode" Value="TailTruncation" />
-		<Setter Property="Text" Value="{Binding DisplayName}" />
 	</Style>
 
 	<Style
 		x:Key="GroupHeader_ItemsCount"
 		BasedOn="{StaticResource GroupHeader_GridLabel}"
 		TargetType="Label">
-
 		<Setter Property="FontSize" Value="Micro" />
-		<Setter Property="Text" Value="{Binding ItemsCountString}" />
 	</Style>
 
-	<Style x:Key="GroupHeader_HorizontalLine2" TargetType="Line">
-		<Setter Property="VerticalOptions" Value="Center" />
+	<Style
+		x:Key="GroupHeader_HorizontalLine"
+		BasedOn="{StaticResource GroupHeader_base}"
+		TargetType="Line">
 		<Setter Property="StrokeThickness" Value="3" />
 		<Setter Property="StrokeLineCap" Value="Round" />
 		<Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}" />
 		<Setter Property="X2" Value="{Binding Width, Source={RelativeSource Self}}" />
 	</Style>
 
+
+
 	<Style
-		x:Key="GroupHeader_ExpandCollapseGroupGlyph2"
+		x:Key="GroupHeader_ExpandCollapseGroupGlyphBackground"
+		BasedOn="{StaticResource GroupHeader_base}"
+		TargetType="Ellipse">
+		<Setter Property="WidthRequest" Value="25" />
+		<Setter Property="HeightRequest" Value="{Binding WidthRequest, Source={RelativeSource Self}}" />
+		<Setter Property="Fill" Value="{AppThemeBinding Light={StaticResource Pantone_GreenBlue}, Dark=Transparent}" />
+		<Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource Pantone_GreenBlue}, Dark={StaticResource Gray400}}" />
+		<Setter Property="StrokeThickness" Value="{AppThemeBinding Light=0, Dark=1}" />
+	</Style>
+
+	<Style
+		x:Key="GroupHeader_ExpandCollapseGroupGlyph"
 		BasedOn="{StaticResource GroupHeader_GridLabel}"
 		TargetType="Label">
 		<Setter Property="LineBreakMode" Value="NoWrap" />
 		<Setter Property="FontSize" Value="Title" />
-
-		<!--
-	<Setter Property="IconColor" Value="{StaticResource Primary}" />
-		Text="{mi:MaterialOutlined Icon=ArrowDropUp,
-		IsVisible="{Binding NotCollapsed}"
-	-->
-	</Style>
-	<Style x:Key="GroupHeader_ExpandCollapseGroupGlyphBackground" TargetType="Ellipse">
-		<Setter Property="WidthRequest" Value="25" />
-		<Setter Property="HeightRequest" Value="{Binding WidthRequest, Source={RelativeSource Self}}" />
-		<Setter Property="Fill" Value="{AppThemeBinding Light={StaticResource Pantone_GreenBlue}, Dark={StaticResource Gray900}}" />
-
 	</Style>
 
 	<!--#endregion-->

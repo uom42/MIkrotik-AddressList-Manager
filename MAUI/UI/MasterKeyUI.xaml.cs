@@ -25,20 +25,13 @@ public partial class MasterKeyUI : ContentPage
 
 	private async Task<bool> IsBiometricAvailableAsync()
 	{
+#if ANDROID
 		var bp = await uom.maui.security.PermissionsHelper.CheckAndRequestPermissionAsync_Biometric_Fingerprint();
 		if (!bp)
 		{
 			return false;
 		}
-
-		/*
-		bp = await uom.maui.security.PermissionsHelper.CheckAndRequestPermissionAsync_Net_AccessNetworkStateAndInternet();
-		if (!bp)
-		{
-			return (false, false);
-		}
-		 */
-
+#endif
 		return await CrossFingerprint.Current.IsAvailableAsync(true);
 	}
 

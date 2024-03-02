@@ -1,11 +1,13 @@
 ﻿
 using MvvmHelpers;
 
+using uom.maui;
+
 
 namespace uom.controls.MAUI.CollectionViews;
 
 
-internal class CollectionViewExExpandableGroupsCollection<TRow> : ObservableRangeCollection<TRow>, INotifyPropertyChanged
+public abstract class ExpandableGroupsCollection<TRow> : ObservableRangeCollection<TRow>, INotifyPropertyChanged
 {
 
 	private readonly CollectionView _cvControl;
@@ -15,11 +17,11 @@ internal class CollectionViewExExpandableGroupsCollection<TRow> : ObservableRang
 
 	private readonly List<TRow> _rowsCache = [];
 
-	private bool _collapsed = false;
+	private InvertableBool _collapsed = false;
 
 
 
-	public CollectionViewExExpandableGroupsCollection(CollectionView cv,
+	public ExpandableGroupsCollection(CollectionView cv,
 		string name,
 		IEnumerable<TRow> rows,
 		string emptyGroupNamePlaceholder,
@@ -60,12 +62,10 @@ internal class CollectionViewExExpandableGroupsCollection<TRow> : ObservableRang
 			? _emptyGroupNamePlaceholder
 			: _name;
 
+	/// <summary>Returns 'real' count of group items</summary>
 	public int CachedItemsCount => _rowsCache.Count();
 
-	public string ItemsCountString => $"({CachedItemsCount})";
-
-
-	public override string ToString() => $"{Name} ({ItemsCountString})";
+	public override string ToString() => $"{Name} ({CachedItemsCount})";
 
 
 
@@ -84,7 +84,7 @@ internal class CollectionViewExExpandableGroupsCollection<TRow> : ObservableRang
 	}
 
 
-	public bool IsCollapsed
+	public InvertableBool IsCollapsed
 	{
 		get => _collapsed;
 		set
@@ -93,21 +93,14 @@ internal class CollectionViewExExpandableGroupsCollection<TRow> : ObservableRang
 
 			try
 			{
-				Preferences.Set(CollapsedStatePrefKey, value);
+				Preferences.Set(CollapsedStatePrefKey, value.Value);
 			}
 			catch { }
 
 			_collapsed = value;
-			//SetField(ref _collapsed, value);
-			//OnPropertyChanged(new PropertyChangedEventArgs(nameof(NotCollapsed)));
-
 			ApplyCollapsedState(value);
 		}
 	}
-
-	/// <summary>Used for second group header Collapse/Expand glyph for MAXML</summary>
-	public bool NotCollapsed => !IsCollapsed;
-
 
 	/// <summary>Removing all group Items from CollectionView when group collapsed and add all items back when expanded</summary>
 	private void ApplyCollapsedState(bool collapsed)
@@ -134,7 +127,7 @@ internal class CollectionViewExExpandableGroupsCollection<TRow> : ObservableRang
 
 
 	/// <summary>Reverse group collapsed state</summary>
-	/// <returns>Return True if need to rebing data</returns>
+	/// <returns>true if need to rebing data</returns>
 	internal bool SwitchCollapsed()
 	{
 		bool groupNeedExpand = IsCollapsed;
@@ -171,7 +164,7 @@ internal class CollectionViewExExpandableGroupsCollection<TRow> : ObservableRang
 	{
 		_rowsCache.Remove(item);
 		base.Remove(item);
-		OnPropertyChanged(new PropertyChangedEventArgs("ItemsCountString"));
+		OnPropertyChanged(new PropertyChangedEventArgs(nameof(CachedItemsCount)));
 		return true;
 	}
 
@@ -180,7 +173,7 @@ internal class CollectionViewExExpandableGroupsCollection<TRow> : ObservableRang
 	{
 		_rowsCache.Add(item);
 		base.Add(item);
-		OnPropertyChanged(new PropertyChangedEventArgs("ItemsCountString"));
+		OnPropertyChanged(new PropertyChangedEventArgs(nameof(CachedItemsCount)));
 	}
 
 

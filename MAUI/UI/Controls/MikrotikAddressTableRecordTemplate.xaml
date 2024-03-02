@@ -1,63 +1,56 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <DataTemplate
-	x:Class="MALM.Pages.Controls.MikrotikAddressTableRecordTemplate"
+	x:Class="MALM.UI.Controls.MikrotikAddressTableRecordTemplate"
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-	xmlns:localCtl="clr-namespace:MALM.Pages.Controls"
+	xmlns:lmm="clr-namespace:MALM.Model.Mikrotik"
 	xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
-	xmlns:uomMAUIctl="clr-namespace:uom.controls.MAUI.CollectionViews">
+	xmlns:uomMAUIctl="clr-namespace:uom.controls.MAUI.CollectionViews"
+	x:DataType="lmm:AddressListItemRow">
 
-	<StackLayout HorizontalOptions="FillAndExpand" Orientation="Horizontal">
+	<Grid ColumnSpacing="4">
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="Auto" />
+			<ColumnDefinition Width="*" />
+		</Grid.ColumnDefinitions>
 
-		<StackLayout HorizontalOptions="Start" Orientation="Horizontal">
+		<Switch
+			Grid.Column="0"
+			IsToggled="{Binding Checked}"
+			IsVisible="{Binding IsStateChanging.Invert, Mode=OneWay}"
+			VerticalOptions="Center" />
 
-			<Switch
-				HorizontalOptions="Start"
-				IsEnabled="{Binding CheckBoxEnabled}"
-				IsToggled="{Binding Checked}"
-				IsVisible="{Binding IsStateChanging.Invert}"
-				VerticalOptions="Center" />
+		<ActivityIndicator
+			Grid.Column="0"
+			IsRunning="{Binding IsStateChanging.Value, Mode=OneWay}"
+			IsVisible="{Binding IsStateChanging.Value, Mode=OneWay}"
+			VerticalOptions="Center" />
 
-			<ActivityIndicator
-				HorizontalOptions="Start"
-				IsRunning="True"
-				IsVisible="{Binding IsStateChanging.Value}"
-				VerticalOptions="Center" />
-
-		</StackLayout>
-
-		<Grid HorizontalOptions="FillAndExpand">
-
-			<!--  Created  -->
-			<Label
-				FontSize="Micro"
-				HorizontalOptions="Start"
-				Text="{Binding CreatedTimestamp}"
-				TextColor="{StaticResource Gray400}"
-				VerticalTextAlignment="End" />
+		<Label
+			Grid.Column="1"
+			FontSize="Micro"
+			HorizontalTextAlignment="Start"
+			Text="{Binding CreatedTimestamp, Mode=OneWay}"
+			TextColor="{StaticResource Gray400}"
+			VerticalTextAlignment="End" />
 
 
-			<!--  ID  -->
-			<Label
-				FontSize="Micro"
-				HorizontalOptions="End"
-				Text="{Binding ID}"
-				TextColor="{StaticResource Gray400}"
-				VerticalTextAlignment="End" />
+		<Label
+			Grid.Column="1"
+			FontSize="Micro"
+			HorizontalTextAlignment="End"
+			Text="{Binding ID, Mode=OneWay}"
+			TextColor="{StaticResource Gray400}"
+			VerticalTextAlignment="End" />
 
 
-			<!--  Address  -->
-			<Label
-				HorizontalOptions="Start"
-				HorizontalTextAlignment="Start"
-				LineBreakMode="TailTruncation"
-				Text="{Binding Title}"
-				VerticalTextAlignment="Center" />
+		<Label
+			Grid.Column="1"
+			LineBreakMode="TailTruncation"
+			Text="{Binding Title, Mode=OneWay}"
+			VerticalTextAlignment="Center" />
 
-		</Grid>
-
-	</StackLayout>
-
+	</Grid>
 
 </DataTemplate>
 

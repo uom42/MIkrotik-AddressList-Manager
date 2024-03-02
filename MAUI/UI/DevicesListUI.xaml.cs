@@ -70,6 +70,8 @@ public partial class DevicesListUI : ContentPage
 			OnAdd(this, EventArgs.Empty);
 		}
 
+		await Task.Delay(1);
+
 	}
 
 

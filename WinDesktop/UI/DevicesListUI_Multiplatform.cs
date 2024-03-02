@@ -63,8 +63,8 @@ partial class DevicesListUI
 		btnDelete.Click += OnDelete!;
 		btnSetMasterKey.Click += OnChangeMasterKey!;
 
-		btnConnect.Click += async (s, e) => await OnTryConnectDevice(s, e);
-		lvwDevices.DoubleClick += async (s, e) => await OnTryConnectDevice(s, e);
+		btnConnect.Click += async (s, e) => await OnTryConnectDevice(s!, e);
+		lvwDevices.DoubleClick += async (s, e) => await OnTryConnectDevice(s!, e);
 
 		this.Load += (_, _) => OnLoad();
 #endif
@@ -79,7 +79,7 @@ partial class DevicesListUI
 #if ANDROID
 		_devices = new(l.Devices);
 #else
-							 _devices = l.Devices;
+		_devices = l.Devices;
 #endif
 
 

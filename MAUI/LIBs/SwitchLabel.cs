@@ -53,7 +53,6 @@ public partial class SwitchLabel : StackLayout, INotifyPropertyChanged, ISwitch
 			HorizontalTextAlignment = TextAlignment.Start,
 			VerticalTextAlignment = TextAlignment.Center,
 			Text = _text,
-			//BackgroundColor = Colors.Yellow
 		};
 		//BackgroundColor = Colors.SlateGrey;
 

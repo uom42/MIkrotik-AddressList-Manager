@@ -18,6 +18,8 @@ public partial class App : Application
 
 	public App(uom.maui.IGetDeviceInfo getDeviceInfo)
 	{
+		_ = new MauiIcons.Core.MauiIcon();
+
 		InitializeComponent();
 
 		_DevID = getDeviceInfo.GetDeviceID();

@@ -3,10 +3,11 @@
 	x:Class="MALM.UI.MikrotikAddressTableRecord_ListUI"
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-	xmlns:localCtl="clr-namespace:MALM.Pages.Controls"
-	xmlns:localModel="clr-namespace:MALM.Model"
+	xmlns:lc="clr-namespace:MALM.UI.Controls"
+	xmlns:lm="clr-namespace:MALM.Model"
+	xmlns:lmm="clr-namespace:MALM.Model.Mikrotik"
 	xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
-	xmlns:uomMAUIctl="clr-namespace:uom.controls.MAUI.CollectionViews"
+	xmlns:uom_ccv="clr-namespace:uom.controls.MAUI.CollectionViews"
 	Title="MkAddressList"
 	SemanticProperties.HeadingLevel="Level1">
 
@@ -36,10 +37,10 @@
 
 	<RefreshView
 		x:Name="rvData"
-		Margin="4"
+		Margin="10"
 		VerticalOptions="FillAndExpand">
 
-		<uomMAUIctl:CollectionViewEx
+		<uom_ccv:CollectionViewEx
 			x:Name="lvwRows"
 			CanMixGroups="False"
 			CanReorderItems="False"
@@ -50,50 +51,19 @@
 
 
 			<CollectionView.ItemTemplate>
-				<localCtl:MikrotikAddressTableRecordTemplate />
+				<lc:MikrotikAddressTableRecordTemplate />
 			</CollectionView.ItemTemplate>
-
 
 
 			<CollectionView.GroupHeaderTemplate>
 				<DataTemplate>
 
-					<ContentView>
-						<Grid ColumnSpacing="4">
-							<Grid.ColumnDefinitions>
-								<ColumnDefinition Width="Auto" />
-								<ColumnDefinition Width="Auto" />
-								<ColumnDefinition Width="*" />
-								<ColumnDefinition Width="Auto" />
-							</Grid.ColumnDefinitions>
-
-							<Label Style="{StaticResource GroupHeader_DisplayName}" />
-							<Label Grid.Column="1" Style="{StaticResource GroupHeader_ItemsCount}" />
-							<Line Grid.Column="2" Style="{StaticResource GroupHeader_HorizontalLine2}" />
-
-							<Ellipse Grid.Column="3" Style="{StaticResource GroupHeader_ExpandCollapseGroupGlyphBackground}" />
-							<Label
-								Grid.Column="3"
-								IsVisible="{Binding IsCollapsed}"
-								Style="{StaticResource GroupHeader_ExpandCollapseGroupGlyph2}"
-								Text="{mi:MaterialOutlined Icon=ArrowDropDown,
-								                           IconColor={StaticResource Primary}}" />
-							<Label
-								Grid.Column="3"
-								IsVisible="{Binding NotCollapsed}"
-								Style="{StaticResource GroupHeader_ExpandCollapseGroupGlyph2}"
-								Text="{mi:MaterialOutlined Icon=ArrowDropUp,
-								                           IconColor={StaticResource Primary}}" />
-
-						</Grid>
-
-
+					<uom_ccv:CollapsibleGroupTemplate>
 						<ContentView.GestureRecognizers>
 							<TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnGroupTap" />
 						</ContentView.GestureRecognizers>
-					</ContentView>
 
-
+					</uom_ccv:CollapsibleGroupTemplate>
 
 				</DataTemplate>
 			</CollectionView.GroupHeaderTemplate>
@@ -105,7 +75,7 @@
 
 
 
-		</uomMAUIctl:CollectionViewEx>
+		</uom_ccv:CollectionViewEx>
 
 
 	</RefreshView>

@@ -16,6 +16,8 @@ using uom.maui;
 
 using MALM.Pages;
 using MALM.Model.Mikrotik;
+using CommunityToolkit.Maui.Markup;
+using CommunityToolkit.Maui.Alerts;
 
 #endif
 
@@ -52,6 +54,8 @@ partial class DevicesListUI
 #if !WINDOWS
 		btnAdd.Clicked += OnAdd!;
 		btnSetMasterKey.Clicked += OnChangeMasterKey!;
+
+
 
 		this.Loaded += async (s, e) => await OnLoad();
 #else
@@ -95,6 +99,12 @@ partial class DevicesListUI
 
 #if !WINDOWS
 		Title = L_DEVICES_LIST;
+
+		lvwDevices.EmptyView(new Label()
+			.Text(L_LIST_IS_EMPTY)
+			.TextCenterVertical()
+			.TextCenterHorizontal()
+			);
 
 		btnExitApp.Text = L_APP_EXIT;
 		btnExitApp.Clicked += (_, _) => OnExit();
@@ -367,17 +377,25 @@ partial class DevicesListUI
 	{
 
 #if !WINDOWS
-		//var md = selectedDevice;
 		var md = s as DevicesListRecord;
 #else
 		var sel = lvwDevices.e_SelectedItemsAndTags<DevicesListRecord>().FirstOrDefault();
 		var md = sel?.Tag;
 
 #endif
-
 		if (md == null || string.IsNullOrWhiteSpace(md.AddressString)) return;
 
 #if !WINDOWS
+
+		var isGranted = await uom.maui.security.PermissionsHelper.CheckAndRequestPermissionAsync_Net_AccessNetworkStateAndInternet();
+		if (!isGranted)
+		{
+			await Toast
+					.Make("Network permission not granted!", CommunityToolkit.Maui.Core.ToastDuration.Long, 14)
+					.Show();
+
+			return;
+		}
 
 		ConnectDevicePage cp = new(md);
 		await cp.e_ShowDialogAsync<MKConnection>(true, OnConnectedOK,

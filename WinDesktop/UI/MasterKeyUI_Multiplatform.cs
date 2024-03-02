@@ -245,7 +245,7 @@ namespace MALM.UI
 						catch (Exception ex)
 						{
 #if !WINDOWS
-							await ex.e_LogError(true,E_TITLE_LOGIN_FAILED);
+							await ex.e_LogErrorToast();
 #else
 							ex.e_LogError(true, E_TITLE_LOGIN_FAILED);
 #endif
@@ -280,17 +280,19 @@ namespace MALM.UI
 							//Checking wrong logon count before display ResetPasswordUI...
 							if (!_mkm.IsExceededBadLogonCount)
 							{
-								string err = ex switch
+								string errMsg = ex switch
 								{
 									CryptographicException cex => E_ENCRYPT_FAILED,
 									InvalidOperationException ioex => E_ENCRYPT_FAILED,
 									_ => ex.Message
 								};
 
+								Exception err = new(errMsg, ex);
 #if !WINDOWS
-								await DisplayAlert(E_TITLE_LOGIN_FAILED, err, L_OK);
+								await err.e_LogErrorToast();
+								//await DisplayAlert(E_TITLE_LOGIN_FAILED, err, L_OK);
 #else
-								err.e_MsgboxShow(Extensions_UI_Win.MsgBoxFlags.Btn_OK | Extensions_UI_Win.MsgBoxFlags.Icn_Error, E_TITLE_LOGIN_FAILED);
+								err.e_LogError(true, E_TITLE_LOGIN_FAILED);
 #endif
 								return;
 							}
@@ -329,7 +331,7 @@ namespace MALM.UI
 						catch (Exception ex)
 						{
 #if !WINDOWS
-							await ex.e_LogError(true);							
+							await ex.e_LogErrorToast();
 #else
 							ex.e_LogError(true);
 #endif

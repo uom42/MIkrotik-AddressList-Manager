@@ -33,7 +33,7 @@ global using System.Numerics;
 using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Net.Http.Headers;
-using System;
+
 
 
 #if UOM_TEST_DEF
@@ -3010,37 +3010,13 @@ namespace uom
 
 
 
-
-
-
-			public static FileInfo? DownloadFile_HttpClient(string url, string localFile, TimeSpan timeout)
-			{
-				try
-				{
-					/*
-					using HttpClient client = new() { Timeout = timeout };
-					using var s = client.GetStreamAsync(remoteUrl);
-					//s.Start();
-					//s.Wait();
-					Stream remoteStream = s.Result;
-					using FileStream fs = new(localFile, FileMode.OpenOrCreate);
-					remoteStream.CopyTo(fs);
-					 */
-					return new(localFile);
-
-				}
-				catch (Exception ex)
-				{
-					return null;
-				}
-
-			}
-
 			public static FileInfo? DownloadFile_WebRequest(string url, string localFile, TimeSpan timeout)
 			{
 				try
 				{
+#pragma warning disable SYSLIB0014 // Type or member is obsolete
 					HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+#pragma warning restore SYSLIB0014 // Type or member is obsolete
 					request.Timeout = 30000;
 					request.AllowWriteStreamBuffering = false;
 					using (var response = (HttpWebResponse)request.GetResponse())
@@ -3058,10 +3034,7 @@ namespace uom
 
 					return new(localFile);
 				}
-				catch (Exception ex)
-				{
-					return null;
-				}
+				catch { return null; }
 
 			}
 
@@ -3071,6 +3044,23 @@ namespace uom
 			internal const string HTTP_HEADER_AGENT_DEFAULT = @"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36";
 
 
+			/*
+	public static FileInfo? DownloadFile_HttpClient(string url, string localFile, TimeSpan timeout)
+	{
+		try
+		{
+			using HttpClient client = new() { Timeout = timeout };
+			using var s = client.GetStreamAsync(remoteUrl);
+			//s.Start();
+			//s.Wait();
+			Stream remoteStream = s.Result;
+			using FileStream fs = new(localFile, FileMode.OpenOrCreate);
+			remoteStream.CopyTo(fs);
+			return new(localFile);
+		}
+		catch { return null; }
+	}
+			 */
 			public static async Task<FileInfo> DownloadFile_HttpClient_Async(string remoteUrl, string localFile, TimeSpan timeout, CancellationToken ct)
 			{
 				// Set custom User Agent
@@ -4811,7 +4801,7 @@ namespace uom
 					a &= (byte)~(0x1 << bitIndex);
 			}
 
-			/// <inheritdoc cref="e_SetBitRef" />
+			/// <inheritdoc cref="e_SetBitRef(ref byte, int, bool)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static void e_SetBitRef(this ref UInt32 a, int bitIndex, bool bitValue = true)
 			{
@@ -4821,7 +4811,7 @@ namespace uom
 					a &= ~(1U << bitIndex);
 			}
 
-			/// <inheritdoc cref="e_SetBitRef" />
+			/// <inheritdoc cref="e_SetBitRef(ref byte, int, bool)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static void e_SetBitRef(this ref Int32 a, int bitIndex, bool bitValue = true)
 			{
@@ -4831,7 +4821,7 @@ namespace uom
 					a &= ~(1 << bitIndex);
 			}
 
-			/// <inheritdoc cref="e_SetBitRef" />
+			/// <inheritdoc cref="e_SetBitRef(ref byte, int, bool)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static void e_SetBitRef(this ref UInt64 a, int bitIndex, bool bitValue = true)
 			{
@@ -4841,7 +4831,7 @@ namespace uom
 					a &= ~(1UL << bitIndex);
 			}
 
-			/// <inheritdoc cref="e_SetBitRef" />
+			/// <inheritdoc cref="e_SetBitRef(ref byte, int, bool)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static void e_SetBitRef(this ref Int64 a, int bitIndex, bool bitValue = true)
 			{
@@ -4857,16 +4847,16 @@ namespace uom
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static UInt32 e_SetBit(this UInt32 a, int bitIndex) => a | (1U << bitIndex);
 
-			/// <inheritdoc cref="e_SetBit" />
+			/// <inheritdoc cref="e_SetBit(UInt32, int)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static Int32 e_SetBit(this Int32 a, int bitIndex) => a | (1 << bitIndex);
 
-			/// <inheritdoc cref="e_SetBit" />
+			/// <inheritdoc cref="e_SetBit(UInt32, int)" />
 			/// <param name="bitIndex">Zero-baset bit index</param>			
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static UInt64 e_SetBit(this UInt64 a, int bitIndex) => a | (1UL << bitIndex);
 
-			/// <inheritdoc cref="e_SetBit" />
+			/// <inheritdoc cref="e_SetBit(UInt32, int)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static Int64 e_SetBit(this Int64 a, int bitIndex) => a | (1L << bitIndex);
 
@@ -4876,15 +4866,15 @@ namespace uom
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static bool e_GetBit(this UInt32 a, int bitIndex) => (a & (1U << bitIndex)) != 0;
 
-			/// <inheritdoc cref="e_GetBit" />
+			/// <inheritdoc cref="e_GetBit(UInt32, int)" />"
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static bool e_GetBit(this Int32 a, int bitIndex) => (a & (1 << bitIndex)) != 0;
 
-			/// <inheritdoc cref="e_GetBit" />
+			/// <inheritdoc cref="e_GetBit(UInt32, int)" />"
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static bool e_GetBit(this UInt64 a, int bitIndex) => (a & (1UL << bitIndex)) != 0;
 
-			/// <inheritdoc cref="e_GetBit" />
+			/// <inheritdoc cref="e_GetBit(UInt32, int)" />"
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static bool e_GetBit(this Int64 a, int bitIndex) => (a & (1L << bitIndex)) != 0;
 
@@ -4991,27 +4981,27 @@ namespace uom
 				return bytes;
 			}
 
-			/// <inheritdoc cref="e_GetBits" />
+			/// <inheritdoc cref="e_GetBits(BitArray)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static bool[] e_GetBits(this Int32 value) => value.e_ToBitArray().e_GetBits();
 
-			/// <inheritdoc cref="e_GetBits" />
+			/// <inheritdoc cref="e_GetBits(BitArray)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static bool[] e_GetBits(this UInt32 value) => value.e_ToBitArray().e_GetBits();
 
-			/// <inheritdoc cref="e_GetBits" />
+			/// <inheritdoc cref="e_GetBits(BitArray)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static bool[] e_GetBits(this Int64 value) => value.e_ToBitArray().e_GetBits();
 
-			/// <inheritdoc cref="e_GetBits" />
+			/// <inheritdoc cref="e_GetBits(BitArray)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static bool[] e_GetBits(this UInt64 value) => value.e_ToBitArray().e_GetBits();
 
-			/// <inheritdoc cref="e_GetBits" />
+			/// <inheritdoc cref="e_GetBits(BitArray)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static bool[] e_GetBits(this Int16 value) => value.e_ToBitArray().e_GetBits();
 
-			/// <inheritdoc cref="e_GetBits" />
+			/// <inheritdoc cref="e_GetBits(BitArray)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static bool[] e_GetBits(this byte value) => value.e_ToBitArray().e_GetBits();
 
@@ -5106,7 +5096,7 @@ namespace uom
 			#region Srtings Byte Functioms
 
 
-			/// <inheritdoc cref="System.Convert.ToBase64String"/>
+			/// <inheritdoc cref="System.Convert.ToBase64String(byte[])"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string e_ToBase64String(this byte[] data) => Convert.ToBase64String(data);
 
@@ -5230,7 +5220,7 @@ namespace uom
 			}
 
 
-			/// <inheritdoc cref="string.Join"/>
+			/// <inheritdoc cref="string.Join(string?, IEnumerable{string?})"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string? e_Join(
 				this IEnumerable<string>? src,
@@ -5245,7 +5235,7 @@ namespace uom
 				return string.Join(separator, src);
 			}
 
-			/// <inheritdoc cref="string.Join"/>
+			/// <inheritdoc cref="string.Join(string?, IEnumerable{string?})"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string e_Join(this System.Collections.Specialized.StringCollection? cSpecializedStringCollection, string separator = " ")
 				=> (null == cSpecializedStringCollection)
@@ -5281,13 +5271,13 @@ namespace uom
 			}
 
 
-			/// <inheritdoc cref="string.Format" />
+			/// <inheritdoc cref="string.Format(string, object?[])" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string e_Format(this string sFormatString, params object[] Args) => string.Format(sFormatString, Args);
 
 
-			private static readonly string[] ByteSize_En = { "B", "KB", "MB", "GB", "TB", "PB", "EB" };
-			private static readonly string[] ByteSize_Ru = { "Б", "КБ", "МБ", "ГБ", "ТБ", "ПБ", "ЕБ" };
+			private static readonly string[] ByteSize_En = ["B", "KB", "MB", "GB", "TB", "PB", "EB"];
+			private static readonly string[] ByteSize_Ru = ["Б", "КБ", "МБ", "ГБ", "ТБ", "ПБ", "ЕБ"];
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string e_FormatByteSize(this Int64 BytesLength, int iDecimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS)
 			{
@@ -6646,11 +6636,11 @@ namespace uom
 			/*
 			 */
 
-			/// <summary>Return source or Empty<source> if source is null</summary>
+			/// <summary>Return source or Empty {source} if source is null</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static IEnumerable<T> e_OrEmptyIfNull<T>(this IEnumerable<T>? source) => source ?? Enumerable.Empty<T>();
 
-			/// <summary>Return source or Empty<source> if source is null</summary>
+			/// <summary>Return source or Empty {source} if source is null</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static T[] e_OrEmptyArrayIfNull<T>(this IEnumerable<T>? source) => source.e_OrEmptyIfNull().ToArray();
 
@@ -6902,9 +6892,12 @@ namespace uom
 			#region Compare Arrays
 
 #if NET
-			/// <summary>Compare Arrays using processor SIMD acceleration and direct memort pointers
-			/// Best results is for arrays of Int16, Int32, Int64, float,double.
+			/// <summary>Compare Arrays using processor SIMD acceleration and direct memory pointers
+			/// The best results is for arrays of Int16, Int32, Int64, float,double.
+			/// <br/>
+			/// <c>
 			/// !!! For compare binary arrays - the fastest methos is to use e_CompareArrays_MemCmp !!!"
+			/// </c>
 			/// </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool e_CompareArrays_SIMD<T>(this Span<T> a, Span<T> b) where T : unmanaged, IComparable<T>
@@ -6932,7 +6925,13 @@ namespace uom
 				return true;
 			}
 
-			/// <inheritdoc cref="e_CompareArrays_SIMD" />
+			/// <summary>Compare Arrays using processor SIMD acceleration and direct memory pointers
+			/// The best results is for arrays of Int16, Int32, Int64, float,double.
+			/// <br/>
+			/// <c>
+			/// !!! For compare binary arrays - the fastest methos is to use e_CompareArrays_MemCmp !!!"
+			/// </c>
+			/// </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool e_CompareArrays_SIMD<T>(this Memory<T> a, Memory<T> b) where T : unmanaged, IComparable<T>
 				=> a.Span.e_CompareArrays_SIMD<T>(b.Span);
@@ -6947,7 +6946,14 @@ namespace uom
 			//Use this only in net.Core's and also....
 			//For compare byte arrays in Win32/64 use most fastest e_CompareArrays_MemCmp instead !
 
-			/// <inheritdoc cref="e_CompareArrays_SIMD" />
+
+			/// <summary>Compare Arrays using processor SIMD acceleration and direct memory pointers
+			/// The best results is for arrays of Int16, Int32, Int64, float,double.
+			/// <br/>
+			/// <c>
+			/// !!! For compare binary arrays - the fastest methos is to use e_CompareArrays_MemCmp !!!"
+			/// </c>
+			/// </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool e_CompareArrays_SIMD_Byte(this ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
 			{
@@ -6975,7 +6981,14 @@ namespace uom
 				return true;
 			}
 
-			/// <inheritdoc cref="e_CompareArrays_SIMD" />
+
+			/// <summary>Compare Arrays using processor SIMD acceleration and direct memory pointers
+			/// The best results is for arrays of Int16, Int32, Int64, float,double.
+			/// <br/>
+			/// <c>
+			/// !!! For compare binary arrays - the fastest methos is to use e_CompareArrays_MemCmp !!!"
+			/// </c>
+			/// </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool e_CompareArrays_SIMD_Byte(this ReadOnlyMemory<byte> a, ReadOnlyMemory<byte> b)
 				=> a.Span.e_CompareArrays_SIMD_Byte(b.Span);
@@ -7240,7 +7253,7 @@ namespace uom
 					.GetValues(typeof(T))
 					.Cast<T>()
 					.Where(e => !flagsToExclude.Contains(e))
-					.Cast<Int32>()
+					.Select(e => (Int32)(object)e)
 					.ToArray();
 
 				Int32 mixResult = 0;
@@ -10380,7 +10393,7 @@ namespace uom
 				return ms.ToArray();
 			}
 
-			/// <inheritdoc cref="e_Encrypt_AES" />
+			/// <inheritdoc cref="e_Encrypt_AES(byte[], byte[], byte[], bool, AES_KEY_SIZES, int)" />
 			public static byte[] e_Encrypt_AES(
 				this string text,
 				string password,
@@ -10392,7 +10405,7 @@ namespace uom
 					.e_GetBytes_Unicode()
 					.e_Encrypt_AES(password.e_GetBytes_Unicode(), saltBytes, createSaltFromPassword, keySize, iterations);
 
-			/// <inheritdoc cref="e_Encrypt_AES" />
+			/// <inheritdoc cref="e_Encrypt_AES(byte[], byte[], byte[], bool, AES_KEY_SIZES, int)" />
 			public static string e_Encrypt_AES_ToBase64String(
 				this string text,
 				string password,
@@ -10410,7 +10423,7 @@ namespace uom
 			/// <param name="createSaltFromPassword"></param>
 			/// <param name="iterations">the iteration count must be greater than zero. The minimum recommended number of iterations is 1000</param>
 			/// <exception cref="ArgumentOutOfRangeException"></exception>
-			/// <seealso cref="https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.rfc2898derivebytes.-ctor?view=netframework-4.8#system-security-cryptography-rfc2898derivebytes-ctor(system-byte()-system-byte()-system-int32)"/>
+			/// <seealso href="https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.rfc2898derivebytes.-ctor"/>
 			public static byte[] e_Decrypt_AES(
 				this byte[] bytesToBeDecrypted,
 				byte[] passwordBytes,

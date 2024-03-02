@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+	x:Class="uom.controls.MAUI.CollectionViews.CollapsibleGroupTemplate"
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
+	xmlns:uom_c_mcv="clr-namespace:uom.controls.MAUI.CollectionViews">
+
+	<!--
+		TODO: still in progress with dotnet git...
+		https://github.com/dotnet/maui/issues/20616
+		https://github.com/xamarin/Xamarin.Forms/issues/7161
+		
+		x:DataType="{x:Type uom_c_mcv:ExpandableGroupsCollection`1}"
+	-->
+
+	<Grid ColumnSpacing="4">
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="Auto" />
+			<ColumnDefinition Width="Auto" />
+			<ColumnDefinition Width="*" />
+			<ColumnDefinition Width="Auto" />
+		</Grid.ColumnDefinitions>
+
+
+		<!--  DisplayName (ItemsCountString)  -->
+		<Label
+			LineBreakMode="TailTruncation"
+			Style="{StaticResource GroupHeader_DisplayName}"
+			Text="{Binding DisplayName, Mode=OneWay}" />
+
+		<Label
+			Grid.Column="1"
+			Style="{StaticResource GroupHeader_ItemsCount}"
+			Text="{Binding CachedItemsCount, StringFormat='({0:G})', Mode=OneWay}" />
+
+
+		<!--  Horizontal separator line  -->
+		<Line Grid.Column="2" Style="{StaticResource GroupHeader_HorizontalLine}" />
+
+
+		<!--#region Expand / collapse glyph-->
+		<Ellipse Grid.Column="3" Style="{StaticResource GroupHeader_ExpandCollapseGroupGlyphBackground}" />
+
+		<Label
+			Grid.Column="3"
+			IsVisible="{Binding IsCollapsed.Invert, Mode=OneWay}"
+			Style="{StaticResource GroupHeader_ExpandCollapseGroupGlyph}"
+			Text="{mi:MaterialOutlined Icon=ArrowDropUp,
+			                           IconColor={StaticResource Primary}}" />
+
+		<Label
+			Grid.Column="3"
+			IsVisible="{Binding IsCollapsed.Value, Mode=OneWay}"
+			Style="{StaticResource GroupHeader_ExpandCollapseGroupGlyph}"
+			Text="{mi:MaterialOutlined Icon=ArrowDropDown,
+			                           IconColor={StaticResource Primary}}" />
+
+
+		<!--#endregion-->
+
+
+		<!-- Get other control property to set value
+			<Ellipse Visibility="{Binding ElementName=MyCheckBox,Path=IsChecked,
+                                Converter={StaticResource MyConverter}}"/>
+		-->
+	</Grid>
+
+</ContentView>
+

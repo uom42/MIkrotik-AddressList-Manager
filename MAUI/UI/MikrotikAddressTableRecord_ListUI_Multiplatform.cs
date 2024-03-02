@@ -3,6 +3,9 @@
 using MikrotikDotNet;
 using Mikrotik.API.Model.IP.Firewall.AddressList;
 
+using CommunityToolkit.Maui.Alerts;
+using CommunityToolkit.Maui.Markup;
+
 
 #if !WINDOWS
 
@@ -47,9 +50,15 @@ partial class MikrotikAddressTableRecord_ListUI
 
 		InitializeComponent();
 
+		//CommunityToolkit.Maui.Core.Platform.KeyboardExtensions.HideKeyboardAsync();
+		//this.HideKeyboardAsync(CancellationToken.None);
+
+
 #if WINDOWS
 		this.e_Attach_PositionAndStateSaver();
 #endif
+
+
 
 		LocalizeUI();
 
@@ -123,6 +132,12 @@ partial class MikrotikAddressTableRecord_ListUI
 #else
 		Title = _connection.Host;
 		btnExitApp.Text = L_APP_EXIT;
+
+		lvwRows.EmptyView(new Label()
+		   .Text(L_LIST_IS_EMPTY)
+		   .TextCenterVertical()
+		   .TextCenterHorizontal()
+		   );
 #endif
 
 		btnRows_Add.Text = L_ADD;
@@ -147,6 +162,8 @@ partial class MikrotikAddressTableRecord_ListUI
 		this.e_RunDelayed_OnShown(QueryDataFromDevice);
 		await Task.Delay(1);
 #else
+
+
 		await RefreshList();
 #endif
 	}
@@ -235,9 +252,8 @@ partial class MikrotikAddressTableRecord_ListUI
 			lvwRows.EmptyText = ex.Message;
 			ex.e_LogError(true, E_TITLE_DEFAULT);
 #else
-			//lvwRows.EmptyText = ex.Message;
-			await ex.e_LogError(true, E_TITLE_DEFAULT);
-			//await DisplayAlert(E_TITLE_DEFAULT, ex.Message, L_OK);
+			await ex.e_LogErrorToast();
+
 			//Return to Select Device Dialog
 			await Shell.Current.Navigation.PopAsync();
 #endif

@@ -1641,7 +1641,7 @@ namespace uom
 		internal static string GetWinSys32Path(string? childPath = null)
 			=> childPath.e_IsNullOrWhiteSpace()
 			? Environment.GetFolderPath(Environment.SpecialFolder.System)
-			: Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), childPath);
+			: Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), childPath!);
 
 
 		#region Win Version
@@ -2564,7 +2564,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static string GetID(Form f) => f.GetType().FullName;
+			private static string GetID(Form f) => f.GetType().FullName!;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			private string GetID() => GetID(this._form!);
@@ -2573,7 +2573,7 @@ namespace uom
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			private void FromUI()
 			{
-				if (!_canSave || !_form!.IsHandleCreated || _form!.IsDisposed || _form.WindowState == FormWindowState.Minimized) return;
+				if (!_canSave || !_form!.IsHandleCreated || _form!.IsDisposed || _form.WindowState == FormWindowState.Minimized || Screen.AllScreens.Length < 1) return;
 
 				//Debug.WriteLine("");
 
@@ -2584,7 +2584,7 @@ namespace uom
 
 				RectOnDesktop = uom.WinAPI.windows.GetWindowRectWithoutShadow(_form.Handle);
 				RectOnCurrentDisplay = RectOnDesktop;
-				CurrentDisplayBounds = Screen.PrimaryScreen.Bounds;
+				CurrentDisplayBounds = Screen.PrimaryScreen!.Bounds;
 				Display = string.Empty;
 				if (Screen.AllScreens.Length > 1)
 				{
@@ -2782,9 +2782,9 @@ End Function
 			public MessageBoxWithCheckbox() : base()
 			{
 				_apiHook = new();
-				_apiHook.WindowCreated += OnWndCreated;
-				_apiHook.WindowDestroyed += OnWndDestroyed;
-				_apiHook.WindowActivated += OnWndActivated;
+				_apiHook.WindowCreated += OnWndCreated!;
+				_apiHook.WindowDestroyed += OnWndDestroyed!;
+				_apiHook.WindowActivated += OnWndActivated!;
 
 				RegisterDisposableObject(_apiHook, false);
 			}
@@ -4568,7 +4568,7 @@ End Function
 					{
 						foreach (var tsk in delayedTasks) await tsk.Invoke();
 					}
-					catch (OperationCanceledException ocex) { }                 //catch (TaskCanceledException tcex) { }
+					catch (OperationCanceledException) { }                 //catch (TaskCanceledException tcex) { }
 					catch (Exception ex)
 					{
 						ex.e_LogError(onErrorShowUI);
@@ -24694,12 +24694,12 @@ End Function
 							elUOM.Source = src;
 							elUOM.WriteEntry(message, et, eventID);
 						}
-						catch (SecurityException sex)
+						catch (SecurityException)
 						{
 							WriteToApplicationLog($"{src}:\nEventlog source '{src}' is not registered for log {NT_LOG_NAME}!\nApp '{fiApp.FullName}' must be run with admin priveleges just once, to allow this source registration.", EventLogEntryType.Warning, eventID);
 							WriteToApplicationLog(message, et, eventID);
 						}
-						catch (Exception ex)
+						catch (Exception)
 						{
 							//Some shit happens...
 						}
