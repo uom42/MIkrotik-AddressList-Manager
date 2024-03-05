@@ -43,3 +43,4 @@
 	<SolidColorBrush x:Key="Pantone_GreenBlueBrush" Color="{StaticResource Pantone_GreenBlue}" />
 
 </ResourceDictionary>
+

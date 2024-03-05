@@ -6,7 +6,7 @@
 #endif
 
 
-using static MALM.Localization.Strings;
+using static MALM.Localization.LStrings;
 
 
 using MALM.UI;

@@ -4,7 +4,7 @@ using System.Drawing;
 
 using uom.controls;
 
-using Mikrotik.API.Model.IP.Firewall.AddressList;
+using MikrotikDotNet.Model.IP.Firewall.AddressList;
 
 namespace MALM.UI
 {
@@ -19,24 +19,24 @@ namespace MALM.UI
 		public AddressListItemRow(AddressListItem ali, ListViewEx lvw) : base()
 		{
 			MikrotikRow = ali;
-			this.e_AddFakeSubitems(lvw, "@");
+			this.eAddFakeSubitems(lvw, "@");
 			UpdateFromModel(ali, lvw);
 			//UpdateFromModel(ali, lvw, onNewGroupAdded);
 		}
 
 
 		public void UpdateGroupFromModel(ListViewEx lvw)
-			=> Group = lvw!.e_GroupsCreateGroupByKey(MikrotikRow.List).Group;
+			=> Group = lvw!.eGroupsCreateGroupByKey(MikrotikRow.List).Group;
 
 		public void UpdateFromModel(AddressListItem ali, ListViewEx lvw)
 		{
 			MikrotikRow = ali;
 			_ = lvw ?? throw new ArgumentNullException(nameof(lvw));
 
-			this.e_UpdateTexts(
+			this.eUpdateTexts(
 				ali.Address,
 				ali.Comment ?? "",
-				ali.CreationTime_AsDateTime.e_ToLongDateTimeString(),
+				ali.CreationTime!.eToLongDateTimeString(),
 				ali.MKID);
 
 			ImageKey = ali.Disabled ? C_IMAGE_KEY_GRAY : C_IMAGE_KEY_GREEN;
@@ -53,7 +53,7 @@ namespace MALM.UI
 
 			if (MikrotikRow.Address.ToLower().Contains(filter)) return true;
 			if (MikrotikRow.List.ToLower().Contains(filter)) return true;
-			if (MikrotikRow.CreationTime.ToLower().Contains(filter)) return true;
+			if (MikrotikRow.CreationTime.ToString().Contains(filter)) return true;
 			if (MikrotikRow.Comment != null && MikrotikRow.Comment.ToLower().Contains(filter)) return true;
 
 			return false;

@@ -3,7 +3,7 @@
 #endif
 #nullable enable
 
-using static MALM.Localization.Strings;
+using static MALM.Localization.LStrings;
 
 using System.Xml.Serialization;
 using System.ComponentModel;
@@ -123,13 +123,13 @@ namespace MALM.Model
 		[DefaultValue(""), XmlElement("Password")]
 		public string PwdString
 		{
-			get => PwdSafe.e_FromSecureStringToUnsafeString();
+			get => PwdSafe.eFromSecureStringToUnsafeString();
 			set
 			{
 #if !WINDOWS
 				this.OnPropertyChanging();
 #endif
-				this.PwdSafe = value.e_ToSecureString();
+				this.PwdSafe = value.eToSecureString();
 #if !WINDOWS
 				this.OnPropertyChanged();
 #endif
@@ -141,10 +141,11 @@ namespace MALM.Model
 		#endregion
 
 
-
 		#region Local Properties
 
-		internal UInt16? PortInt = null;
+
+		[XmlIgnore]
+		public UInt16? PortInt { get; set; } = null;
 
 		/// <summary>
 		/// Storing password safe in memory. This protection only works to protect against random memory scanner programs.
@@ -165,7 +166,7 @@ namespace MALM.Model
 					{
 						if (IPAddress.TryParse(AddressString, out var ipa) && ipa != null)
 						{
-							return ipa.e_ToUInt32CalculableOrder();
+							return ipa.eToUInt32CalculableOrder();
 						}
 					}
 				}
@@ -224,7 +225,7 @@ namespace MALM.Model
 			var fiDatabse = DatabseFile.Value;
 			if (!fiDatabse.Exists) return null;
 
-			string xml = (await fiDatabse.e_ReadAsTextAsync())!;
+			string xml = (await fiDatabse.eReadAsTextAsync())!;
 
 #if !DONT_ENCRYPT_ADDRESSBOOK || !DEBUG
 			masterP = (masterP.Length > 0)
@@ -232,11 +233,11 @@ namespace MALM.Model
 				: DEFAULT_MASTER_KEY;
 
 			xml = xml
-				.e_Decrypt_AES_FromBase64String(masterP, createSaltFromPassword: true, iterations: AES_ITERATIONS)
-				.e_ToStringUnicodeFast();
+				.eDecrypt_AES_FromBase64String(masterP, createSaltFromPassword: true, iterations: AES_ITERATIONS)
+				.eToStringUnicodeFast();
 #endif
 
-			DevicesListRecord[]? rawRows = xml.e_DeSerializeXML<DevicesListRecord[]>(null, true);
+			DevicesListRecord[]? rawRows = xml.eDeSerializeXML<DevicesListRecord[]>(null, true);
 			if (rawRows == null) return null;
 			return Sort(rawRows);
 		}
@@ -246,10 +247,10 @@ namespace MALM.Model
 		{
 			Debug.WriteLine($"***************** SaveAddressBook");
 
-			string xml = rows.ToList().e_SerializeAsXML();
+			string xml = rows.ToList().eSerializeAsXML();
 			var fiDatabse = DatabseFile.Value;
-			using var sw = fiDatabse.e_CreateWriter(FileMode.OpenOrCreate, encoding: Encoding.Unicode);
-			sw.BaseStream.e_Truncate();
+			using var sw = fiDatabse.eCreateWriter(FileMode.OpenOrCreate, encoding: Encoding.Unicode);
+			sw.BaseStream.eTruncate();
 
 #if !DONT_ENCRYPT_ADDRESSBOOK || !DEBUG
 
@@ -257,7 +258,7 @@ namespace MALM.Model
 				? masterP
 				: DEFAULT_MASTER_KEY;
 
-			xml = xml.e_Encrypt_AES_ToBase64String(masterP, iterations: AES_ITERATIONS);
+			xml = xml.eEncrypt_AES_ToBase64String(masterP, iterations: AES_ITERATIONS);
 
 #endif
 
@@ -277,7 +278,7 @@ namespace MALM.Model
 		var fiDatabse = DatabseFile.Value;
 		if (!fiDatabse.Exists) return null;
 
-		string xml = (await fiDatabse.e_ReadAsTextAsync())!;
+		string xml = (await fiDatabse.eReadAsTextAsync())!;
 
 #if !DONT_ENCRYPT_ADDRESSBOOK || !DEBUG
 		masterP = (masterP.Length > 0)
@@ -285,11 +286,11 @@ namespace MALM.Model
 			: DEFAULT_MASTER_KEY;
 
 		xml = xml
-			.e_Decrypt_AES_FromBase64String(masterP, createSaltFromPassword: true, iterations: AES_ITERATIONS)
-			.e_ToStringUnicodeFast();
+			.eDecrypt_AES_FromBase64String(masterP, createSaltFromPassword: true, iterations: AES_ITERATIONS)
+			.eToStringUnicodeFast();
 #endif
 
-		DevicesListRecord[]? rawRows = xml.e_DeSerializeXML<DevicesListRecord[]>(null, true);
+		DevicesListRecord[]? rawRows = xml.eDeSerializeXML<DevicesListRecord[]>(null, true);
 		if (rawRows == null) return null;
 		return Sort(rawRows);
 	}
@@ -298,14 +299,14 @@ namespace MALM.Model
 		internal static void SaveAddressBook(DevicesListRecord[] rows, string masterP)
 		{
 			using var sw = uom.AppTools.GetFileIn_AppData(ADDRESSBOOK_FILE, true)
-				.e_CreateWriter(FileMode.OpenOrCreate, encoding: Encoding.Unicode);
+				.eCreateWriter(FileMode.OpenOrCreate, encoding: Encoding.Unicode);
 
-			sw.BaseStream.e_Truncate();
-			string xml = rows.e_SerializeAsXML();
+			sw.BaseStream.eTruncate();
+			string xml = rows.eSerializeAsXML();
 
 #if !DONT_ENCRYPT_ADDRESSBOOK || !DEBUG
 			xml = xml
-				.e_Encrypt_AES_ToBase64String((masterP.Length > 0)
+				.eEncrypt_AES_ToBase64String((masterP.Length > 0)
 					? masterP
 					: DEFAULT_MASTER_KEY,
 				iterations: AES_ITERATIONS);
@@ -331,41 +332,12 @@ namespace MALM.Model
 #endif
 
 
+		[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public MKConnection CreateConnection()
+			=> PortInt.HasValue
+			? MikrotikDotNet.Model.Helpers.CreateConnection(AddressString!, UserName!, PwdString, PortInt.Value)
+			: MikrotikDotNet.Model.Helpers.CreateConnection(AddressString!, UserName!, PwdString);
 
-
-
-		private MKConnection CreateConnection() => (PortInt.HasValue)
-			? new(AddressString, UserName, PwdString, PortInt.Value)
-			: new(AddressString, UserName, PwdString);
-
-
-		internal static async Task<MKConnection> OpenConnection(DevicesListRecord dev)
-		{
-			CancellationTokenSource ct = new();
-
-			MKConnection con = dev.CreateConnection();
-			Task tskConnect = new(con.Open, ct.Token, TaskCreationOptions.LongRunning);
-			tskConnect.Start();
-
-			int timeout = 3_000;
-			if (await Task.WhenAny(tskConnect, Task.Delay(timeout, ct.Token)) == tskConnect)
-			{
-				// Task completed within timeout.
-				// Consider that the task may have faulted or been canceled.
-				// We re-await the task so that any exceptions/cancellation is rethrown.
-				await tskConnect;
-
-				if (!con.IsOpen) throw new Exception(E_MIKROTIK_CONNECTION_FAILED);
-				return con;
-			}
-			else
-			{
-				// timeout/cancellation logic
-				ct.Cancel();
-				throw new TimeoutException(E_MIKROTIK_CONNECTION_FAILED);
-			}
-
-		}
 
 
 	}

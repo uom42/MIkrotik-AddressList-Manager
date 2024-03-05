@@ -2,7 +2,7 @@
 
 namespace MALM.UI;
 
-using static MALM.Localization.Strings;
+using static MALM.Localization.LStrings;
 
 using MALM.Model;
 using MikrotikDotNet;
@@ -18,9 +18,9 @@ using MALM.Pages;
 using MALM.Model.Mikrotik;
 using CommunityToolkit.Maui.Markup;
 using CommunityToolkit.Maui.Alerts;
+using CommunityToolkit.Mvvm.Input;
 
 #endif
-
 
 
 partial class DevicesListUI
@@ -45,7 +45,6 @@ partial class DevicesListUI
 		_ = new MauiIcons.Core.MauiIcon();
 #endif
 
-
 		InitializeComponent();
 
 		LocalizeUI();
@@ -58,13 +57,16 @@ partial class DevicesListUI
 
 
 		this.Loaded += async (s, e) => await OnLoad();
+
+		this.Appearing += async (s, e) => await onAppearing();
+		this.Disappearing += async (s, e) => await onDisappearing();
 #else
 		lvwDevices.MultiSelect = false;
 		lvwDevices.SelectedIndexChanged += delegate { OnDeviceSelected(); };
 
 		btnAdd.Click += OnAdd!;
-		btnEdit.Click += OnEdit!;
-		btnDelete.Click += OnDelete!;
+		btnEdit.Click += Device_Edit!;
+		btnDelete.Click += Device_Delete!;
 		btnSetMasterKey.Click += OnChangeMasterKey!;
 
 		btnConnect.Click += async (s, e) => await OnTryConnectDevice(s, e);
@@ -73,6 +75,7 @@ partial class DevicesListUI
 		this.Load += (_, _) => OnLoad();
 #endif
 
+		OUI.Manager.BeginInitialize(2);
 	}
 
 
@@ -86,11 +89,7 @@ partial class DevicesListUI
 		_devices = l.Devices;
 #endif
 
-
 	}
-
-
-
 
 
 
@@ -128,39 +127,8 @@ partial class DevicesListUI
 
 
 
-	#region UI Actions
-
-
-
-#if !ANDROID
-	private DevicesListRecord? selectedDevice
-	{
-		get
-		{
-			//return lvwDevices.SelectedItem as DevicesListRecord;
-			return lvwDevices.e_SelectedItemsAndTags<DevicesListRecord>().FirstOrDefault()?.Tag;
-		}
-	}
-
-	private void OnDeviceSelected()
-	{
-		DevicesListRecord? sel = selectedDevice;
-		var hasSel = (sel != null);
-
-		btnConnect.Enabled = hasSel;
-		btnDelete.Enabled = hasSel;
-		btnEdit.Enabled = hasSel;
-
-		try { SaveRecent(sel?.AddressString ?? ""); } catch { }
-	}
-#endif
-
-
-
-	#endregion
-
-
 	#region Edit list
+
 
 
 	private async void OnAdd(object s, EventArgs e)
@@ -171,13 +139,13 @@ partial class DevicesListUI
 		//TODO: Change android to dialogresult with AutoresetEvent
 
 
-		void addDevice(DevicesListRecord? dev)
+		void AppendDeviceToDatabase(DevicesListRecord? dev)
 		{
 			if (dev == null) return;
 			_devices.Add(dev);
 
 			var fr = FindDeviceGroup(dev, true);
-			DevicesListRecordRowsGroup g = fr.Group!;
+			DevicesListRecordsGroup g = fr.Group!;
 			if (fr.Added)
 			{
 				//Adding new group with to Old Existing Group
@@ -189,9 +157,9 @@ partial class DevicesListUI
 		}
 
 		DevicesListRecord md = new();
-		await this.e_GoToWithReturnAsync<DevicesListRecord>(
+		await this.eGoToWithReturnAsync<DevicesListRecord>(
 			nameof(DevicesListRecordEditorUI),
-			retDev => addDevice(retDev),
+			retDev => AppendDeviceToDatabase(retDev),
 			DevicesListRecordEditorUI.C_INPUT_PARAM_KEY, md);
 
 #else
@@ -203,144 +171,22 @@ partial class DevicesListUI
 		DevicesListRecord abr = DevicesListRecord.FromEditor(fe);
 		var li = AddRecordToList(abr);
 		await SaveDevicesList();
-		li.e_Activate();
+		li.eActivate();
 
 #endif
 
 	}
 
 
-	private async void OnEdit(object s, EventArgs e)
-	{
 
-#if !WINDOWS
-
-		var ss = s as Button;
-		var md = ss?.BindingContext as DevicesListRecord;
-		if (md == null) return;
-
-
-		//TODO: Change android to dialogresult with AutoresetEvent
-		var oldGroupFindResult = FindDeviceGroup(md, false);
-
-		void updateDevice(int index, DevicesListRecord? dev)
-		{
-			if (dev == null) return;
-			_devices[index] = dev!;
-
-			var gOld = oldGroupFindResult.Group;
-			var newGroupFindResult = FindDeviceGroup(dev, true);
-			if (gOld != null && object.ReferenceEquals(gOld, newGroupFindResult.Group))
-			{
-				//Changing in some group
-				index = gOld.IndexOf(md);
-				gOld[index] = dev!;
-			}
-			else
-			{
-				//Group was changed
-				gOld!.Remove(dev);
-				if (gOld.CachedItemsCount < 1) _deviceGroups.Remove(gOld);
-
-
-				DevicesListRecordRowsGroup gNew = newGroupFindResult.Group!;
-				if (newGroupFindResult.Added)
-				{
-					//Adding new group with to Old Existing Group
-					_deviceGroups.Add(gNew);
-				}
-				gNew.Add(dev);
-				gNew.IsCollapsed = false;
-				//lvwDevices.ScrollTo(dev);
-			}
-		}
-
-		int idx = _devices.IndexOf(md);
-		await this.e_GoToWithReturnAsync<DevicesListRecord>(
-			nameof(DevicesListRecordEditorUI),
-			retDev => updateDevice(idx, retDev),
-			DevicesListRecordEditorUI.C_INPUT_PARAM_KEY, md);
-
-
-#else
-
-		var sel = lvwDevices.e_SelectedItemsAndTags<DevicesListRecord>().FirstOrDefault();
-		if (sel == null) return;
-
-		DevicesListRecord dev = sel.Tag!;
-		using DevicesListRecordEditorUI fe = DevicesListRecordEditorUI.InitUI(dev);
-
-		if (fe.ShowDialog(this) != DialogResult.OK) return;
-
-		dev = DevicesListRecord.FromEditor(fe);
-		sel.Item.Tag = dev;
-
-		UpdateRecordInList(sel.Item);
-		await SaveDevicesList();
-
-#endif
-
-
-	}
-
-
-	private async void OnDelete(object s, EventArgs e)
-	{
-
-#if !WINDOWS
-		//var md = selectedDevice;
-		var ss = s as Button;
-		var md = ss?.BindingContext as DevicesListRecord;
-#else
-		var sel = lvwDevices.e_SelectedItemsAndTags<DevicesListRecord>().FirstOrDefault();
-		var md = sel?.Tag;
-
-#endif
-
-		if (md == null) return;
-
-		string q = string.Format(Q_ADDRESSBOOK_DELETE_RECORD, md.AddressString);
-
-#if !WINDOWS
-		if (!await DisplayAlert(L_DELETE, q, L_YES, L_NO)) return;
-
-		var grp = FindDeviceGroup(md, false).Group;
-		_devices.Remove(md);
-		if (grp != null)
-		{
-			grp.Remove(md);
-			if (grp.CachedItemsCount < 1) _deviceGroups.Remove(grp);
-		}
-
-
-#else
-
-		if (!q.e_MsgboxAskIsYes(false, L_DEVICES_LIST_EDITOR)) return;
-		lvwDevices.Items.Remove(sel!.Item);
-		await SaveDevicesList();
-		OnDeviceSelected();
-#endif
-
-	}
 
 
 	#endregion
 
 
 
-
-
 	private async void OnChangeMasterKey(object s, EventArgs e)
 	{
-
-#if DONT_ENCRYPT_ADDRESSBOOK && DEBUG
-		   "Addressbook Encryption disabled by DONT_ENCRYPT_ADDRESSBOOK flag!".e_MsgboxShow();
-	   return;
-#endif
-
-
-
-
 #if !WINDOWS
 		await _mkm!.ShowEditorUI(SaveDevicesList);
 #else
@@ -349,18 +195,19 @@ partial class DevicesListUI
 	}
 
 
-
-
-
 	private async Task SaveDevicesList()
 	{
 
 #if !WINDOWS
 		var rows = _devices;
 #else
+
+		//uom.controls.ListViewItemT<DevicesListRecord>? SelectedDeviceeeeee		=> lvwDevices.eSelectedItemsAs<uom.controls.ListViewItemT<DevicesListRecord>>().FirstOrDefault();
+
+
 		var rows = lvwDevices
-		.e_ItemsAndTags<DevicesListRecord>()
-		.Select(li => li.Tag!);
+			.eItemsAs<uom.controls.ListViewItemT<DevicesListRecord>>()
+			.Select(li => li.Value2);
 #endif
 		await _mkm!.Database_WriteEncrypted([.. rows]);
 	}

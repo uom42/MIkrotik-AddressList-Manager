@@ -24,16 +24,29 @@ internal partial class DevicesListUI : Form
 		lvwDevices.GroupCollapsedStateChanged += (_, _)
 			=> lvwDevices.SaveAllGroupsCollapsedStates(dataID: "DevicesList");
 
-		lvwDevices.e_ClearItems();
+		lvwDevices.eClearItems();
 
-		string? recent = Extensions_DebugAndErrors.e_tryCatch(LoadRecent, null).Result;
+		var iconSize = System.Windows.Forms.SystemInformation.IconSize;
+		var iml = new ImageList()
+		{
+			ColorDepth = ColorDepth.Depth32Bit,
+			ImageSize = iconSize,
+		};
+
+		var bmRouter = uom.AppInfo.Assembly
+			.eLoadSVGFromResourceFileToBitmap("Router_gray.svg", iconSize);
+
+		iml.Images.Add(bmRouter);
+		lvwDevices.SmallImageList = iml;
+
+		string? recent = Extensions_DebugAndErrors.etryCatch(LoadRecent, null).Result;
 
 		foreach (var abr in _devices)
 		{
 			var li = AddRecordToList(abr);
 			if (recent != null && li.Text.ToLower().Trim() == recent.ToLower().Trim())
 			{
-				li.e_Activate();
+				li.eActivate();
 			}
 		}
 
@@ -46,10 +59,10 @@ internal partial class DevicesListUI : Form
 	#region Recent Load / Save
 
 
-	private static FileInfo GetRecentStorage() => uom.AppTools.GetFileIn_AppData(RECENT_FILE, true).e_ToFileInfo()!;
-	internal static string? LoadRecent() => GetRecentStorage().e_ReadAsText();
+	private static FileInfo GetRecentStorage() => uom.AppTools.GetFileIn_AppData(RECENT_FILE, true).eToFileInfo()!;
+	internal static string? LoadRecent() => GetRecentStorage().eReadAsText();
 
-	private static void SaveRecent(string host) => GetRecentStorage().e_WriteAllText(host);
+	private static void SaveRecent(string host) => GetRecentStorage().eWriteAllText(host);
 
 
 	#endregion
@@ -58,26 +71,26 @@ internal partial class DevicesListUI : Form
 	#region Internal Helpers
 
 
-	private ListViewItem AddRecordToList(DevicesListRecord abr)
+	private uom.controls.ListViewItemT<DevicesListRecord> AddRecordToList(DevicesListRecord abr)
 	{
-		var li = new ListViewItem(abr.AddressString);
-		li.e_AddFakeSubitems(lvwDevices);
-		li.Tag = abr;
+		var li = new uom.controls.ListViewItemT<DevicesListRecord>(abr);
+		li.eAddFakeSubitems(lvwDevices);
 		lvwDevices.Items.Add(li);
 		UpdateRecordInList(li);
 		return li;
 	}
 
 
-	private void UpdateRecordInList(ListViewItem li)
+	private void UpdateRecordInList(uom.controls.ListViewItemT<DevicesListRecord> li)
 	{
-		DevicesListRecord abr = (DevicesListRecord)li.Tag!;
+		DevicesListRecord abr = li.Value2;
 		string title = abr.AddressString;
 		if (abr.PortInt.HasValue) title += $":{abr.PortInt.Value}";
 
-		li.e_UpdateTexts(title, abr.UserName);
+		li.eUpdateTexts(title, abr.UserName);
+		li.ImageIndex = 0;
 
-		li.Group = lvwDevices.e_GroupsCreateGroupByKey(
+		li.Group = lvwDevices.eGroupsCreateGroupByKey(
 			string.IsNullOrWhiteSpace(abr.Group)
 					? L_DEFAULT
 					: abr.Group,
@@ -94,33 +107,90 @@ internal partial class DevicesListUI : Form
 	#endregion
 
 
+	private uom.controls.ListViewItemT<DevicesListRecord>? SelectedDevice
+		=> lvwDevices.eSelectedItemsAs<uom.controls.ListViewItemT<DevicesListRecord>>().FirstOrDefault();
+
+
+	private void OnDeviceSelected()
+	{
+		var sel = SelectedDevice;
+		var hasSel = (sel != null);
+
+		btnConnect.Enabled = hasSel;
+		btnDelete.Enabled = hasSel;
+		btnEdit.Enabled = hasSel;
+
+		try { SaveRecent(sel?.Value?.AddressString ?? ""); } catch { }
+	}
+
+
+
+	#region Editing
+
+	private async void Device_Edit(object s, EventArgs e)
+	{
+		var sel = SelectedDevice;
+		if (sel == null) return;
+		DevicesListRecord dev = sel.Value2;
+
+		using DevicesListRecordEditorUI fe = DevicesListRecordEditorUI.InitUI(dev);
+		if (fe.ShowDialog(this) != DialogResult.OK) return;
+
+		dev = DevicesListRecord.FromEditor(fe);
+		sel.Value2 = dev;
+		UpdateRecordInList(sel);
+		await SaveDevicesList();
+	}
+
+
+	private async void Device_Delete(object s, EventArgs e)
+	{
+		var sel = SelectedDevice;
+		if (sel == null) return;
+		DevicesListRecord dev = sel.Value2;
+
+		string q = string.Format(Q_ADDRESSBOOK_DELETE_RECORD, dev.AddressString);
+
+		if (!q.eMsgboxAskIsYes(false, L_DEVICES_LIST_EDITOR)) return;
+		lvwDevices.Items.Remove(sel);
+		await SaveDevicesList();
+		OnDeviceSelected();
+	}
+
+
+
+	#endregion
+
+
 	#region Connect
 
 
 	private async Task OnTryConnectDevice(object? s, EventArgs e)
 	{
-		var sel = lvwDevices.e_SelectedItemsAndTags<DevicesListRecord>().FirstOrDefault();
-		var md = sel?.Tag;
-		if (md == null || string.IsNullOrWhiteSpace(md.AddressString)) return;
+		var sel = SelectedDevice;
+		if (sel == null) return;
+		DevicesListRecord dev = sel.Value2;
+
+		if (string.IsNullOrWhiteSpace(dev.AddressString)) return;
 
 		Control[] buttonsToDisable = [btnAdd, btnEdit, btnDelete, btnConnect, btnSetMasterKey];
 		UseWaitCursor = true;
 		Update();
 
-		buttonsToDisable.e_Enable(false);
+		buttonsToDisable.eEnable(false);
 
 		try
 		{
-			var con = await DevicesListRecord.OpenConnection(md);
+			var con = await MikrotikDotNet.Model.Helpers.ConnectDeviceAsync(dev.CreateConnection());
 
 			//Connected successfully
 			_dialogResult = con!;
 			DialogResult = DialogResult.OK;
 		}
-		catch (Exception ex) { ex.e_LogError(true, E_TITLE_DEFAULT); }
+		catch (Exception ex) { ex.eLogError(true, E_TITLE_DEFAULT); }
 		finally
 		{
-			buttonsToDisable.e_Enable(true);
+			buttonsToDisable.eEnable(true);
 			UseWaitCursor = false;
 			OnDeviceSelected();
 		}

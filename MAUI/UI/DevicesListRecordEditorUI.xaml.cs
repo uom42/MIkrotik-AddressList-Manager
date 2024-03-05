@@ -1,8 +1,9 @@
 using MALM.Model;
 
+using uom.controls.MAUI.Animations;
 using uom.maui;
 
-using static MALM.Localization.Strings;
+using static MALM.Localization.LStrings;
 
 namespace MALM.Pages;
 
@@ -68,7 +69,7 @@ public partial class DevicesListRecordEditorUI : ContentPage
 			{
 				UInt32 port32 = UInt32.Parse(txtPort.Text.Trim());
 				if (port32 > UInt16.MaxValue) return false;
-				//UInt16 port = (UInt16)port32.e_CheckRange(0, UInt16.MaxValue);
+				//UInt16 port = (UInt16)port32.eCheckRange(0, UInt16.MaxValue);
 				//UInt16 port = UInt16.Parse(txtPort.Text);
 			}
 		}
@@ -80,7 +81,11 @@ public partial class DevicesListRecordEditorUI : ContentPage
 
 	private async void OnOk(object sender, EventArgs e)
 	{
+
 		if (!ValidateUserInput()) return;
+
+		await btnOk.WaitForButtonAnimation();
+
 
 		DevicesListRecord md = DeviceToEdit!;
 		md.AddressString = txtAddress.Text;
@@ -92,7 +97,7 @@ public partial class DevicesListRecordEditorUI : ContentPage
 		else
 		{
 			UInt32 port32 = UInt32.Parse(txtPort.Text.Trim());
-			UInt16 port16 = (UInt16)port32.e_CheckRange(0, UInt16.MaxValue);
+			UInt16 port16 = (UInt16)port32.eCheckRange(0, UInt16.MaxValue);
 			md.PortInt = port16;
 		}
 
@@ -102,7 +107,7 @@ public partial class DevicesListRecordEditorUI : ContentPage
 
 		md.OnPropertyChanged2(nameof(md.AddressString));
 
-		await md.e_ReturnAsDialogResult();
+		await md.eReturnAsDialogResult();
 		/*
 		WeakReferenceMessenger.Default.Send(new SendItemMessage(md));
 		await Shell.Current.Navigation.PopAsync();

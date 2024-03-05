@@ -41,65 +41,76 @@
 
 	</PropertyGroup>
 
+
+
+
+	<!-- Resources -->
 	<ItemGroup>
-		<Content Include="Router.ico" />
+
+		<EmbeddedResource Include="Media\ball_green.svg" />
+
+		<EmbeddedResource Include="Media\Router\Router_gray.svg" />
+
+		<EmbeddedResource Include="OUI\oui.txt" />
+
 	</ItemGroup>
+
+
+
+	<!-- Partial files -->
 	<ItemGroup>
-		<PackageReference Include="Mikrotik.Net" Version="1.3.0" />
+
+		<EmbeddedResource Update="Localization\LStrings.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+			<LastGenOutput>LStrings.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+
+		<Compile Update="Localization\LStrings.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>LStrings.resx</DependentUpon>
+		</Compile>
+
+		<EmbeddedResource Update="Localization\LStrings.ru.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+		</EmbeddedResource>
+
+		<EmbeddedResource Update="Localization\LStrings.uk.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+		</EmbeddedResource>
+
+
+
+
+		<None Include="UI\MasterKeyUI_Multiplatform.cs">
+			<DependentUpon>MasterKeyUI.cs</DependentUpon>
+		</None>
+
+		<None Include="UI\DevicesListUI_Multiplatform.cs">
+			<DependentUpon>DevicesListUI.cs</DependentUpon>
+		</None>
+
+		<None Include="UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs">
+			<DependentUpon>MikrotikAddressTableRecord_ListUI.cs</DependentUpon>
+		</None>
+
+		<None Include="Model\DevicesListRecord_Multiplatform.cs">
+			<DependentUpon>DevicesListRecord.cs</DependentUpon>
+		</None>
+
+	</ItemGroup>
+
+
+
+	<!-- References -->
+	<ItemGroup>
+		<ProjectReference Include="..\..\..\..\_LIB\CS_UOM\Network\Mikrotik\MikrotikDotNet\MDN_Git\Mikrotik.Net\Mikrotik.Net.csproj" />
+
+		<PackageReference Include="Svg" Version="3.4.7" />
+
 		<PackageReference Include="System.Management" Version="8.0.0" />
 	</ItemGroup>
 
-
-	<ItemGroup>
-
-		<EmbeddedResource Update="Localization\Strings.resx">
-			<Generator>ResXFileCodeGenerator</Generator>
-			<LastGenOutput>Strings.Designer.cs</LastGenOutput>
-		</EmbeddedResource>
-
-		<Compile Update="Localization\Strings.Designer.cs">
-			<DesignTime>True</DesignTime>
-			<AutoGen>True</AutoGen>
-			<DependentUpon>Strings.resx</DependentUpon>
-		</Compile>
-
-		<EmbeddedResource Update="Localization\Strings.ru.resx">
-			<Generator></Generator>
-		</EmbeddedResource>
-
-		<EmbeddedResource Update="Localization\Strings.uk.resx">
-			<Generator></Generator>
-		</EmbeddedResource>
-
-
-
-
-		<Compile Update="UI\MasterKeyUI_Multiplatform.cs">
-			<DependentUpon>MasterKeyUI.cs</DependentUpon>
-		</Compile>
-
-		<Compile Update="UI\DevicesListUI_Multiplatform.cs">
-			<DependentUpon>DevicesListUI.cs</DependentUpon>
-		</Compile>
-
-		<Compile Update="UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs">
-			<DependentUpon>MikrotikAddressTableRecord_ListUI.cs</DependentUpon>
-		</Compile>
-
-
-		<Compile Update="Model\DevicesListRecord_Multiplatform.cs">
-			<DependentUpon>DevicesListRecord.cs</DependentUpon>
-		</Compile>
-
-
-
-
-	</ItemGroup>
-
-
-	<ItemGroup>
-		<Folder Include="Core\" />
-	</ItemGroup>
 
 
 

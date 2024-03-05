@@ -3,22 +3,22 @@
 	x:Class="uom.controls.MAUI.CollectionViews.CollectionViewEx"
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-	xmlns:uomMAUIctlCV="clr-namespace:uom.controls.MAUI.CollectionViews"
-	IsGrouped="True"
+	xmlns:uom_ctl_cv="clr-namespace:uom.controls.MAUI.CollectionViews"
+	CanMixGroups="False"
+	CanReorderItems="False"
+	IsGrouped="true"
+	ItemsUpdatingScrollMode="KeepItemsInView"
 	SelectionMode="None">
 
-
-	<!--
-	
+	<CollectionView.ItemsLayout>
+		<LinearItemsLayout ItemSpacing="0" Orientation="Vertical" />
+	</CollectionView.ItemsLayout>
 
 	<CollectionView.GroupHeaderTemplate>
-
-		<uomMAUIctlCV:CollapsibleGroupTemplate OnChangeCollapsedState="OnGroup_OnChangeCollapsedState" />
-
+		<DataTemplate>
+			<uom_ctl_cv:CollapsibleGroupTemplate />
+		</DataTemplate>
 	</CollectionView.GroupHeaderTemplate>
-
-	-->
 
 
 </CollectionView>
-

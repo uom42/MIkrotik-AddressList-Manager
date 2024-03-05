@@ -6,7 +6,7 @@ using MALM.UI;
 using Plugin.Fingerprint;
 using Plugin.Fingerprint.Abstractions;
 
-using static MALM.Localization.Strings;
+using static MALM.Localization.LStrings;
 
 namespace MALM;
 

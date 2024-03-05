@@ -1,20 +1,20 @@
 ﻿#nullable enable
 
 using MikrotikDotNet;
-using Mikrotik.API.Model.IP.Firewall.AddressList;
-
-
+using MikrotikDotNet.Model.IP.Firewall.AddressList;
 
 #if !WINDOWS
+
 using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Markup;
 
+
 using uom.maui;
-using MALM.Model.Mikrotik;
+using MALM.Model.AddressList;
 
 #endif
 
-using static MALM.Localization.Strings;
+using static MALM.Localization.LStrings;
 
 
 
@@ -55,7 +55,7 @@ partial class MikrotikAddressTableRecord_ListUI
 
 
 #if WINDOWS
-		this.e_Attach_PositionAndStateSaver();
+		this.eAttach_PositionAndStateSaver();
 #endif
 
 
@@ -69,19 +69,25 @@ partial class MikrotikAddressTableRecord_ListUI
 			llFreeIcons.IsLink = true;
 			llFreeIcons.Click += delegate
 			{
-				try { URL_FREE_ICONS.e_OpenURLInBrowser(); } catch { }
+				try { URL_FREE_ICONS.eOpenURLInBrowser(); } catch { }
 			};
 		}
 
-		Bitmap imgBall_Green = Properties.Resources.ball_green16;
-		var imgBall_Gray = imgBall_Green.e_ToGrayscale();
+
+		var iconSize = System.Windows.Forms.SystemInformation.SmallIconSize;
+
+		var bmIconGreen = uom.AppInfo.Assembly
+			.eLoadSVGFromResourceFile("ball_green.svg")
+			.eToBitmap(iconSize);
+
+		var bmIconGray = bmIconGreen.eToGrayscaled_ToolStripRenderer();
 		var iml = new ImageList()
 		{
 			ColorDepth = ColorDepth.Depth32Bit,
-			ImageSize = System.Windows.Forms.SystemInformation.SmallIconSize,
+			ImageSize = iconSize,
 		};
-		iml.Images.Add(AddressListItemRow.C_IMAGE_KEY_GRAY, imgBall_Gray);
-		iml.Images.Add(AddressListItemRow.C_IMAGE_KEY_GREEN, imgBall_Green);
+		iml.Images.Add(AddressListItemRow.C_IMAGE_KEY_GRAY, bmIconGray);
+		iml.Images.Add(AddressListItemRow.C_IMAGE_KEY_GREEN, bmIconGreen);
 		lvwRows.SmallImageList = iml;
 
 
@@ -91,11 +97,12 @@ partial class MikrotikAddressTableRecord_ListUI
 		lvwRows.Items_NeedRefreshList += async (_, _) => await RefreshList();
 		btnRows_Refresh.Click += async (_, _) => await RefreshList();
 
-		this.btnRows_Enable.Click += async (s, e) => await SelectedRows_EnableDisable(true);
-		this.btnRows_Disable.Click += async (s, e) => await SelectedRows_EnableDisable(false);
+		btnRows_Enable.Click += async (s, e) => await SelectedRows_EnableDisable(true);
+		btnRows_Disable.Click += async (s, e) => await SelectedRows_EnableDisable(false);
+		btnRows_Add.Click += async (s, e) => await OnRows_Add();
 
-		this.btnRows_Add.Click += async (s, e) => await OnRows_Add();
 
+		btnViewARPList.Click += (_, _) => ShowLANDevices();
 
 
 		this.Load += async (s, e) => await OnLoad();
@@ -118,7 +125,7 @@ partial class MikrotikAddressTableRecord_ListUI
 	private void LocalizeUI()
 	{
 #if WINDOWS
-		Text = Application.ProductName + $" ({_connection.Host})";
+		Text = $"{Application.ProductName} ({_connection.Host})";
 		colAddress.Text = L_DEVICE_ADDRESS;
 		colComment.Text = L_COMMENT;
 		colCreated.Text = L_CREATED;
@@ -157,9 +164,9 @@ partial class MikrotikAddressTableRecord_ListUI
 			lvwRows.SaveAllGroupsCollapsedStates(dataID: GetHostDataID());
 		};
 
-		toolBarMain.e_EnableItems(false);
-		txtFilter.e_AttachDelayedFilter(OnFilterChanged, cueBanner: L_FILTER);
-		this.e_RunDelayed_OnShown(QueryDataFromDevice);
+		toolBarMain.eEnableItems(false);
+		txtFilter.eAttachDelayedFilter(OnFilterChanged, cueBanner: L_FILTER);
+		this.eRunDelayed_OnShown(QueryDataFromDevice);
 		await Task.Delay(1);
 #else
 
@@ -206,8 +213,8 @@ partial class MikrotikAddressTableRecord_ListUI
 		this.UseWaitCursor = true;
 		lvwRows.EmptyText = L_QUERING_DATA;
 
-		lvwRows.e_ClearItems();
-		this.toolBarMain.e_EnableItems(false);
+		lvwRows.eClearItems();
+		this.toolBarMain.eEnableItems(false);
 #else
 
 		lvwRows.ItemsSource = null;
@@ -217,8 +224,9 @@ partial class MikrotikAddressTableRecord_ListUI
 		try
 		{
 			//Query router for data
-			var mikrotikRows = (await AddressListItem.GetItemsAsync(_connection!))
+			var mikrotikRows = (await AddressListItem.GetItemsAsync(_connection!, false))
 				.Where(r => r.Dynamic == false);
+
 
 #if WINDOWS
 			AddressListItemRow[] uiRows = [.. mikrotikRows.Select(ip => new AddressListItemRow(ip, lvwRows))];
@@ -242,6 +250,9 @@ partial class MikrotikAddressTableRecord_ListUI
 #endif
 			_mikrotikRows = uiRows;
 
+
+
+
 			DisplayFilteredMKData();
 
 		}
@@ -250,9 +261,9 @@ partial class MikrotikAddressTableRecord_ListUI
 
 #if WINDOWS
 			lvwRows.EmptyText = ex.Message;
-			ex.e_LogError(true, E_TITLE_DEFAULT);
+			ex.eLogError(true, E_TITLE_DEFAULT);
 #else
-			await ex.e_LogErrorToast();
+			ex.eLogErrorToast();
 
 			//Return to Select Device Dialog
 			await Shell.Current.Navigation.PopAsync();
@@ -288,10 +299,10 @@ partial class MikrotikAddressTableRecord_ListUI
 					? L_FILTERING_DATA
 					: string.Format(L_FILTERED_DATA_EMPTY, filter);
 
-			lvwRows.e_runOnLockedUpdate(() =>
+			lvwRows.erunOnLockedUpdate(() =>
 			{
-				lvwRows.e_ClearItems();
-				rowsToDisplay.e_ForEach(r => r.UpdateGroupFromModel(lvwRows));
+				lvwRows.eClearItems();
+				rowsToDisplay.eForEach(r => r.UpdateGroupFromModel(lvwRows));
 
 				lvwRows.Items.AddRange(rowsToDisplay.ToArray());
 

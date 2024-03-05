@@ -319,7 +319,7 @@ namespace uom.controls
 			var POS = e.Location;
 			var LI = this.GetItemAt(POS.X, POS.Y);
 			if (null == LI) return;
-			this.On_Items_NeedEdit(LI.e_ToArrayOf());
+			this.On_Items_NeedEdit(LI.eToArrayOf());
 		}
 
 		private void On_KeyDown(Object sender, KeyEventArgs e)
@@ -398,16 +398,16 @@ namespace uom.controls
 
 		protected virtual bool On_Items_NeedEdit(ListViewItem[]? aSel = null)
 		{
-			if (null == aSel || !aSel.Any()) aSel = this.e_SelectedItemsAsIEnumerable().ToArray();
+			if (null == aSel || !aSel.Any()) aSel = this.eSelectedItemsAsIEnumerable().ToArray();
 			if (!aSel.Any()) return false;
-			if (!this.MultiSelect) aSel = aSel.First().e_ToArrayOf();
+			if (!this.MultiSelect) aSel = aSel.First().eToArrayOf();
 			Items_NeedEdit?.Invoke(this, aSel);
 			return true;
 		}
 
 		protected virtual bool On_Items_NeedDelete()
 		{
-			var aSel = this.e_SelectedItemsAsIEnumerable().ToArray();
+			var aSel = this.eSelectedItemsAsIEnumerable().ToArray();
 			if (!aSel.Any()) return false;
 			Items_NeedDelete?.Invoke(this, aSel);
 			return true;
@@ -421,7 +421,7 @@ namespace uom.controls
 
 		private bool On_Clipboard_Copy()
 		{
-			var aSel = this.e_SelectedItemsAsIEnumerable().ToArray();
+			var aSel = this.eSelectedItemsAsIEnumerable().ToArray();
 			if (!aSel.Any()) return false;
 			ClipboardCopy?.Invoke(this, aSel);
 			return true;
@@ -654,7 +654,7 @@ namespace uom.controls
 		public Color DragDrop_InsertionLineColor
 		{
 			get => _dragDrop_InsertionLineColor;
-			set => _dragDrop_InsertionLineColor.e_UpdateIfNotEquals(value, () => OnInsertionLineColorChanged(EventArgs.Empty));
+			set => _dragDrop_InsertionLineColor.eUpdateIfNotEquals(value, () => OnInsertionLineColorChanged(EventArgs.Empty));
 		}
 
 
@@ -836,7 +836,7 @@ namespace uom.controls
 				ListViewItem? dropToItem = null;
 				if (DragDropMode.HasFlag(DragDropModes.ItemsReorder))//Allow draw insertion mark only when DragDropModes.ItemsReorder is set!
 				{
-					var nearestToCursor = this.e_GetNearestItem(ptCursor);
+					var nearestToCursor = this.eGetNearestItem(ptCursor);
 					dropToItem = nearestToCursor.Item;
 				}
 
@@ -845,7 +845,7 @@ namespace uom.controls
 					newInsertionIndex = dropToItem.Index;
 
 					Rectangle dropToItemBounds = dropToItem.GetBounds(ItemBoundsPortion.Entire);
-					var ptDropToItemCenter = dropToItemBounds.e_GetCenter().e_RoundToInt();
+					var ptDropToItemCenter = dropToItemBounds.eGetCenter().eRoundToInt();
 
 					switch (View)
 					{
@@ -1185,15 +1185,15 @@ namespace uom.controls
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private Dictionary<string, bool> GetCurrentGroupsCollapsedStates()
 			=> this
-				.e_GroupsAsIEnumerable()
+				.eGroupsAsIEnumerable()
 				.Select(grp =>
 				{
-					string id = grp.e_GetStringID(DEFAULT_LIST_VIEW_GROUP_NAME).ToLower().Trim();
+					string id = grp.eGetStringID(DEFAULT_LIST_VIEW_GROUP_NAME).ToLower().Trim();
 					bool collapsed = false;
 #if NET
 					collapsed = grp.CollapsedState == ListViewGroupCollapsedState.Collapsed;
 #else
-					collapsed = grp.e_GetState_IsCollapsed();
+					collapsed = grp.eGetState_IsCollapsed();
 #endif
 					return (Name: id, Collapsed: collapsed);
 				}
@@ -1208,7 +1208,7 @@ namespace uom.controls
 		private void CheckGroupsCollapsedStatesForChanges()
 		{
 			var currentStates = GetCurrentGroupsCollapsedStates();
-			bool hasAnyChanges = !currentStates.e_IsDictionaryEqualTo(_knownGroupsStates);
+			bool hasAnyChanges = !currentStates.eIsDictionaryEqualTo(_knownGroupsStates);
 			if (hasAnyChanges)
 			{
 				this.GroupsCollapsedStateChangedByMouse?.Invoke(this, "");
@@ -1221,7 +1221,7 @@ namespace uom.controls
 		private FileInfo GetGroupsCollapsedStateStorage(string? @directory = null, string dataID = "")
 		{
 			const string GROUPS_SATES_EXT = ".groups.xml";
-			string lvID = this.e_CreateListViewID();
+			string lvID = this.eCreateListViewID();
 			if (!string.IsNullOrWhiteSpace(dataID)) lvID += $"_{dataID}";
 
 			DirectoryInfo di = (@directory != null)
@@ -1229,7 +1229,7 @@ namespace uom.controls
 				: uom.AppInfo.UserAppDataPath(true);
 
 			return System.IO.Path.Combine(di.FullName, lvID + GROUPS_SATES_EXT)
-				.e_ToFileInfo()!;
+				.eToFileInfo()!;
 		}
 
 
@@ -1254,17 +1254,17 @@ namespace uom.controls
 				.OrderBy(grp => grp.Name)
 				.ToArray();
 
-			var dd = _knownGroupsStates.e_DumpArrayToString();
+			var dd = _knownGroupsStates.eDumpArrayToString();
 			Debug.WriteLine($"SaveAllGroupsCollapsedStates: {dd}");
 
-			var text = sortedRows.e_SerializeAsXML();
+			var text = sortedRows.eSerializeAsXML();
 
 			//Debug.WriteLine($"RestoreAllGroupsCollapsedStateFromStorage (dataID: '{dataID}') GroupID: '{grpID}', State: '{loadedCollapsedState}'");
 
 			FileInfo fi = GetGroupsCollapsedStateStorage(@directory, dataID);
-			using (var sw = fi.e_CreateWriter(FileMode.OpenOrCreate, encoding: System.Text.Encoding.Unicode))
+			using (var sw = fi.eCreateWriter(FileMode.OpenOrCreate, encoding: System.Text.Encoding.Unicode))
 			{
-				sw.BaseStream.e_Truncate(); //trim previous file data										   
+				sw.BaseStream.eTruncate(); //trim previous file data										   
 				sw.WriteLine(text); //writing actual data
 				sw.Flush();
 			}
@@ -1281,9 +1281,9 @@ namespace uom.controls
 				if (!fi.Exists) return null;
 
 				return fi
-					.e_ReadAsText()!
+					.eReadAsText()!
 					.Trim()
-					.e_DeSerializeXML<(string Name, bool Collapsed)[]>(ThrowExceptionOnError: true)!
+					.eDeSerializeXML<(string Name, bool Collapsed)[]>(throwOnError: true)!
 					.Where(grp => !string.IsNullOrWhiteSpace(grp.Name))
 					.OrderBy(grp => grp.Name)
 					.ToDictionary(r => r.Name, r => r.Collapsed);
@@ -1291,7 +1291,7 @@ namespace uom.controls
 			catch (Exception ex)
 			{
 				//just ignore errors
-				ex.e_LogError(false);
+				ex.eLogError(false);
 				return null;
 			}
 		}
@@ -1303,15 +1303,15 @@ namespace uom.controls
 			var loadedGroupStates = LoadGroupsCollapsedStateFromStorage(@directory, dataID);
 			try
 			{
-				this.e_runOnLockedUpdate(delegate
+				this.erunOnLockedUpdate(delegate
 				{
-					this.e_GroupsAsIEnumerable()
-					.e_ForEach(grp =>
+					this.eGroupsAsIEnumerable()
+					.eForEach(grp =>
 						{
 #if !NET
-							grp.e_SetStateFlag(ListViewGroupState.Collapsible);
+							grp.eSetStateFlag(ListViewGroupState.Collapsible);
 #endif
-							string grpID = grp.e_GetStringID(DEFAULT_LIST_VIEW_GROUP_NAME).ToLower().Trim();
+							string grpID = grp.eGetStringID(DEFAULT_LIST_VIEW_GROUP_NAME).ToLower().Trim();
 
 							if (loadedGroupStates != null && loadedGroupStates.TryGetValue(grpID, out bool loadedCollapsedState))
 							{
@@ -1322,7 +1322,7 @@ namespace uom.controls
 
 								Debug.WriteLine($"RestoreAllGroupsCollapsedStateFromStorage (dataID: '{dataID}') GroupID: '{grpID}', State: '{loadedCollapsedState}'");
 #else
-								grp.e_SetState_Collapsed(loadedCollapsedState);
+								grp.eSetState_Collapsed(loadedCollapsedState);
 #endif
 							}
 						});
@@ -1332,7 +1332,7 @@ namespace uom.controls
 			catch (Exception ex)
 			{
 				//just ignore errors
-				ex.e_LogError(false);
+				ex.eLogError(false);
 			}
 		}
 
@@ -1555,7 +1555,7 @@ namespace uom.controls
 		public static Int32 SetGroup(ListViewGroup lstvwgrp, LVGROUP group)
 		{
 			int result = 0;
-			lstvwgrp.ListView!.e_RunInUIThread(delegate
+			lstvwgrp.ListView!.eRunInUIThread(delegate
 			{
 				Int32 groupId = group.IGroupId;
 				result = SendMessage(lstvwgrp.ListView!.Handle, ListViewMessages.LVM_SETGROUPINFO, groupId, ref group);
@@ -1574,7 +1574,7 @@ namespace uom.controls
 		{
 
 			int groupId = 0;
-			lstvwgrp!.ListView!.e_RunInUIThread(delegate { groupId = lstvwgrp.e_GetWin32ID(); });
+			lstvwgrp!.ListView!.eRunInUIThread(delegate { groupId = lstvwgrp.eGetWin32ID(); });
 
 			ListViewGroupMask eMask = ListViewGroupMask.LVGF_NONE;
 			if (Header != null) eMask |= ListViewGroupMask.LVGF_HEADER;
@@ -1609,7 +1609,7 @@ namespace uom.controls
 		public static void SetGroupState(ListViewGroup grp, ListViewGroupState state)
 		{
 			SetGroup(grp, state: state);
-			grp.ListView!.e_RunInUIThread(delegate { grp.ListView!.Refresh(); });
+			grp.ListView!.eRunInUIThread(delegate { grp.ListView!.Refresh(); });
 		}
 
 		public static void SetGroupStateFlag(ListViewGroup grp, ListViewGroupState flag, bool flagState = true)
@@ -1630,12 +1630,12 @@ namespace uom.controls
 		public static ListViewGroupState GetGroupState(ListViewGroup grp, ListViewGroupState? bitsToGet = null)
 		{
 			if (grp == null || grp.ListView == null) return default;
-			if (bitsToGet == null) bitsToGet = (ListViewGroupState)ListViewGroupState.Collapsed.e_MixFlagsAsInt32(ListViewGroupState.Invalid);
+			if (bitsToGet == null) bitsToGet = (ListViewGroupState)ListViewGroupState.Collapsed.eMixFlagsAsInt32(ListViewGroupState.Invalid);
 
 			ListViewGroupState result = 0;
-			grp.ListView.e_RunInUIThread(delegate
+			grp.ListView.eRunInUIThread(delegate
 			{
-				int groupID = grp.e_GetWin32ID();
+				int groupID = grp.eGetWin32ID();
 				result = (ListViewGroupState)SendMessage(grp.ListView.Handle, ListViewMessages.LVM_GETGROUPSTATE, groupID, (int)bitsToGet.Value);
 			});
 			return result;
@@ -1887,21 +1887,21 @@ namespace uom.Extensions
 
 		/// <summary>Группа будет сворачиваться/разворачиваться только на ListViewNF (или надо реализовать соответствующую функциональность самостоятельно)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void e_SetState(this ListViewGroup grp, ListViewEx.ListViewGroupState state = DEFAULT_GROUP_STATE)
+		internal static void eSetState(this ListViewGroup grp, ListViewEx.ListViewGroupState state = DEFAULT_GROUP_STATE)
 			=> ListViewEx.SetGroupState(grp, state);
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void e_SetStateFlag(this ListViewGroup grp, ListViewGroupState flag, bool flagState = true)
+		internal static void eSetStateFlag(this ListViewGroup grp, ListViewGroupState flag, bool flagState = true)
 			=> ListViewEx.SetGroupStateFlag(grp, flag, flagState);
 
 
 		/// <summary>Группа будет сворачиваться/разворачиваться только на ListViewNF (или надо реализовать соответствующую функциональность самостоятельно)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void e_SetState_Collapsed(this ListViewGroup grp, bool makeCollapsed)
+		internal static void eSetState_Collapsed(this ListViewGroup grp, bool makeCollapsed)
 		{
 			bool needChangeState = false;
-			ListViewEx.ListViewGroupState state = grp.e_GetState();
+			ListViewEx.ListViewGroupState state = grp.eGetState();
 
 			if (!state.HasFlag(ListViewGroupState.Collapsible))//check that also Collapsible flag already set
 			{
@@ -1915,14 +1915,14 @@ namespace uom.Extensions
 				state ^= ListViewEx.ListViewGroupState.Collapsed;//revering Collapsed state
 			}
 
-			if (needChangeState) grp.e_SetState(state);
+			if (needChangeState) grp.eSetState(state);
 		}
 
 
 		/// <summary>Группа будет сворачиваться/разворачиваться только на ListViewNF (или надо реализовать соответствующую функциональность самостоятельно)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void e_SetGroupsState(this ListView? lvw, ListViewEx.ListViewGroupState state = DEFAULT_GROUP_STATE)
-			=> lvw?.e_GroupsAsIEnumerable().ToList().ForEach(grp => grp.e_SetState(state));
+		internal static void eSetGroupsState(this ListView? lvw, ListViewEx.ListViewGroupState state = DEFAULT_GROUP_STATE)
+			=> lvw?.eGroupsAsIEnumerable().ToList().ForEach(grp => grp.eSetState(state));
 
 
 		#endregion
@@ -1931,14 +1931,14 @@ namespace uom.Extensions
 
 		/// <summary>Группа будет сворачиваться/разворачиваться только на ListViewNF (или надо реализовать соответствующую функциональность самостоятельно)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static ListViewEx.ListViewGroupState e_GetState(this ListViewGroup grp)
+		internal static ListViewEx.ListViewGroupState eGetState(this ListViewGroup grp)
 			=> ListViewEx.GetGroupState(grp);
 
 
 		/// <summary>Группа будет сворачиваться/разворачиваться только на ListViewNF (или надо реализовать соответствующую функциональность самостоятельно)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static bool e_GetState_IsCollapsed(this ListViewGroup grp)
-			=> grp.e_GetState().HasFlag(ListViewEx.ListViewGroupState.Collapsed);
+		internal static bool eGetState_IsCollapsed(this ListViewGroup grp)
+			=> grp.eGetState().HasFlag(ListViewEx.ListViewGroupState.Collapsed);
 
 
 		internal const ListViewEx.ListViewGroupState DEFAULT_GROUP_STATE = ListViewEx.ListViewGroupState.Collapsible;
@@ -1951,23 +1951,23 @@ namespace uom.Extensions
 
 		[Obsolete("Do not save group states in to registry! Save to file instead!", true)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void e_SaveGroupsCollapsedStates_Reg(this ListView lvw, string listViewID = "")
+		internal static void eSaveGroupsCollapsedStates_Reg(this ListView lvw, string listViewID = "")
 			=> lvw
-			.e_GroupsAsIEnumerable()
+			.eGroupsAsIEnumerable()
 			.ToList()
-			.ForEach(grp => grp.e_SaveGroupCollapsedState_Reg(listViewID));
+			.ForEach(grp => grp.eSaveGroupCollapsedState_Reg(listViewID));
 
 
 		[Obsolete("Do not save group states in to registry! Save to file instead!", true)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void e_SaveGroupCollapsedState_Reg(this ListViewGroup grp, string listViewID = "")
+		internal static void eSaveGroupCollapsedState_Reg(this ListViewGroup grp, string listViewID = "")
 		{
 			if (string.IsNullOrWhiteSpace(grp.Name)) throw new ArgumentNullException(ERROR_LIST_VIEW_GROUP_NAME_NULL);
 
 			if (string.IsNullOrWhiteSpace(listViewID))
 			{
 				if (grp.ListView == null) return; // Группе не назначен ListView - Просто игнорируем
-				listViewID = grp.ListView.e_CreateListViewID();
+				listViewID = grp.ListView.eCreateListViewID();
 			}
 
 			var sFullGroupIDRegKey = LISTVIEW_GROUPS_STATE_KEY_PREFIX + listViewID;
@@ -1980,14 +1980,14 @@ namespace uom.Extensions
 
 		[Obsolete("Do not save group states in to registry! Save to file instead!", true)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void e_LoadGroupCollapsedState_Reg(this ListViewGroup grp, string listViewID = "", bool SearchPreVersion = false)
+		internal static void eLoadGroupCollapsedState_Reg(this ListViewGroup grp, string listViewID = "", bool SearchPreVersion = false)
 		{
 			if (string.IsNullOrWhiteSpace(grp.Name)) throw new ArgumentNullException(ERROR_LIST_VIEW_GROUP_NAME_NULL);
 
 			if (string.IsNullOrWhiteSpace(listViewID))
 			{
 				if (grp.ListView == null) return; // Группе не назначен ListView - Просто игнорируем
-				listViewID = grp.ListView.e_CreateListViewID();
+				listViewID = grp.ListView.eCreateListViewID();
 			}
 
 			var sFullGroupIDRegKey = LISTVIEW_GROUPS_STATE_KEY_PREFIX + listViewID;
@@ -1995,27 +1995,27 @@ namespace uom.Extensions
 			var bCollapsed = uomvb.Settings.GetSetting_Boolean(grp.Name, false, null, SearchPreVersion, sFullGroupIDRegKey).Value;
 			ListViewEx.ListViewGroupState State = DEFAULT_GROUP_STATE;
 			if (bCollapsed) State |= ListViewEx.ListViewGroupState.Collapsed;
-			grp.e_SetState(State);
+			grp.eSetState(State);
 			 */
 		}
 
 
 		/// <summary>Generate ListView ID with Form Name</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static string e_CreateListViewID(this ListView lvw) => $"{lvw.FindForm()!.Name}.{lvw.Name}";
+		internal static string eCreateListViewID(this ListView lvw) => $"{lvw.FindForm()!.Name}.{lvw.Name}";
 
 #if !NET
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void e_SetGroupsTitlesBy_Count(
+		internal static void eSetGroupsTitlesBy_Count(
 			this ListView lvw,
 			Func<ListViewGroup, string>? callbackGroupTitleProvider = null,
 			Action<ListViewGroup, string, ListViewEx.ListViewGroupState>? callbackGroupTitleApplier = null)
 		{
-			foreach (var grp in lvw.e_GroupsAsIEnumerable())
+			foreach (var grp in lvw.eGroupsAsIEnumerable())
 			{
 				{
-					var bCollapsed = grp.e_GetState_IsCollapsed();
+					var bCollapsed = grp.eGetState_IsCollapsed();
 
 					ListViewEx.ListViewGroupState state = DEFAULT_GROUP_STATE;
 					if (bCollapsed) state |= ListViewEx.ListViewGroupState.Collapsed;
@@ -2027,7 +2027,7 @@ namespace uom.Extensions
 					if (callbackGroupTitleApplier != null)
 						callbackGroupTitleApplier.Invoke(grp, sTitle, state);
 					else
-						grp.e_SetGroup(Header: sTitle, state: state);
+						grp.eSetGroup(Header: sTitle, state: state);
 				}
 			}
 		}
@@ -2035,10 +2035,10 @@ namespace uom.Extensions
 
 		/// <summary>Safely sets group Header and don't broke groups collapswd states</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void e_SetGroupsTitlesFastW32Safe(
+		public static void eSetGroupsTitlesFastW32Safe(
 			this ListView? lvw,
 			Func<ListViewGroup, string>? getGroupHeader = null)
-				=> lvw?.e_GroupsAsIEnumerable().e_ForEach(g =>
+				=> lvw?.eGroupsAsIEnumerable().eForEach(g =>
 				{
 					string sTitle = g.Name ?? "";
 					if (getGroupHeader != null)
@@ -2048,7 +2048,7 @@ namespace uom.Extensions
 
 					if (!string.IsNullOrWhiteSpace(sTitle))
 					{
-						g.e_SetText(sTitle);
+						g.eSetText(sTitle);
 					}
 				});
 
@@ -2058,7 +2058,7 @@ namespace uom.Extensions
 		///Safely sets group Header and don't broke groups collapswd states
 		///MT Safe!!!</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void e_runOnLockedUpdateW32Safe(
+		public static void erunOnLockedUpdateW32Safe(
 			this ListView? lvw,
 			Action a,
 			bool autoSizeColumns = false,
@@ -2072,14 +2072,14 @@ namespace uom.Extensions
 				try { a!.Invoke(); }
 				finally
 				{
-					if (autoSizeColumns) lvw?.e_AutoSizeColumnsAuto();
-					if (fastUpdateGroupHeaders) lvw?.e_SetGroupsTitlesFastW32Safe();
+					if (autoSizeColumns) lvw?.eAutoSizeColumnsAuto();
+					if (fastUpdateGroupHeaders) lvw?.eSetGroupsTitlesFastW32Safe();
 					lvw?.EndUpdate();
 				}
 			};
 
 			if (lvw != null && lvw.InvokeRequired)
-				lvw.e_RunInUIThread(a2);
+				lvw.eRunInUIThread(a2);
 			else
 				a2();
 		}
@@ -2093,13 +2093,13 @@ namespace uom.Extensions
 			foreach (var G in GG)
 			{
 				lvw.Groups.Add(G);
-				G.e_SetState(state);
+				G.eSetState(state);
 			}
 		}
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void e_SetGroup(
+		internal static void eSetGroup(
 			this ListViewGroup lvg,
 			string? Header = null,
 			string? SubTitle = null,
@@ -2112,22 +2112,22 @@ namespace uom.Extensions
 
 		/// <summary>Задаёт текст для группы, но не меняет флаг состояния группы (!!! Стандартный .Header=String меняет флаг состояния!!!)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void e_SetText(this ListViewGroup lvg, string Text) => lvg.e_SetGroup(Text);
+		internal static void eSetText(this ListViewGroup lvg, string Text) => lvg.eSetGroup(Text);
 
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void e_SetSubTitle(this ListViewGroup lvg, string subTitle) => lvg.e_SetGroup(SubTitle: subTitle);
+		internal static void eSetSubTitle(this ListViewGroup lvg, string subTitle) => lvg.eSetGroup(SubTitle: subTitle);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void e_SetFooter(this ListViewGroup lvg, string footerText) => lvg.e_SetGroup(Footer: footerText);
+		internal static void eSetFooter(this ListViewGroup lvg, string footerText) => lvg.eSetGroup(Footer: footerText);
 
 
-		internal static Int32 e_GetWin32ID(this ListViewGroup lstvwgrp)
+		internal static Int32 eGetWin32ID(this ListViewGroup lstvwgrp)
 		{
 			_ = lstvwgrp!.ListView ?? throw new ArgumentException("Group must ge Added to ListView before!", nameof(lstvwgrp));
 
-			var groupID = lstvwgrp.e_GetPropertyValue_Int32("ID");
+			var groupID = lstvwgrp.eGetPropertyValue_Int32("ID");
 			if (!groupID.HasValue) groupID = lstvwgrp.ListView.Groups.IndexOf(lstvwgrp);
 			return groupID.Value;
 		}
@@ -2136,10 +2136,10 @@ namespace uom.Extensions
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static string e_GetStringID(this ListViewGroup g, string defaultID = "default")
+		internal static string eGetStringID(this ListViewGroup g, string defaultID = "default")
 		{
 			string?[] fields = [g.Name, g.Header];
-			return fields.FirstOrDefault(s => s.e_IsNOTNullOrWhiteSpace()) ?? defaultID;
+			return fields.FirstOrDefault(s => s.eIsNotNullOrWhiteSpace()) ?? defaultID;
 		}
 
 
@@ -2150,12 +2150,12 @@ namespace uom.Extensions
 
 #else
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (ListViewGroup Group, bool Created) e_GroupsCreateGroupByKey(
+		public static (ListViewGroup Group, bool Created) eGroupsCreateGroupByKey(
 			this ListViewEx lvw,
 			string key,
 			string? header = null,
 			ListViewGroupState newGroupState = ListViewGroupState.Collapsible)
-			=> lvw.e_GroupsCreateGroupByKey(key, header, new Action<ListViewGroup>(grp => grp.e_SetStateFlag(newGroupState)));
+			=> lvw.eGroupsCreateGroupByKey(key, header, new Action<ListViewGroup>(grp => grp.eSetStateFlag(newGroupState)));
 
 
 #endif

@@ -13,7 +13,7 @@ namespace MALM.UI
 		internal static async Task<DevicesListRecord[]?> Login(MasterKeyManager mkm)
 		{
 			MasterKeyUI ui = new(mkm);
-			//var isOk = await ui.e_ShowDialogAsync<bool>(true);
+			//var isOk = await ui.eShowDialogAsync<bool>(true);
 
 			ui.StartPosition = FormStartPosition.CenterScreen;
 			ui.ShowInTaskbar = true;
@@ -21,6 +21,7 @@ namespace MALM.UI
 
 			if (!isOk) return null; //User canceled
 
+			await Task.Delay(1);
 			//Login fully completed
 			return ui.LoginResult;
 		}

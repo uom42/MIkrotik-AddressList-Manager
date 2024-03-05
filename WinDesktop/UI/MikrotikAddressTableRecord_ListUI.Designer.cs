@@ -30,174 +30,173 @@ namespace MALM.UI
 		/// </summary>
 		private void InitializeComponent()
 		{
-			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MikrotikAddressTableRecord_ListUI));
-			this.lvwRows = new uom.controls.ListViewEx();
-			this.colAddress = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-			this.colComment = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-			this.colCreated = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-			this.colID = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-			this.toolBarMain = new System.Windows.Forms.ToolStrip();
-			this.btnRows_Refresh = new System.Windows.Forms.ToolStripButton();
-			this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
-			this.btnRows_Enable = new System.Windows.Forms.ToolStripButton();
-			this.btnRows_Disable = new System.Windows.Forms.ToolStripButton();
-			this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
-			this.btnRows_Add = new System.Windows.Forms.ToolStripButton();
-			this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
-			this.txtFilter = new System.Windows.Forms.ToolStripTextBox();
-			this.statusStrip1 = new System.Windows.Forms.StatusStrip();
-			this.llFreeIcons = new System.Windows.Forms.ToolStripStatusLabel();
-			this.toolBarMain.SuspendLayout();
-			this.statusStrip1.SuspendLayout();
-			this.SuspendLayout();
+			ComponentResourceManager resources = new ComponentResourceManager(typeof(MikrotikAddressTableRecord_ListUI));
+			lvwRows = new ListViewEx();
+			colAddress = new ColumnHeader();
+			colComment = new ColumnHeader();
+			colCreated = new ColumnHeader();
+			colID = new ColumnHeader();
+			toolBarMain = new ToolStrip();
+			btnRows_Refresh = new ToolStripButton();
+			toolStripSeparator1 = new ToolStripSeparator();
+			btnRows_Enable = new ToolStripButton();
+			btnRows_Disable = new ToolStripButton();
+			toolStripSeparator2 = new ToolStripSeparator();
+			btnRows_Add = new ToolStripButton();
+			toolStripSeparator3 = new ToolStripSeparator();
+			txtFilter = new ToolStripTextBox();
+			statusStrip1 = new StatusStrip();
+			llFreeIcons = new ToolStripStatusLabel();
+			btnViewARPList = new ToolStripButton();
+			toolStripSeparator4 = new ToolStripSeparator();
+			toolBarMain.SuspendLayout();
+			statusStrip1.SuspendLayout();
+			SuspendLayout();
 			// 
 			// lvwRows
 			// 
-			this.lvwRows.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-			this.colAddress,
-			this.colComment,
-			this.colCreated,
-			this.colID});
-			this.lvwRows.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.lvwRows.DragDrop_InsertionLineColor = System.Drawing.Color.Empty;
-			this.lvwRows.FullRowSelect = true;
-			this.lvwRows.GridLines = true;
-			this.lvwRows.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
-			this.lvwRows.HideSelection = false;
-			this.lvwRows.Location = new System.Drawing.Point(0, 34);
-			this.lvwRows.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-			this.lvwRows.Name = "lvwRows";
-			this.lvwRows.Size = new System.Drawing.Size(1157, 643);
-			this.lvwRows.TabIndex = 0;
-			this.lvwRows.UseCompatibleStateImageBehavior = false;
-			this.lvwRows.View = System.Windows.Forms.View.Details;
-			//	this.lvwRows.GroupsCollapsedStateChangedByMouse += new System.EventHandler<string>(this.lvwRows_GroupsCollapsedStateChangedByMouse);
+			lvwRows.Columns.AddRange(new ColumnHeader[] { colAddress, colComment, colCreated, colID });
+			lvwRows.Dock = DockStyle.Fill;
+			lvwRows.DragDrop_InsertionLineColor = Color.Empty;
+			lvwRows.FullRowSelect = true;
+			lvwRows.GridLines = true;
+			lvwRows.HeaderStyle = ColumnHeaderStyle.Nonclickable;
+			lvwRows.Location = new Point(0, 34);
+			lvwRows.Margin = new Padding(3, 2, 3, 2);
+			lvwRows.Name = "lvwRows";
+			lvwRows.Size = new Size(1286, 820);
+			lvwRows.TabIndex = 0;
+			lvwRows.UseCompatibleStateImageBehavior = false;
+			lvwRows.View = View.Details;
 			// 
 			// colAddress
 			// 
-			this.colAddress.Text = "Address";
+			colAddress.Text = "Address";
 			// 
 			// colComment
 			// 
-			this.colComment.Text = "Comment";
+			colComment.Text = "Comment";
 			// 
 			// colCreated
 			// 
-			this.colCreated.Text = "Created";
+			colCreated.Text = "Created";
 			// 
 			// colID
 			// 
-			this.colID.Text = "ID";
+			colID.Text = "ID";
 			// 
 			// toolBarMain
 			// 
-			this.toolBarMain.ImageScalingSize = new System.Drawing.Size(24, 24);
-			this.toolBarMain.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-			this.btnRows_Refresh,
-			this.toolStripSeparator1,
-			this.btnRows_Enable,
-			this.btnRows_Disable,
-			this.toolStripSeparator2,
-			this.btnRows_Add,
-			this.toolStripSeparator3,
-			this.txtFilter});
-			this.toolBarMain.Location = new System.Drawing.Point(0, 0);
-			this.toolBarMain.Name = "toolBarMain";
-			this.toolBarMain.Size = new System.Drawing.Size(1157, 34);
-			this.toolBarMain.TabIndex = 1;
-			this.toolBarMain.Text = "toolStrip1";
+			toolBarMain.ImageScalingSize = new Size(24, 24);
+			toolBarMain.Items.AddRange(new ToolStripItem[] { btnRows_Refresh, toolStripSeparator1, btnRows_Enable, btnRows_Disable, toolStripSeparator2, btnRows_Add, toolStripSeparator3, txtFilter, toolStripSeparator4, btnViewARPList });
+			toolBarMain.Location = new Point(0, 0);
+			toolBarMain.Name = "toolBarMain";
+			toolBarMain.Size = new Size(1286, 34);
+			toolBarMain.TabIndex = 1;
+			toolBarMain.Text = "toolStrip1";
 			// 
 			// btnRows_Refresh
 			// 
-			this.btnRows_Refresh.Image = global::MALM.Properties.Resources.Refresh;
-			this.btnRows_Refresh.ImageTransparentColor = System.Drawing.Color.Magenta;
-			this.btnRows_Refresh.Name = "btnRows_Refresh";
-			this.btnRows_Refresh.Size = new System.Drawing.Size(98, 29);
-			this.btnRows_Refresh.Text = "Refresh";
+			btnRows_Refresh.Image = Properties.Resources.Refresh;
+			btnRows_Refresh.ImageTransparentColor = Color.Magenta;
+			btnRows_Refresh.Name = "btnRows_Refresh";
+			btnRows_Refresh.Size = new Size(98, 29);
+			btnRows_Refresh.Text = "Refresh";
 			// 
 			// toolStripSeparator1
 			// 
-			this.toolStripSeparator1.Name = "toolStripSeparator1";
-			this.toolStripSeparator1.Size = new System.Drawing.Size(6, 34);
+			toolStripSeparator1.Name = "toolStripSeparator1";
+			toolStripSeparator1.Size = new Size(6, 34);
 			// 
 			// btnRows_Enable
 			// 
-			this.btnRows_Enable.Image = global::MALM.Properties.Resources.Check;
-			this.btnRows_Enable.ImageTransparentColor = System.Drawing.Color.Magenta;
-			this.btnRows_Enable.Name = "btnRows_Enable";
-			this.btnRows_Enable.Size = new System.Drawing.Size(92, 29);
-			this.btnRows_Enable.Text = "Enable";
+			btnRows_Enable.Image = Properties.Resources.Check;
+			btnRows_Enable.ImageTransparentColor = Color.Magenta;
+			btnRows_Enable.Name = "btnRows_Enable";
+			btnRows_Enable.Size = new Size(92, 29);
+			btnRows_Enable.Text = "Enable";
 			// 
 			// btnRows_Disable
 			// 
-			this.btnRows_Disable.Image = global::MALM.Properties.Resources.Stop;
-			this.btnRows_Disable.ImageTransparentColor = System.Drawing.Color.Magenta;
-			this.btnRows_Disable.Name = "btnRows_Disable";
-			this.btnRows_Disable.Size = new System.Drawing.Size(98, 29);
-			this.btnRows_Disable.Text = "Disable";
+			btnRows_Disable.Image = Properties.Resources.Stop;
+			btnRows_Disable.ImageTransparentColor = Color.Magenta;
+			btnRows_Disable.Name = "btnRows_Disable";
+			btnRows_Disable.Size = new Size(98, 29);
+			btnRows_Disable.Text = "Disable";
 			// 
 			// toolStripSeparator2
 			// 
-			this.toolStripSeparator2.Name = "toolStripSeparator2";
-			this.toolStripSeparator2.Size = new System.Drawing.Size(6, 34);
+			toolStripSeparator2.Name = "toolStripSeparator2";
+			toolStripSeparator2.Size = new Size(6, 34);
 			// 
 			// btnRows_Add
 			// 
-			this.btnRows_Add.Image = global::MALM.Properties.Resources.Plus;
-			this.btnRows_Add.ImageTransparentColor = System.Drawing.Color.Magenta;
-			this.btnRows_Add.Name = "btnRows_Add";
-			this.btnRows_Add.Size = new System.Drawing.Size(74, 29);
-			this.btnRows_Add.Text = "Add";
+			btnRows_Add.Image = Properties.Resources.Plus;
+			btnRows_Add.ImageTransparentColor = Color.Magenta;
+			btnRows_Add.Name = "btnRows_Add";
+			btnRows_Add.Size = new Size(74, 29);
+			btnRows_Add.Text = "Add";
 			// 
 			// toolStripSeparator3
 			// 
-			this.toolStripSeparator3.Name = "toolStripSeparator3";
-			this.toolStripSeparator3.Size = new System.Drawing.Size(6, 34);
+			toolStripSeparator3.Name = "toolStripSeparator3";
+			toolStripSeparator3.Size = new Size(6, 34);
 			// 
 			// txtFilter
 			// 
-			this.txtFilter.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
-			this.txtFilter.Font = new System.Drawing.Font("Segoe UI", 9F);
-			this.txtFilter.Name = "txtFilter";
-			this.txtFilter.Size = new System.Drawing.Size(200, 34);
+			txtFilter.Alignment = ToolStripItemAlignment.Right;
+			txtFilter.Name = "txtFilter";
+			txtFilter.Size = new Size(222, 34);
 			// 
 			// statusStrip1
 			// 
-			this.statusStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
-			this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-			this.llFreeIcons});
-			this.statusStrip1.Location = new System.Drawing.Point(0, 677);
-			this.statusStrip1.Name = "statusStrip1";
-			this.statusStrip1.Size = new System.Drawing.Size(1157, 32);
-			this.statusStrip1.TabIndex = 2;
-			this.statusStrip1.Text = "statusStrip1";
+			statusStrip1.ImageScalingSize = new Size(24, 24);
+			statusStrip1.Items.AddRange(new ToolStripItem[] { llFreeIcons });
+			statusStrip1.Location = new Point(0, 854);
+			statusStrip1.Name = "statusStrip1";
+			statusStrip1.Padding = new Padding(1, 0, 16, 0);
+			statusStrip1.Size = new Size(1286, 32);
+			statusStrip1.TabIndex = 2;
+			statusStrip1.Text = "statusStrip1";
 			// 
 			// llFreeIcons
 			// 
-			this.llFreeIcons.Name = "llFreeIcons";
-			this.llFreeIcons.Size = new System.Drawing.Size(179, 25);
-			this.llFreeIcons.Text = "toolStripStatusLabel1";
+			llFreeIcons.Name = "llFreeIcons";
+			llFreeIcons.Size = new Size(179, 25);
+			llFreeIcons.Text = "toolStripStatusLabel1";
 			// 
-			// frmMain
+			// btnViewARPList
 			// 
-			this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
-			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.ClientSize = new System.Drawing.Size(1157, 709);
-			this.Controls.Add(this.lvwRows);
-			this.Controls.Add(this.toolBarMain);
-			this.Controls.Add(this.statusStrip1);
-			this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-			this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-			this.Name = "frmMain";
-			this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-			this.Text = "Main";
-			this.toolBarMain.ResumeLayout(false);
-			this.toolBarMain.PerformLayout();
-			this.statusStrip1.ResumeLayout(false);
-			this.statusStrip1.PerformLayout();
-			this.ResumeLayout(false);
-			this.PerformLayout();
-
+			btnViewARPList.Image = (Image)resources.GetObject("btnViewARPList.Image");
+			btnViewARPList.ImageTransparentColor = Color.Magenta;
+			btnViewARPList.Name = "btnViewARPList";
+			btnViewARPList.Size = new Size(104, 29);
+			btnViewARPList.Text = "ARP List";
+			// 
+			// toolStripSeparator4
+			// 
+			toolStripSeparator4.Name = "toolStripSeparator4";
+			toolStripSeparator4.Size = new Size(6, 34);
+			// 
+			// MikrotikAddressTableRecord_ListUI
+			// 
+			AutoScaleDimensions = new SizeF(10F, 25F);
+			AutoScaleMode = AutoScaleMode.Font;
+			ClientSize = new Size(1286, 886);
+			Controls.Add(lvwRows);
+			Controls.Add(toolBarMain);
+			Controls.Add(statusStrip1);
+			Icon = (Icon)resources.GetObject("$this.Icon");
+			Margin = new Padding(3, 2, 3, 2);
+			Name = "MikrotikAddressTableRecord_ListUI";
+			StartPosition = FormStartPosition.CenterScreen;
+			Text = "Main";
+			toolBarMain.ResumeLayout(false);
+			toolBarMain.PerformLayout();
+			statusStrip1.ResumeLayout(false);
+			statusStrip1.PerformLayout();
+			ResumeLayout(false);
+			PerformLayout();
 		}
 
 		#endregion
@@ -218,5 +217,7 @@ namespace MALM.UI
 		private ToolStripTextBox txtFilter;
 		private StatusStrip statusStrip1;
 		private ToolStripStatusLabel llFreeIcons;
+		private ToolStripSeparator toolStripSeparator4;
+		private ToolStripButton btnViewARPList;
 	}
 }

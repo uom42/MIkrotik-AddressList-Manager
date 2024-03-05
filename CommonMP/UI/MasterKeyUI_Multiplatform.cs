@@ -1,8 +1,9 @@
 ﻿#nullable enable
 
-using static MALM.Localization.Strings;
+using static MALM.Localization.LStrings;
 
 using MALM.Model;
+
 
 
 #if !WINDOWS
@@ -12,6 +13,7 @@ using CommunityToolkit.Maui.Markup;
 using CommunityToolkit.Maui.Alerts;
 
 using uom.maui;
+using uom.controls.MAUI.Animations;
 
 
 #else
@@ -72,6 +74,12 @@ namespace MALM.UI
 #endif
 			txtMasterKey1.TextChanged += (_, _) => OnEdited();
 
+
+			//var bb = txtMasterKey1.Behaviors;
+			//int hhhh = 8;
+
+			//btnOk.Clicked
+
 		}
 
 		private async Task InitOnLoad()
@@ -95,8 +103,8 @@ namespace MALM.UI
 #if WINDOWS
 			btnCancel.Text = L_CANCEL;
 
-			txtMasterKey1.e_SetVistaCueBanner(L_MASTER_KEY);
-			txtMasterKey2.e_SetVistaCueBanner($"{L_REPEAT} {L_MASTER_KEY.ToLower()}");
+			txtMasterKey1.eSetVistaCueBanner(L_MASTER_KEY);
+			txtMasterKey2.eSetVistaCueBanner($"{L_REPEAT} {L_MASTER_KEY.ToLower()}");
 #else
 			txtMasterKey1.Placeholder = L_MASTER_KEY;
 			txtMasterKey2.Placeholder = $"{L_REPEAT} {L_MASTER_KEY.ToLower()}";
@@ -121,7 +129,7 @@ namespace MALM.UI
 #if !WINDOWS
 				await
 #endif
-				ex.e_LogError(true);
+				ex.eLogError(true);
 			}
 
 			btnOk.Text = _mkm!.LoginMode switch
@@ -213,13 +221,13 @@ namespace MALM.UI
 #if !WINDOWS
 		private void OnEdited() => btnOk.IsEnabled = ValidateUserInput();
 #else
-		private void OnEdited() => btnOk.Enabled = (txtMasterKey2.Visible == false && txtMasterKey2.Text.e_IsNOTNullOrWhiteSpace()) || ValidateUserInput();
+		private void OnEdited() => btnOk.Enabled = (txtMasterKey2.Visible == false && txtMasterKey2.Text.eIsNotNullOrWhiteSpace()) || ValidateUserInput();
 #endif
 
 
 		private bool ValidateUserInput()
 		{
-			if (txtMasterKey1.Text.e_IsNullOrWhiteSpace()) return false;
+			if (txtMasterKey1.Text.eIsNullOrWhiteSpace()) return false;
 
 			if (_mkm!.LoginMode == MasterKeyManager.LoginModes.Login) return true;
 			if (txtMasterKey1.Text != txtMasterKey2.Text) return false;
@@ -234,6 +242,10 @@ namespace MALM.UI
 		private async void OnOk(object sender, EventArgs e) => await OnOk();
 		private async Task OnOk()
 		{
+#if !WINDOWS
+			await btnOk.WaitForButtonAnimation();
+#endif
+
 			switch (_mkm!.LoginMode)
 			{
 				case MasterKeyManager.LoginModes.Login:
@@ -245,9 +257,9 @@ namespace MALM.UI
 						catch (Exception ex)
 						{
 #if !WINDOWS
-							await ex.e_LogErrorToast();
+							ex.eLogErrorToast();
 #else
-							ex.e_LogError(true, E_TITLE_LOGIN_FAILED);
+							ex.eLogError(true, E_TITLE_LOGIN_FAILED);
 #endif
 							return;
 						}
@@ -264,6 +276,9 @@ namespace MALM.UI
 							LoginResult = rows;
 							DialogResult = DialogResult.OK;
 #else
+
+							uom.maui.ui.KeyboardHelper.HideKeyboard();
+
 							LoginResult lr = new(_mkm, rows);
 							var devListUI = new DevicesListUI(lr);
 							await Shell.Current.Navigation.PushAsync(devListUI);
@@ -275,7 +290,7 @@ namespace MALM.UI
 						catch (Exception ex)
 						{
 #if WINDOWS
-							ex.e_LogError(false, supressAnyModalPopEvenInDEBUG: true);
+							ex.eLogError(false);
 #endif
 							//Checking wrong logon count before display ResetPasswordUI...
 							if (!_mkm.IsExceededBadLogonCount)
@@ -289,19 +304,19 @@ namespace MALM.UI
 
 								Exception err = new(errMsg, ex);
 #if !WINDOWS
-								await err.e_LogErrorToast();
+								err.eLogErrorToast();
 								//await DisplayAlert(E_TITLE_LOGIN_FAILED, err, L_OK);
 #else
-								err.e_LogError(true, E_TITLE_LOGIN_FAILED);
+								err.eLogError(true, E_TITLE_LOGIN_FAILED);
 #endif
 								return;
 							}
 
 							//Bad logon limit exceeeded!
 #if !WINDOWS
-							bool result = await DisplayAlert(E_ENCRYPT_FAILED, Q_RESET_MASTER_KEY.e_Wrap(), L_YES, L_NO);
+							bool result = await DisplayAlert(E_ENCRYPT_FAILED, Q_RESET_MASTER_KEY.eWrap(), L_YES, L_NO);
 #else
-							bool result = Q_RESET_MASTER_KEY.e_Wrap().e_MsgboxAskIsYes(false, E_ENCRYPT_FAILED);
+							bool result = Q_RESET_MASTER_KEY.eWrap().eMsgboxAskIsYes(false, E_ENCRYPT_FAILED);
 #endif
 
 							if (!result) return;
@@ -313,7 +328,7 @@ namespace MALM.UI
 
 						}
 
-						break;
+						//break;
 					}
 
 
@@ -331,14 +346,17 @@ namespace MALM.UI
 						catch (Exception ex)
 						{
 #if !WINDOWS
-							await ex.e_LogErrorToast();
+							ex.eLogErrorToast();
 #else
-							ex.e_LogError(true);
+							ex.eLogError(true);
 #endif
 							return;
 						}
 
 #if !WINDOWS
+
+						uom.maui.ui.KeyboardHelper.HideKeyboard();
+
 						if (isInitialSetup)
 						{
 							var rows = await _mkm.Database_WriteEncryptedEmpty();// Write an empty Datatase.
@@ -349,7 +367,7 @@ namespace MALM.UI
 						else
 						{
 							var ns = Shell.Current.Navigation.NavigationStack;
-							await this.e_SetDialogResultAndPopBackAsync(true);
+							await this.eSetDialogResultAndPopBackAsync(true);
 						}
 #else
 						if (isInitialSetup)
@@ -385,7 +403,7 @@ namespace MALM.UI
 		;
 
 #if !WINDOWS
-			var isOk = await ui.e_ShowDialogAsync<bool>(true);
+			var isOk = await ui.eShowDialogAsync<bool>(true);
 #else
 			var isOk = ui.ShowDialog(parent) == DialogResult.OK;
 #endif

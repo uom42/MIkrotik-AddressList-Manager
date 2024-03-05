@@ -28,7 +28,7 @@ using static Microsoft.Maui.ApplicationModel.Permissions;
 	
 	 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:mct="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="CommunityToolkit.Maui.Sample.Pages.Behaviors.NumericValidationBehaviorPage">
 
     <ContentPage.Resources>
@@ -44,7 +44,7 @@ using static Microsoft.Maui.ApplicationModel.Permissions;
 	
     <Entry Keyboard="Numeric">
         <Entry.Behaviors>
-            <toolkit:NumericValidationBehavior
+            <mct:NumericValidationBehavior
                 InvalidStyle="{StaticResource InvalidEntryStyle}"
                 ValidStyle="{StaticResource ValidEntryStyle}"
                 Flags="ValidateOnValueChanged"
@@ -147,73 +147,103 @@ namespace uom.maui
 
 	namespace ui
 	{
-		internal abstract class ContentPageWithResult<TResult>() : ContentPage()
+
+
+
+		internal static partial class KeyboardHelper
 		{
 
-			private Func<TResult?, Task>? _onDialogResult;
-
-			public TResult? DialogResult { get; private set; } = default;
 
 
-			public async Task ShowDialog(bool modal, Func<TResult?, Task> onDialogResult)
+			public static void HideKeyboard()
 			{
-				_onDialogResult = onDialogResult;
-				if (modal)
+
+
+#if ANDROID
+
+				var context = Platform.AppContext;
+				var inputMethodManager = context.GetSystemService(Android.Content.Context.InputMethodService) as Android.Views.InputMethods.InputMethodManager;
+				if (inputMethodManager != null)
 				{
+					var activity = Platform.CurrentActivity;
+					var token = activity?.CurrentFocus?.WindowToken;
+					inputMethodManager.HideSoftInputFromWindow(token, Android.Views.InputMethods.HideSoftInputFlags.None);
+					activity?.Window?.DecorView?.ClearFocus();
+				}
+#elif IOS
+			 UIApplication.SharedApplication.KeyWindow.EndEditing(true);
+			 //UIApplication.SharedApplication.Delegate.GetWindow().EndEditing(true);
+#endif
+
+
+			}
+		}
+
+
+
+		namespace navigation
+		{
+
+
+
+
+
+			internal abstract class ContentPageWithResult<TResult>() : ContentPage()
+			{
+
+				private Func<TResult?, Task>? _onDialogResult;
+
+				public TResult? DialogResult { get; private set; } = default;
+
+
+				public async Task ShowDialog(bool modal, Func<TResult?, Task> onDialogResult)
+				{
+					_onDialogResult = onDialogResult;
+					if (modal)
+					{
+						await Shell.Current.Navigation.PushModalAsync(this);
+					}
+					else
+					{
+					}
+				}
+
+				public async Task SetDialogResult(TResult? result, bool navigateBack = true)
+				{
+					DialogResult = result;
+					if (_onDialogResult != null) await _onDialogResult.Invoke(result);
+					if (navigateBack) await Shell.Current.Navigation.PopAsync();
+				}
+			}
+
+
+
+			internal abstract class ParametrizedModalPageBase<Tin, TResult>(Tin? inParameter = default) : ContentPage()
+			{
+				protected readonly Tin? InputParameter = inParameter;
+
+				public TResult? DialogResult { get; private set; } = default;
+
+
+				private Func<TResult?, Task>? _onDialogResult;
+
+				public async Task ShowDialog(Func<TResult?, Task> onDialogResult)
+				{
+					_onDialogResult = onDialogResult;
 					await Shell.Current.Navigation.PushModalAsync(this);
 				}
-				else
+
+				public async Task SetDialogResult(TResult? result, bool navigateBack = true)
 				{
+					DialogResult = result;
+					if (_onDialogResult != null) await _onDialogResult.Invoke(result);
+					if (navigateBack) await Shell.Current.Navigation.PopAsync();
 				}
 			}
 
-			public async Task SetDialogResult(TResult? result, bool navigateBack = true)
-			{
-				DialogResult = result;
-				if (_onDialogResult != null) await _onDialogResult.Invoke(result);
-				if (navigateBack) await Shell.Current.Navigation.PopAsync();
-			}
+
 		}
 
-
-
-		internal abstract class ParametrizedModalPageBase<Tin, TResult>(Tin? inParameter = default) : ContentPage()
-		{
-			protected readonly Tin? InputParameter = inParameter;
-
-			public TResult? DialogResult { get; private set; } = default;
-
-
-			private Func<TResult?, Task>? _onDialogResult;
-
-			public async Task ShowDialog(Func<TResult?, Task> onDialogResult)
-			{
-				_onDialogResult = onDialogResult;
-				await Shell.Current.Navigation.PushModalAsync(this);
-			}
-
-			public async Task SetDialogResult(TResult? result, bool navigateBack = true)
-			{
-				DialogResult = result;
-				if (_onDialogResult != null) await _onDialogResult.Invoke(result);
-				if (navigateBack) await Shell.Current.Navigation.PopAsync();
-			}
-		}
-
-	}
-
-
-	public class InvertableBool(bool b) : ObservableObject
-	{
-		private bool _value = b;
-
-		public bool Value { get { return _value; } }
-		public bool Invert { get { return !_value; } }
-
-
-		public static implicit operator InvertableBool(bool b) => new(b);
-
-		public static implicit operator bool(InvertableBool b) => b._value;
 	}
 
 
@@ -231,9 +261,7 @@ namespace uom.maui
 		}
 		 */
 
-		/// <summary>
-		/// https://learn.microsoft.com/ru-ru/dotnet/maui/platform-integration/appmodel/permissions?view=net-maui-8.0&tabs=android
-		/// </summary>
+		/// <summary>https://learn.microsoft.com/ru-ru/dotnet/maui/platform-integration/appmodel/permissions</summary>
 		internal static class PermissionsHelper
 		{
 
@@ -380,6 +408,63 @@ namespace uom.maui
 	}
 
 
+	public class InvertableBool(bool b) : ObservableObject
+	{
+		private bool _value = b;
+
+		public bool Value { get { return _value; } }
+		public bool Invert { get { return !_value; } }
+
+
+		public static implicit operator InvertableBool(bool b) => new(b);
+
+		public static implicit operator bool(InvertableBool b) => b._value;
+	}
+
+
+
+	internal static class ResourceHelper
+	{
+
+		/*
+		public static object FindResource2(this VisualElement o, string key)
+		{
+			while (o != null)
+			{
+				if (o.Resources.TryGetValue(key, out var r1)) return r1;
+				if (o is Page) break;
+				if (o is IElement e) o = e.Parent as VisualElement;
+			}
+			if (Application.Current!.Resources.TryGetValue(key, out var r2)) return r2;
+			return null;
+		}
+		 */
+
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T FindAppResource<T>(this string resourcekey, T defaultValue = default) where T : struct
+		{
+			try
+			{
+				var resFound = Application.Current!.Resources.TryGetValue(resourcekey, out var res);
+				if (!resFound) throw new ArgumentOutOfRangeException(nameof(resourcekey), $"FindAppResource FAILED for ");
+
+				return (T)res;
+			}
+			catch (Exception ex) { ex.eLogErrorNoUI(); }
+			return defaultValue;
+		}
+
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Int32 FindAppResource_Int32(this string key, Int32 def = 0) => FindAppResource(key, def);
+
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static UInt32 FindAppResource_UInt32(this string key, UInt32 def = 0u) => FindAppResource(key, def);
+
+	}
+
 
 
 	internal static class Extensions_MAUI_Navigation
@@ -405,21 +490,21 @@ namespace uom.maui
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task e_GoToAsync(this string gotoPageName, Dictionary<string, object> inputParams)
+		public static async Task eGoToAsync(this string gotoPageName, Dictionary<string, object> inputParams)
 			=> await Shell.Current.GoToAsync(gotoPageName, inputParams);
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task e_GoToAsync(this string gotoPageName, string inputParamName, object inputParam)
+		public static async Task eGoToAsync(this string gotoPageName, string inputParamName, object inputParam)
 		{
 			Dictionary<string, object> p = new() { { inputParamName, inputParam } };
-			await gotoPageName.e_GoToAsync(p);
+			await gotoPageName.eGoToAsync(p);
 		}
 
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task e_GoToWithReturnAsync<TResult>(this ContentPage ctx, string gotoPageName, Action<TResult?> onReturnedValue, Dictionary<string, object>? inputParams = null)
+		public static async Task eGoToWithReturnAsync<TResult>(this ContentPage ctx, string gotoPageName, Action<TResult?> onReturnedValue, Dictionary<string, object>? inputParams = null)
 		{
 
 			bool registered = WeakReferenceMessenger.Default.IsRegistered<ValueChangedMessage<TResult>>(ctx);
@@ -443,11 +528,11 @@ namespace uom.maui
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task e_GoToWithReturnAsync<TResult>(this ContentPage ctx, string gotoPageName, Action<TResult?> onReturnedValue, string inputParamName, object inputParam)
+		public static async Task eGoToWithReturnAsync<TResult>(this ContentPage ctx, string gotoPageName, Action<TResult?> onReturnedValue, string inputParamName, object inputParam)
 		{
 			Dictionary<string, object> p = new() { { inputParamName, inputParam } };
 
-			await ctx.e_GoToWithReturnAsync<TResult>(gotoPageName, onReturnedValue, p);
+			await ctx.eGoToWithReturnAsync<TResult>(gotoPageName, onReturnedValue, p);
 		}
 
 
@@ -455,7 +540,7 @@ namespace uom.maui
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task e_GoToWithReturnAsync<TResult>(this ContentPage ctx, string gotoPageName, Func<TResult?, Task> onReturnedValue, Dictionary<string, object>? inputParams = null)
+		public static async Task eGoToWithReturnAsync<TResult>(this ContentPage ctx, string gotoPageName, Func<TResult?, Task> onReturnedValue, Dictionary<string, object>? inputParams = null)
 		{
 
 			bool registered = WeakReferenceMessenger.Default.IsRegistered<ValueChangedMessage<TResult>>(ctx);
@@ -483,16 +568,16 @@ namespace uom.maui
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task e_GoToWithReturnAsync<TResult>(this ContentPage ctx, string gotoPageName, Func<TResult?, Task> onReturnedValue, string inputParamName, object inputParam)
+		public static async Task eGoToWithReturnAsync<TResult>(this ContentPage ctx, string gotoPageName, Func<TResult?, Task> onReturnedValue, string inputParamName, object inputParam)
 		{
 			Dictionary<string, object> p = new() { { inputParamName, inputParam } };
-			await ctx.e_GoToWithReturnAsync<TResult>(gotoPageName, onReturnedValue, p);
+			await ctx.eGoToWithReturnAsync<TResult>(gotoPageName, onReturnedValue, p);
 		}
 
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task e_ReturnAsDialogResult<TResult>(this TResult returnValue)
+		public static async Task eReturnAsDialogResult<TResult>(this TResult returnValue)
 		{
 			WeakReferenceMessenger.Default.Send(new ValueChangedMessage<TResult>(returnValue));
 			await Shell.Current.Navigation.PopAsync();
@@ -511,10 +596,10 @@ namespace uom.maui
 
 
 		/// <summary>To get result from the target ContentPage, 
-		/// it must call <see cref="e_SetDialogResultAndPopBackAsync"/> to return any dialog result value 
+		/// it must call <see cref="eSetDialogResultAndPopBackAsync"/> to return any dialog result value 
 		/// </summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task e_ShowDialogAsync<TDialogResult>(this ContentPage ctx, bool modal, Func<TDialogResult?, Task> onDialogResult, Func<Task>? onDialogClosedWithoutResult = null)
+		public static async Task eShowDialogAsync<TDialogResult>(this ContentPage ctx, bool modal, Func<TDialogResult?, Task> onDialogResult, Func<Task>? onDialogClosedWithoutResult = null)
 		{
 			ctx.NavigatedFrom += async (_, e) =>
 				{
@@ -556,14 +641,14 @@ namespace uom.maui
 
 
 		/// <summary>To get result from the target ContentPage, 
-		/// it must call <see cref="e_SetDialogResultAndPopBackAsync"/> to return any dialog result value 
+		/// it must call <see cref="eSetDialogResultAndPopBackAsync"/> to return any dialog result value 
 		/// </summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task<TDialogResult?> e_ShowDialogAsync<TDialogResult>(this ContentPage ctx, bool modal)
+		public static async Task<TDialogResult?> eShowDialogAsync<TDialogResult>(this ContentPage ctx, bool modal)
 		{
 			AutoResetEvent e = new(false);
 			TDialogResult? r = default;
-			await ctx.e_ShowDialogAsync<TDialogResult>(true, async dialogResult =>
+			await ctx.eShowDialogAsync<TDialogResult>(true, async dialogResult =>
 			{
 				r = dialogResult;
 				await Task.Delay(1);
@@ -592,7 +677,7 @@ namespace uom.maui
 		/// Use it from 'ContentPage.Loaded' or any other handlers
 		/// </remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task e_SetDialogResultAndPopBackAsync(this ContentPage ctx, object dialogResultObject)
+		public static async Task eSetDialogResultAndPopBackAsync(this ContentPage ctx, object dialogResultObject)
 		{
 			lock (_dlgResults)
 			{
@@ -629,7 +714,7 @@ namespace uom.maui
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task<Int32?> e_GetAsync_Int32(this ISecureStorage ss, string valueName, Int32? defaultValue = default)
+		public static async Task<Int32?> eGetAsync_Int32(this ISecureStorage ss, string valueName, Int32? defaultValue = default)
 		{
 			string? s = await SecureStorage.Default.GetAsync(valueName);
 			if (s == null) return defaultValue;
@@ -639,7 +724,7 @@ namespace uom.maui
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task e_SetAsync(this ISecureStorage ss, string valueName, Int32? Value = default)
+		public static async Task eSetAsync(this ISecureStorage ss, string valueName, Int32? Value = default)
 		{
 			if (Value == null || !Value.HasValue)
 			{
@@ -654,9 +739,9 @@ namespace uom.maui
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task<bool?> e_GetAsync_Bool(this ISecureStorage ss, string valueName, bool? defaultValue = default)
+		public static async Task<bool?> eGetAsync_Bool(this ISecureStorage ss, string valueName, bool? defaultValue = default)
 		{
-			var val = await ss.e_GetAsync_Int32(valueName);
+			var val = await ss.eGetAsync_Int32(valueName);
 			if (!val.HasValue) return defaultValue;
 			return val.HasValue
 				? (val.Value != 0)
@@ -664,7 +749,7 @@ namespace uom.maui
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task e_SetAsync(this ISecureStorage ss, string valueName, bool? Value = default)
+		public static async Task eSetAsync(this ISecureStorage ss, string valueName, bool? Value = default)
 		{
 			if (Value == null || !Value.HasValue)
 			{
@@ -676,14 +761,14 @@ namespace uom.maui
 					? 1
 					: 0;
 
-				await ss.e_SetAsync(valueName, v);
+				await ss.eSetAsync(valueName, v);
 			}
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task<bool> e_GetAsync_BoolSafe(this ISecureStorage ss, string valueName, bool defaultValue = default)
+		public static async Task<bool> eGetAsync_BoolSafe(this ISecureStorage ss, string valueName, bool defaultValue = default)
 		{
-			var val = await ss.e_GetAsync_Bool(valueName);
+			var val = await ss.eGetAsync_Bool(valueName);
 			return val.HasValue
 				? val.Value
 				: false;
@@ -722,9 +807,26 @@ namespace uom.maui
 		//MsgBoxFlags? flags = MsgBoxFlags.Btn_OK | MsgBoxFlags.Icn_Information | MsgBoxFlags.DefBtn_1,
 
 
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static void eToastShow(this string msg, int toastFontSize = 14)
+		{
+			MainThread.BeginInvokeOnMainThread(async () =>
+			{
+				//CancellationTokenSource cancellationTokenSource = new();
+				await Toast
+					.Make(msg, CommunityToolkit.Maui.Core.ToastDuration.Long, toastFontSize)
+					.Show();
+
+			});
+		}
+
+
+
+
 		[DebuggerNonUserCode, DebuggerStepThrough]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task e_MsgboxShow(
+		public static async Task eMsgboxShow(
 			this string msg,
 			string? title = null,
 			string okButtonText = "OK",
@@ -741,7 +843,7 @@ namespace uom.maui
 
 		[DebuggerNonUserCode, DebuggerStepThrough]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task<bool> e_MsgboxAskIsYes(
+		public static async Task<bool> eMsgboxAskIsYes(
 			this string question,
 			string? title = null, string? yes = "Yes", string? no = "NO",
 
@@ -763,9 +865,9 @@ namespace uom.maui
 
 		[DebuggerNonUserCode, DebuggerStepThrough]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task e_MsgboxError(this Exception ex, string? title = C_FAILED_TO_RUN)
+		public static async Task eMsgboxError(this Exception ex, string? title = C_FAILED_TO_RUN)
 		{
-			await ex.Message.e_MsgboxShow(title);
+			await ex.Message.eMsgboxShow(title);
 		}
 
 
@@ -784,7 +886,7 @@ namespace uom.maui
 		/// You must save anywhere returned timer to avoid it grom GC collection
 		/// </returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private static System.Threading.Timer e_RunDelayedTask(this Func<Task> delayedAction, int delay = DEFAULT_DELAY)
+		private static System.Threading.Timer eRunDelayedTask(this Func<Task> delayedAction, int delay = DEFAULT_DELAY)
 		{
 
 			System.Threading.TimerCallback tc = new(async s =>
@@ -811,7 +913,7 @@ namespace uom.maui
 		/// You must save anywhere returned timer to avoid it grom GC collection
 		/// </returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private static System.Threading.Timer e_RunDelayed(this Action delayedAction, int delay = DEFAULT_DELAY)
+		private static System.Threading.Timer eRunDelayed(this Action delayedAction, int delay = DEFAULT_DELAY)
 		{
 			System.Threading.TimerCallback tc = new(s =>
 			{
@@ -836,7 +938,7 @@ namespace uom.maui
 		/// For example, if some data will be ready only after exiting the control event handler processing branch
 		/// </summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void e_RunDelayedInUIThread(this Action delayedAction, int delay = DEFAULT_DELAY)
+		internal static void eRunDelayedInUIThread(this Action delayedAction, int delay = DEFAULT_DELAY)
 		{
 			var id = System.Guid.NewGuid();
 
@@ -848,15 +950,15 @@ namespace uom.maui
 			}
 
 			Action a = uiThreadAction;
-			var tmr = a.e_RunDelayed(delay);
+			var tmr = a.eRunDelayed(delay);
 
 			var dic = _timersStorage.Value;
 			bool added = dic.TryAdd(id, tmr);
 		}
 
-		/// <inheritdoc cref="e_RunDelayedInUIThread(Action, int)" />
+		/// <inheritdoc cref="eRunDelayedInUIThread(Action, int)" />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void e_RunDelayedInUIThread(this Func<Task> delayedAction, int delay = DEFAULT_DELAY)
+		internal static void eRunDelayedInUIThread(this Func<Task> delayedAction, int delay = DEFAULT_DELAY)
 		{
 			var id = System.Guid.NewGuid();
 
@@ -868,7 +970,7 @@ namespace uom.maui
 			}
 
 			var t = uiThreadAction;
-			var tmr = t.e_RunDelayedTask(delay);
+			var tmr = t.eRunDelayedTask(delay);
 
 			var dic = _timersStorage.Value;
 			bool added = dic.TryAdd(id, tmr);
@@ -880,7 +982,7 @@ namespace uom.maui
 		/// <summary>Executes 'delayedAction' after Page load (before it will displayed).
 		/// Delay starts after 'Page.Loaded' event</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void e_RunDelayed_OnLoaded(
+		internal static void eRunDelayed_OnLoaded(
 			this ContentPage ctx,
 			IEnumerable<Func<Task>> delayedTasks,
 			int delay = DEFAULT_FORM_SHOWN_DELAY,
@@ -897,7 +999,7 @@ namespace uom.maui
 				catch (OperationCanceledException) { }                 //catch (TaskCanceledException tcex) { }
 				catch (Exception ex)
 				{
-					await ex.e_LogError(onErrorShowUI);
+					await ex.eLogError(onErrorShowUI);
 					if (onError != null) await onError.Invoke(ex);
 				}
 			}
@@ -905,22 +1007,22 @@ namespace uom.maui
 		}
 
 
-		/// <inheritdoc cref="e_RunDelayed_OnLoaded(ContentPage, IEnumerable{Func{Task}}, int, bool, Func{Exception, Task})" />
+		/// <inheritdoc cref="eRunDelayed_OnLoaded(ContentPage, IEnumerable{Func{Task}}, int, bool, Func{Exception, Task})" />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void e_RunDelayed_OnLoaded(
+		internal static void eRunDelayed_OnLoaded(
 			this ContentPage ctx,
 			Func<Task> delayedTask,
 			int delay = DEFAULT_FORM_SHOWN_DELAY,
 			bool onErrorShowUI = true,
 			Func<Exception, Task>? onError = null
 			)
-				=> ctx.e_RunDelayed_OnLoaded([delayedTask], delay, onErrorShowUI, onError);
+				=> ctx.eRunDelayed_OnLoaded([delayedTask], delay, onErrorShowUI, onError);
 
 
 
-		/// <inheritdoc cref="e_RunDelayed_OnLoaded(ContentPage, IEnumerable{Func{Task}}, int, bool, Func{Exception, Task})" />
+		/// <inheritdoc cref="eRunDelayed_OnLoaded(ContentPage, IEnumerable{Func{Task}}, int, bool, Func{Exception, Task})" />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void e_RunDelayed_OnLoaded(
+		internal static void eRunDelayed_OnLoaded(
 			this ContentPage ctx,
 			Action delayedAction,
 			int delay = DEFAULT_FORM_SHOWN_DELAY,
@@ -932,7 +1034,7 @@ namespace uom.maui
 				await Task.Delay(1);
 				delayedAction.Invoke();
 			}
-			ctx!.e_RunDelayed_OnLoaded(t, delay, onErrorShowUI, onError);
+			ctx!.eRunDelayed_OnLoaded(t, delay, onErrorShowUI, onError);
 		}
 
 
@@ -944,17 +1046,72 @@ namespace uom.maui
 
 
 
+		/* 	 
+
+
+		internal static Task<bool> TouchHold(this View element, TimeSpan duration)
+		{
+
+			Timer timer = new(delegate
+			{
+				element.PreviewMouseUp -= touchUpHandler;
+				timer.Stop();
+				task.SetResult(true);
+			});
+
+			TaskCompletionSource<bool> task = new < bool > ();
+			timer.Interval = duration;
+
+			MouseButtonEventHandler touchUpHandler = delegate
+			{
+				timer.Stop();
+				if (task.Task.Status == TaskStatus.Running)
+				{
+					task.SetResult(false);
+				}
+			};
+
+			element.PreviewMouseUp += touchUpHandler;
+
+			timer.Tick += delegate
+			{
+				element.PreviewMouseUp -= touchUpHandler;
+				timer.Stop();
+				task.SetResult(true);
+			};
+
+			timer.Start();
+			return task.Task;
+		}
+
+		//Great piece of code.I add just an example usage for completeness:
+		private async void btn_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+		{
+			if (await TouchHold(btn, TimeSpan.FromSeconds(2)))
+			{
+				// todo: long press code goes here
+			}
+		}
+		//And from XAML:
+		<Button Name = "btn" PreviewMouseDown="btn_PreviewMouseDown">Press long</Button>
+
+
+		 */
 
 
 
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static void ExecuteMTSafe(this System.Windows.Input.ICommand cmd, object o)
+			=> MainThread.BeginInvokeOnMainThread(() => cmd?.Execute(o));
 
-
-
-
-
-
-
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static CancellationTokenSource ExecuteForBindedAnimation(this System.Windows.Input.ICommand cmd)
+		{
+			CancellationTokenSource cts = new();
+			cmd?.ExecuteMTSafe(cts.Token);
+			return cts;
+		}
 
 	}
 
@@ -976,7 +1133,31 @@ namespace uom.maui
 
 		/// <summary>Фиксация ошибки в журнале, в DEBUG, вывод сообщения</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static async Task e_LogError(this Exception ex,
+		internal static string eLogErrorNoUI(this Exception ex,
+			[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0)
+		{
+
+			string msg = ex.Message;
+#if DEBUG
+			string errorDump = ex.eFullDump(callerName, callerFile, callerLine);
+			$"{CS_SEPARATOR_10}\n{errorDump}\n{CS_SEPARATOR_10}".eDebugWriteLine();
+
+			//Display Extened data in DEBUG mode
+			msg += $"\n{CS_SEPARATOR_10}\nUOM DEBUG-MODE DETAILED ERROR INFO:\n{errorDump}";
+
+			Debug.WriteLine(msg);
+
+#elif ANDROID
+			string tag = $"{AppInfo.Title ?? string.Empty} {AppInfo.AssemblyFileVersionAttribute ?? string.Empty}";
+			Android.Util.Log.Error(tag, msg);
+#endif
+			return msg;
+		}
+
+
+		/// <summary>Фиксация ошибки в журнале, в DEBUG, вывод сообщения</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static async Task eLogError(this Exception ex,
 			bool showMessageBox,
 			string modalMessageBoxTitle = C_FAILED_TO_RUN,
 			bool supressAnyModalPopEvenInDEBUG = false,
@@ -984,24 +1165,7 @@ namespace uom.maui
 			[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0)
 		{
 
-			string msg = ex.Message;
-#if DEBUG
-			string errorDump = ex.e_FullDump(callerName, callerFile, callerLine);
-			$"{CS_SEPARATOR_10}\n{errorDump}\n{CS_SEPARATOR_10}".e_DebugWriteLine();
-
-			//Показываем расширенные данные в DEBUG режиме
-			msg += $"\n{CS_SEPARATOR_10}\nUOM DEBUG-MODE DETAILED ERROR INFO:\n{errorDump}";
-
-			Debug.WriteLine(msg);
-
-#else
-
-#if ANDROID
-			string tag = $"{AppInfo.Title ?? string.Empty} {AppInfo.Version ?? string.Empty}";
-			Android.Util.Log.Error(tag, msg);
-#endif
-
-#endif
+			string msg = ex.eLogErrorNoUI(callerName, callerFile, callerLine);
 
 			if (showMessageBox || !supressAnyModalPopEvenInDEBUG)
 			{
@@ -1010,7 +1174,7 @@ namespace uom.maui
 				{
 					if (showMessageBox) // Надо показать на экране модальное Сообщение об ошибке
 					{
-						await msg.e_MsgboxShow(modalMessageBoxTitle, ctx: ctx);
+						await msg.eMsgboxShow(modalMessageBoxTitle, ctx: ctx);
 					}
 					else
 					{
@@ -1018,7 +1182,7 @@ namespace uom.maui
 						if (!supressAnyModalPopEvenInDEBUG)
 						{
 							//В DEBUG режиме показываем модальное окно с ошибкой, если прямо не запрещено!
-							await msg.e_MsgboxShow(modalMessageBoxTitle, ctx: ctx);
+							await msg.eMsgboxShow(modalMessageBoxTitle, ctx: ctx);
 						}
 #endif
 					}
@@ -1030,12 +1194,12 @@ namespace uom.maui
 
 		/// <summary>Фиксация ошибки в журнале, в DEBUG, вывод сообщения</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static async Task e_LogErrorToast(this Exception ex,
+		internal static void eLogErrorToast(this Exception ex,
 			int toastFontSize = 14,
 			[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0)
 		{
 			//Write rrror to device log
-			await ex.e_LogError(false, supressAnyModalPopEvenInDEBUG: true);
+			ex.eLogErrorNoUI();
 
 			MainThread.BeginInvokeOnMainThread(async () =>
 			{
@@ -1049,7 +1213,7 @@ namespace uom.maui
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static string e_FullDump(this Exception? ex,
+		internal static string eFullDump(this Exception? ex,
 			[CallerMemberName] string callerName = "",
 			[CallerFilePath] string callerFile = "",
 			[CallerLineNumber] int callerLine = 0)

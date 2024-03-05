@@ -3,12 +3,14 @@
 	x:Class="MALM.UI.DevicesListUI"
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-	xmlns:lc="clr-namespace:MALM.UI.Controls"
-	xmlns:lm="clr-namespace:MALM.Model"
-	xmlns:lmm="clr-namespace:MALM.Model.Mikrotik"
+	xmlns:l_m="clr-namespace:MALM.Model"
+	xmlns:l_mm="clr-namespace:MALM.Model.Mikrotik"
+	xmlns:l_ui_t="clr-namespace:MALM.UI.DataTemplates"
+	xmlns:l_ui_t_dt="clr-namespace:MALM.UI.DataTemplates.DeviceRecord"
+	xmlns:mct="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
 	xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
-	xmlns:uom_ccv="clr-namespace:uom.controls.MAUI.CollectionViews"
-	Title="DevsList"
+	xmlns:uom_ctl_ani="clr-namespace:uom.controls.MAUI.Animations"
+	xmlns:uom_ctl_cv="clr-namespace:uom.controls.MAUI.CollectionViews"
 	SemanticProperties.HeadingLevel="Level1"
 	Shell.NavBarHasShadow="true">
 
@@ -19,10 +21,6 @@
 
 
 	<ContentPage.ToolbarItems>
-
-
-
-
 
 
 		<ToolbarItem
@@ -47,182 +45,26 @@
 		Orientation="Vertical"
 		VerticalOptions="FillAndExpand">
 
+		<StackLayout.Behaviors>
+			<mct:AnimationBehavior EventName="Loaded">
+				<mct:AnimationBehavior.AnimationType>
+					<uom_ctl_ani:FadeInAnimation Length="500" />
+				</mct:AnimationBehavior.AnimationType>
+			</mct:AnimationBehavior>
+		</StackLayout.Behaviors>
+
 
 		<!--  Devices List  -->
-
-		<CollectionView
+		<uom_ctl_cv:CollectionViewEx
 			x:Name="lvwDevices"
-			CanMixGroups="False"
-			CanReorderItems="False"
 			HorizontalOptions="FillAndExpand"
-			IsGrouped="true"
-			ItemsUpdatingScrollMode="KeepItemsInView"
-			SelectionMode="None"
 			VerticalOptions="FillAndExpand">
 
-
-
 			<CollectionView.ItemTemplate>
-				<DataTemplate x:DataType="lm:DevicesListRecord">
-
-
-					<StackLayout Padding="10">
-
-						<Border
-							Background="{AppThemeBinding Light={StaticResource Pantone_GreenBlue},
-							                             Dark={StaticResource Gray900}}"
-							Stroke="{AppThemeBinding Light={StaticResource Gray400},
-							                         Dark={StaticResource Gray600}}"
-							StrokeThickness="0">
-							<Border.StrokeShape>
-								<RoundRectangle CornerRadius="10" />
-							</Border.StrokeShape>
-
-							<StackLayout
-								Padding="10,20,10,20"
-								HorizontalOptions="FillAndExpand"
-								Orientation="Horizontal">
-
-
-								<StackLayout
-									HorizontalOptions="FillAndExpand"
-									Orientation="Vertical"
-									VerticalOptions="FillAndExpand">
-
-
-									<StackLayout
-										HorizontalOptions="Fill"
-										Orientation="Horizontal"
-										VerticalOptions="FillAndExpand">
-
-
-										<Label
-											FontAttributes="Bold"
-											FontFamily="OpenSansSemibold"
-											FontSize="Large"
-											HorizontalOptions="Start"
-											LineBreakMode="TailTruncation"
-											Text="{Binding AddressString}"
-											VerticalTextAlignment="Center" />
-
-										<Label
-											FontFamily="OpenSansSemibold"
-											FontSize="Caption"
-											HorizontalOptions="Start"
-											Text="{Binding PortString2}"
-											VerticalTextAlignment="Center" />
-
-									</StackLayout>
-
-									<Label
-										FontFamily="OpenSansSemibold"
-										Text="{Binding UserName}"
-										TextColor="{AppThemeBinding Light={StaticResource Tertiary},
-										                            Dark={StaticResource Gray400}}"
-										VerticalOptions="End"
-										VerticalTextAlignment="End" />
-
-									<!--	  									
-										<Label BackgroundColor="DarkSalmon" Text="{Binding Group}" />
-										-->
-
-									<StackLayout.GestureRecognizers>
-
-										<TapGestureRecognizer
-											Command="{Binding DeviceTappedCommand}"
-											CommandParameter="{Binding .}"
-											NumberOfTapsRequired="1" />
-
-
-									</StackLayout.GestureRecognizers>
-
-
-								</StackLayout>
-
-
-								<StackLayout
-									HorizontalOptions="End"
-									Orientation="Horizontal"
-									VerticalOptions="FillAndExpand">
-
-
-									<Button
-										BackgroundColor="Transparent"
-										Clicked="OnEdit"
-										HorizontalOptions="End"
-										Text="{mi:MaterialOutlined Icon=Edit}"
-										TextColor="{AppThemeBinding Light={StaticResource Primary},
-										                            Dark={StaticResource Gray400}}"
-										VerticalOptions="Center">
-										<Button.Shadow>
-											<Shadow
-												Brush="Black"
-												Opacity="0.5"
-												Radius="10"
-												Offset="4,4" />
-										</Button.Shadow>
-
-									</Button>
-
-									<Button
-										BackgroundColor="Transparent"
-										Clicked="OnDelete"
-										HorizontalOptions="End"
-										Text="{mi:MaterialOutlined Icon=Delete}"
-										TextColor="{AppThemeBinding Light={StaticResource Primary},
-										                            Dark={StaticResource Gray400}}"
-										VerticalOptions="Center">
-										<Button.Shadow>
-											<Shadow
-												Brush="Black"
-												Opacity="0.5"
-												Radius="10"
-												Offset="4,4" />
-										</Button.Shadow>
-
-									</Button>
-
-								</StackLayout>
-
-
-							</StackLayout>
-							<Border.Shadow>
-								<Shadow
-									Brush="Black"
-									Opacity="0.8"
-									Radius="20"
-									Offset="4,4" />
-							</Border.Shadow>
-
-
-
-
-
-						</Border>
-
-
-					</StackLayout>
-
-				</DataTemplate>
+				<l_ui_t_dt:DevicesRecordTemplate />
 			</CollectionView.ItemTemplate>
 
-
-			<CollectionView.GroupHeaderTemplate>
-				<DataTemplate>
-
-					<uom_ccv:CollapsibleGroupTemplate>
-						<ContentView.GestureRecognizers>
-							<TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnGroupTap" />
-						</ContentView.GestureRecognizers>
-
-					</uom_ccv:CollapsibleGroupTemplate>
-
-				</DataTemplate>
-			</CollectionView.GroupHeaderTemplate>
-
-
-		</CollectionView>
-
+		</uom_ctl_cv:CollectionViewEx>
 
 
 	</StackLayout>

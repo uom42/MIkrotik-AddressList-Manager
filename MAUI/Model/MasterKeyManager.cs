@@ -141,15 +141,15 @@ namespace MALM.Model
 				try
 				{
 					loadedKeyString = await SecureStorage.GetAsync(MKey_Value) ?? string.Empty;
-					//await $"loadedKeyString = '{loadedKeyString}'".e_MsgboxShow("SecureStorage.GetAsync");
+					//await $"loadedKeyString = '{loadedKeyString}'".eMsgboxShow("SecureStorage.GetAsync");
 				}
 				catch (Exception ex)
 				{
-					await ex.e_LogError(false, supressAnyModalPopEvenInDEBUG: true);
+					ex.eLogErrorNoUI();
 					loadedKeyString = string.Empty;
 				}
 
-				bool dontAskKey = loadedKeyString.e_IsNOTNullOrWhiteSpace();
+				bool dontAskKey = loadedKeyString.eIsNotNullOrWhiteSpace();
 #if DEBUG
 				Debug.WriteLine($"loadedKeyString = '{loadedKeyString}'");
 #endif
@@ -167,11 +167,11 @@ namespace MALM.Model
 					using IsolatedStorageFileStream issfs = isf.OpenFile(I_STORE_FILE, FileMode.Open);
 					if (issfs.Length < 2) return null;
 
-					byte[] encryptedKey = issfs.e_ReadAllBytes();
+					byte[] encryptedKey = issfs.eReadAllBytes();
 					try
 					{
 						byte[] masterKeyBytes = ProtectedData.Unprotect(encryptedKey, GetEntrophyBytes(), DataProtectionScope.CurrentUser);
-						return masterKeyBytes.e_ToStringUnicodeFast();
+						return masterKeyBytes.eToStringUnicodeFast();
 					}
 					catch (CryptographicException)
 					{ }
@@ -212,10 +212,10 @@ namespace MALM.Model
 #endif
 		{
 			string userKey = (txt.Text ?? string.Empty);
-			if (userKey.e_IsNullOrWhiteSpace()) throw new ArgumentNullException("MasterKey");
+			if (userKey.eIsNullOrWhiteSpace()) throw new ArgumentNullException("MasterKey");
 
 			//We never store user entered Masterkey, we encrypt it...
-			Key = userKey.e_Encrypt_AES_ToBase64String(GetEntrophyString(), createSaltFromPassword: true);
+			Key = userKey.eEncrypt_AES_ToBase64String(GetEntrophyString(), createSaltFromPassword: true);
 #if DEBUG
 			Debug.WriteLine($"\n\nuserKey: '{userKey}'\nKey: '{Key}'\n\n");
 #endif
@@ -284,11 +284,21 @@ namespace MALM.Model
 			}
 			//else
 			{
-				if (masterKey.e_IsNullOrWhiteSpace()) throw new ArgumentNullException("MasterKey");
+				if (masterKey.eIsNullOrWhiteSpace()) throw new ArgumentNullException("MasterKey");
 				//Saving Masterkey
 
 #if !WINDOWS
-				await SecureStorage.SetAsync(MKey_Value, masterKey);
+				try
+				{
+					await SecureStorage.SetAsync(MKey_Value, masterKey);
+				}
+				catch (Javax.Crypto.AEADBadTagException jcex)
+				{
+					//Looks like android secured storage is damaged!
+					//Trying to clear and rewrite secure storage
+					SecureStorage.RemoveAll();
+					SecureStorage.SetAsync(MKey_Value, masterKey).Wait();
+				}
 
 				//Try to read ancrypted data
 				var readedKey = await SecureStorage.GetAsync(MKey_Value);
@@ -296,13 +306,13 @@ namespace MALM.Model
 				{
 					throw new Exception("Failed to ckeck saved key - data is not equal!");
 				}
-				//await $"Saved Key = '{masterKey}'\n\nLoaded Key: '{readedKey}'".e_MsgboxShow("SecureStorage.SetAsync");
+				//await $"Saved Key = '{masterKey}'\n\nLoaded Key: '{readedKey}'".eMsgboxShow("SecureStorage.SetAsync");
 #else
 				await Task.Factory.StartNew(delegate
 				{
-					byte[] abKey = ProtectedData.Protect(masterKey.e_GetBytes_Unicode(), GetEntrophyBytes(), DataProtectionScope.CurrentUser);
+					byte[] abKey = ProtectedData.Protect(masterKey.eGetBytes_Unicode(), GetEntrophyBytes(), DataProtectionScope.CurrentUser);
 					using IsolatedStorageFileStream of = isoStore.CreateFile(I_STORE_FILE);
-					of.e_WriteAllBytes(abKey);
+					of.eWriteAllBytes(abKey);
 					of.Flush();
 				});
 #endif
@@ -437,7 +447,7 @@ namespace MALM.Model
 			try
 			{
 				string? en = GetEntrophyString();
-				if (!string.IsNullOrWhiteSpace(en)) return en!.e_GetBytes_Unicode();
+				if (!string.IsNullOrWhiteSpace(en)) return en!.eGetBytes_Unicode();
 			}
 			catch { }
 			return [9, 8, 7, 6, 5];

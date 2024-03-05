@@ -27,7 +27,7 @@ internal partial class DevicesListRecordEditorUI : Form
 		lblDeviceGroup.Text = L_DEVICE_GROUP + C_DDOT;
 		lblDevicePort.Text = L_DEVICE_PORT + C_DDOT;
 
-		txtPort.e_SetVistaCueBanner(L_LEAVE_EMPTY_FOR_DEFAULT);
+		txtPort.eSetVistaCueBanner(L_LEAVE_EMPTY_FOR_DEFAULT);
 
 		btnCancel.Text = L_CANCEL;
 
@@ -96,10 +96,7 @@ internal partial class DevicesListRecordEditorUI : Form
 			if (string.IsNullOrWhiteSpace(txtUser.Text.Trim())) throw new ArgumentNullException(L_DEVICE_USER);
 			return true;
 		}
-		catch (Exception ex)
-		{
-			//ex.e_LogError(true, E_TITLE_DEFAULT);
-		}
+		catch { }
 		return false;
 	}
 

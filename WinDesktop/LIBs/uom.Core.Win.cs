@@ -1,5 +1,9 @@
 ﻿#nullable enable
 
+global using WORD = System.Int16;
+global using DWORD = System.Int32;
+global using QWORD = System.Int64;
+
 global using static uom.Extensions.Extensions_DebugAndErrors;
 
 global using System.Windows.Forms;
@@ -112,7 +116,7 @@ namespace uom
 			if (string.IsNullOrWhiteSpace(asmName)) throw new ArgumentNullException("Assembly.Name");
 #endif
 			DirectoryInfo di = UserAppDataPath(roaming, Application.CompanyName, Application.ProductName, asmName);
-			if (createIfNotExist) di.e_CreateIfNotExist();
+			if (createIfNotExist) di.eCreateIfNotExist();
 			return di;
 		}
 
@@ -181,7 +185,7 @@ namespace uom
 
 			int cbTokenIL = 0;
 			WinAPI.security.GetTokenInformation(hToken, WinAPI.security.TOKEN_INFORMATION_CLASS.TokenIntegrityLevel, IntPtr.Zero, 0, ref cbTokenIL)
-				.e_ThrowLastWin32Exception_AssertFalse(WinAPI.errors.Win32Errors.ERROR_INSUFFICIENT_BUFFER);
+				.eThrowLastWin32Exception_AssertFalse(WinAPI.errors.Win32Errors.ERROR_INSUFFICIENT_BUFFER);
 
 
 			// Now we allocate a buffer for the integrity level information.
@@ -191,9 +195,9 @@ namespace uom
 				WinAPI.security.TOKEN_INFORMATION_CLASS.TokenIntegrityLevel,
 				(IntPtr)rTokenIL,
 				cbTokenIL,
-				ref cbTokenIL).e_ThrowLastWin32Exception_AssertFalse();
+				ref cbTokenIL).eThrowLastWin32Exception_AssertFalse();
 
-			var tokenIL = rTokenIL.DangerousGetHandle().e_ToStructure<WinAPI.security.TOKEN_MANDATORY_LABEL>();
+			var tokenIL = rTokenIL.DangerousGetHandle().eToStructure<WinAPI.security.TOKEN_MANDATORY_LABEL>();
 
 			// Integrity Level SIDs are in the form of S-1-16-0xXXXX. (e.g. S-1-16-0x1000 stands for low integrity level SID). There is one and only one subauthority.
 			var pIL = WinAPI.security.GetSidSubAuthority(tokenIL.Label.Sid, 0);
@@ -219,8 +223,8 @@ namespace uom
 			private static string RegBuildProductPath(Version? ver = null)
 			{
 				FileVersionInfo fvi = uom.AppInfo.AssemblyFileVersionInfo;
-				if (fvi.CompanyName.e_IsNullOrWhiteSpace()) throw new ArgumentNullException("AssemblyFileVersionInfo.CompanyName");
-				if (fvi.ProductName.e_IsNullOrWhiteSpace()) throw new ArgumentNullException("AssemblyFileVersionInfo.ProductName");
+				if (fvi.CompanyName.eIsNullOrWhiteSpace()) throw new ArgumentNullException("AssemblyFileVersionInfo.CompanyName");
+				if (fvi.ProductName.eIsNullOrWhiteSpace()) throw new ArgumentNullException("AssemblyFileVersionInfo.ProductName");
 
 				string productPath = @$"Software\{fvi.CompanyName}\{fvi.ProductName}";
 
@@ -241,7 +245,7 @@ namespace uom
 				}
 				string path = RegBuildProductPath(ver);
 
-				if (subKey.e_IsNOTNullOrWhiteSpace()) path += '\\' + subKey;
+				if (subKey.eIsNotNullOrWhiteSpace()) path += '\\' + subKey;
 				var keyProduct = global::Microsoft.Win32.Registry.CurrentUser.OpenSubKey(path, writable);
 
 				if (keyProduct == null && writable)
@@ -270,7 +274,7 @@ namespace uom
 			internal static void Save<T>(string name, T? val, string subKey = "") where T : unmanaged
 			{
 				using RegistryKey keySetting = OpenProductKey(subKey, writable: true)!;
-				keySetting.e_SetValue<T>(name, val);
+				keySetting.eSetValue<T>(name, val);
 				keySetting.Flush();
 			}
 
@@ -279,7 +283,7 @@ namespace uom
 			internal static void Save(string name, string? val, string subKey = "")
 			{
 				using RegistryKey keySetting = OpenProductKey(subKey, writable: true)!;
-				keySetting.e_SetValueString(name, val);
+				keySetting.eSetValueString(name, val);
 				keySetting.Flush();
 			}
 
@@ -287,7 +291,7 @@ namespace uom
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static void SaveMultiString(string name, string? val, string subKey = "")
 			{
-				var lines = val.e_SplitToLines(true);
+				var lines = val.eSplitLines(true);
 				Save(name, lines.ToArray(), subKey);
 			}
 
@@ -296,7 +300,7 @@ namespace uom
 			internal static void Save(string name, string[]? val, string subKey = "")
 			{
 				using RegistryKey keySetting = OpenProductKey(subKey, writable: true)!;
-				keySetting.e_SetValueStrings(name, val);
+				keySetting.eSetValueStrings(name, val);
 				keySetting.Flush();
 			}
 
@@ -330,7 +334,7 @@ namespace uom
 				{
 					if (keyCurrentVersion != null)
 					{
-						var (valueFound, _, value) = keyCurrentVersion.e_GetValueT<T>(name, defaultValue);
+						var (valueFound, _, value) = keyCurrentVersion.eGetValueT<T>(name, defaultValue);
 						if (valueFound) return value;
 					}
 				}
@@ -372,7 +376,7 @@ namespace uom
 					{
 						if (keyVersioned != null)
 						{
-							var (valueFound, _, value) = keyVersioned.e_GetValueT<T>(name, defaultValue);
+							var (valueFound, _, value) = keyVersioned.eGetValueT<T>(name, defaultValue);
 							if (valueFound) return value;
 						}
 					}
@@ -394,7 +398,7 @@ namespace uom
 				var lines = Get_strings(name, [], subKey, searchPreviousVersions);
 				if (lines != null && lines.Any())
 				{
-					var s = lines.e_Join(Environment.NewLine)!;
+					var s = lines.eJoin(Environment.NewLine)!;
 					return s;
 				}
 				return defaultValue;
@@ -453,7 +457,7 @@ namespace uom
 			var T = M!.DeclaringType!;
 			string NS = T.Namespace!;
 			var aNS = NS.Split('.').Reverse().Take(Count).Reverse();
-			return aNS.e_Join(".", NS)!;
+			return aNS.eJoin(".", NS)!;
 		}
 
 		internal static IntPtr GetCurrentModuleHandle()
@@ -496,7 +500,7 @@ namespace uom
 			Encoding? StandardOutputEncoding = null,
 			ConsoleAppErrorMode cem = ConsoleAppErrorMode.ErrorMustThrowException)
 		{
-			Debug.WriteLine("*** e_run '" + sExe + "' with args: '" + sArguments + "'");
+			Debug.WriteLine("*** erun '" + sExe + "' with args: '" + sArguments + "'");
 			FileInfo fiExe = new(sExe);
 			var PSI = new ProcessStartInfo
 			{
@@ -514,11 +518,11 @@ namespace uom
 			_ = prcExe ?? throw new Exception($"Process.Start({fiExe}) Failed!");
 
 			string sError = prcExe.StandardError.ReadToEnd();
-			if (sError.e_IsNOTNullOrWhiteSpace() && cem == ConsoleAppErrorMode.ErrorMustThrowException)
+			if (sError.eIsNotNullOrWhiteSpace() && cem == ConsoleAppErrorMode.ErrorMustThrowException)
 				throw new Exception(sError);
 
 			string sOutput = prcExe.StandardOutput.ReadToEnd();
-			if (sOutput.e_IsNullOrWhiteSpace())
+			if (sOutput.eIsNullOrWhiteSpace())
 				sOutput = "";
 			else
 			{
@@ -635,10 +639,10 @@ namespace uom
 		{
 			try
 			{
-				file = file.e_EncloseC();
+				file = file.eEncloseC();
 				var StartInfo = new ProcessStartInfo() { UseShellExecute = true, FileName = file };
-				if (arguments.e_IsNOTNullOrWhiteSpace()) StartInfo.Arguments = arguments;
-				if (workingDirectory.e_IsNOTNullOrWhiteSpace()) StartInfo.WorkingDirectory = workingDirectory;
+				if (arguments.eIsNotNullOrWhiteSpace()) StartInfo.Arguments = arguments;
+				if (workingDirectory.eIsNotNullOrWhiteSpace()) StartInfo.WorkingDirectory = workingDirectory;
 				if (elevated && !uom.AppInfo.IsProcessElevated())
 				{
 					//needElevation = !uom.AppInfo.IsProcessElevated();
@@ -660,7 +664,7 @@ namespace uom
 			}
 			catch (Win32Exception wex)
 			{
-				if (wex.e_ToWin32Error() == WinAPI.errors.Win32Errors.ERROR_CANCELLED)
+				if (wex.eToWin32Error() == WinAPI.errors.Win32Errors.ERROR_CANCELLED)
 					wex = new ElevationCanceledByUser();// Пользователь нажал 'нет' при запросе на повышение прав
 
 				if (throwExceptionOnError) throw wex;
@@ -690,10 +694,10 @@ namespace uom
 		{
 			string? explorerArgs = null;
 
-			FileSystemInfo? fsi = pathToShow?.e_FindFirstExistingFileSystemInfo();
+			FileSystemInfo? fsi = pathToShow?.eFindFirstExistingFileSystemInfo();
 			if (fsi != null)
 			{
-				pathToShow = fsi.FullName.e_Enclose();
+				pathToShow = fsi.FullName.eEnclose();
 				explorerArgs = pathMode switch
 				{
 					WindowsExplorerPathModes.OpenPath => pathToShow,
@@ -937,7 +941,7 @@ namespace uom
 						{
 							const string KEY_RUN_PATH = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
 
-							var fiEXE = System.Windows.Forms.Application.ExecutablePath.e_ToFileInfo();
+							var fiEXE = System.Windows.Forms.Application.ExecutablePath.eToFileInfo();
 							_ = fiEXE ?? throw new Exception("Application.ExecutablePath = NULL!");
 
 							using var keyAutoRun = (forAllUsers ? Registry.LocalMachine : Registry.CurrentUser)
@@ -950,12 +954,12 @@ namespace uom
 								keyAutoRun
 									.GetValueNames()?
 									.Where(s => s.ToLower() == fiEXE.Name.ToLower())?
-									.e_ForEach(foundFile => keyAutoRun.DeleteValue(foundFile));
+									.eForEach(foundFile => keyAutoRun.DeleteValue(foundFile));
 							}
 							else
 							{
 								keyAutoRun
-									.SetValue(fiEXE.Name, fiEXE.FullName.e_Enclose());
+									.SetValue(fiEXE.Name, fiEXE.FullName.eEnclose());
 							}
 
 							keyAutoRun.Flush();
@@ -992,9 +996,9 @@ namespace uom
 				string? cmdLineArgsPrefix = "",
 				string cmdLineArgs = CS_DEFAULT_CMDLINE_ARG)
 			{
-				if (HCCRClass.e_IsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(HCCRClass));
-				if (RegistryActionName.e_IsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(RegistryActionName));
-				if (ActionDisplayName.e_IsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(ActionDisplayName));
+				if (HCCRClass.eIsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(HCCRClass));
+				if (RegistryActionName.eIsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(RegistryActionName));
+				if (ActionDisplayName.eIsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(ActionDisplayName));
 
 				executablePath ??= System.Windows.Forms.Application.ExecutablePath;
 
@@ -1025,20 +1029,20 @@ namespace uom
 				string? cmdLineArgsPrefix = "",
 				string cmdLineArgs = CS_DEFAULT_CMDLINE_ARG)
 			{
-				if (HCCRClass.e_IsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(HCCRClass));
-				if (RegistryActionName.e_IsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(RegistryActionName));
-				if (ActionDisplayName.e_IsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(ActionDisplayName));
+				if (HCCRClass.eIsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(HCCRClass));
+				if (RegistryActionName.eIsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(RegistryActionName));
+				if (ActionDisplayName.eIsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(ActionDisplayName));
 
 				executablePath ??= System.Windows.Forms.Application.ExecutablePath;
 
 				string sKey = string.Join(@"\", new[] { HCCRClass, CS_REG_KEY_SHELL, RegistryActionName });
 				using RegistryKey? keyClass = Registry.ClassesRoot.OpenSubKey(sKey, false);
-				string? defVlue = keyClass?.e_GetValue_StringOrEmpty("");
+				string? defVlue = keyClass?.eGetValue_StringOrEmpty("");
 				if (defVlue != ActionDisplayName) return false;
 
 				using RegistryKey? hkCommand = keyClass?.OpenSubKey(CS_REG_KEY_COMMAND, false);
 				string commandString = ContextMenu_CreateRegCommandString(executablePath, cmdLineArgsPrefix, cmdLineArgs);
-				string? regCommandValue = hkCommand?.e_GetValue_StringOrEmpty("");
+				string? regCommandValue = hkCommand?.eGetValue_StringOrEmpty("");
 				if (commandString == regCommandValue) return true;
 				return false;
 			}
@@ -1121,14 +1125,14 @@ namespace uom
 				string cmdLineArgsPrefix = "",
 				string cmdLineArgs = CS_DEFAULT_CMDLINE_ARG)
 			{
-				if (fileExtensionWithDot.e_IsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(fileExtensionWithDot));
+				if (fileExtensionWithDot.eIsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(fileExtensionWithDot));
 
 				// Читаем класс файла из HKEY_CLASSES_ROOT\.pdf
-				var fileClass = Extensions_DebugAndErrors.e_tryCatch<string?>(
+				var fileClass = Extensions_DebugAndErrors.etryCatch<string?>(
 					() =>
 					{
 						using var hkeyFileExtension = Registry.ClassesRoot.OpenSubKey(fileExtensionWithDot);
-						return hkeyFileExtension!.e_GetValue_StringOrEmpty("", null);
+						return hkeyFileExtension!.eGetValue_StringOrEmpty("", null);
 					}, (string?)null).Result;
 
 				if (Win10OrLater)
@@ -1138,7 +1142,7 @@ namespace uom
 					fileClass = @"SystemFileAssociations\" + fileExtensionWithDot;
 
 					#region То работает то нет
-					// Dim sW10SystemFileAssociationsClass = e_runOn_TryCatch_Func(Of String)(Function()
+					// Dim sW10SystemFileAssociationsClass = erunOn_TryCatch_Func(Of String)(Function()
 					// Using hkeySystemFileAssociations = Global.Microsoft.WinAPI.Registry.ClassesRoot.OpenSubKey()
 					// Return CStr(hkeyFileExtension.GetValue("", vbNullString, Microsoft.WinAPI.RegistryValueOptions.DoNotExpandEnvironmentNames))
 					// End Using
@@ -1153,7 +1157,7 @@ namespace uom
 					// Dim aOpenProgIDsValues = hkOpenProgIDs.ExtReg_GetAllValues
 
 					// aOpenProgIDsValues = (From T In aOpenProgIDsValues
-					// Where ((T.Kind = RegistryValueKind.String) AndAlso T.ValueName. e_IsNOTNullOrWhiteSpace)).ToArray
+					// Where ((T.Kind = RegistryValueKind.String) AndAlso T.ValueName. eIsNotNullOrWhiteSpace)).ToArray
 
 					// If aOpenProgIDsValues.Any Then
 					// Dim FirstValue = aOpenProgIDsValues.First
@@ -1164,7 +1168,7 @@ namespace uom
 					#endregion
 				}
 
-				if (fileClass.e_IsNullOrWhiteSpace()) fileClass = fileExtensionWithDot; // В разделе не указан Класс файла. Сделаем раздел прямо на самом расширении
+				if (fileClass.eIsNullOrWhiteSpace()) fileClass = fileExtensionWithDot; // В разделе не указан Класс файла. Сделаем раздел прямо на самом расширении
 
 				return ContextMenu_RegisterForClass(
 					fileClass!,
@@ -1179,7 +1183,7 @@ namespace uom
 
 			/// <summary>Unregister this action on every registry class</summary>
 			internal static void ContextMenu_UnRegisterAction(string[]? registryActionNames)
-				=> registryActionNames?.e_ForEach(actionName => ContextMenu_UnRegisterAction(actionName));
+				=> registryActionNames?.eForEach(actionName => ContextMenu_UnRegisterAction(actionName));
 
 			/// <inheritdoc cref="ContextMenu_UnRegisterAction" />
 			internal static int ContextMenu_UnRegisterAction(string RegistryActionName, bool useActionNameAsPrefix = false)
@@ -1218,7 +1222,7 @@ namespace uom
 				string registryActionName,
 				bool useActionNameAsPrefix = false)
 			{
-				if (registryClass.e_IsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(registryClass));
+				if (registryClass.eIsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(registryClass));
 
 				string sShellKey = @$"{registryClass}\{CS_REG_KEY_SHELL}";
 
@@ -1319,7 +1323,7 @@ namespace uom
 				return keyFULL?
 					.GetValueNames().Where(
 						sUser =>
-						(keyFULL!.GetValueKind(sUser) == RegistryValueKind.DWord) && (keyFULL!.e_GetValue_Int32(sUser, -1)!.Value! == 0)
+						(keyFULL!.GetValueKind(sUser) == RegistryValueKind.DWord) && (keyFULL!.eGetValue_Int32(sUser, -1)!.Value! == 0)
 					)
 					.ToArray()!;
 			}
@@ -1379,9 +1383,9 @@ namespace uom
 
 				using var keyWINLOGON = OpenWinLogonKey(true);
 				using var keyUserList = OpenUserListKey(keyWINLOGON!, true, !bVisible);
-				int iCurrentValue = keyUserList!.e_GetValue_Int32(UserName, int.MaxValue)!.Value;
+				int iCurrentValue = keyUserList!.eGetValue_Int32(UserName, int.MaxValue)!.Value;
 				if ((iCurrentValue == int.MaxValue) && bVisible) return; //'HIDE' Registry value is not exist, and bVisible=true
-				int iTargetVisible = bVisible.e_ToInt32ABS();
+				int iTargetVisible = bVisible.eToInt32ABS();
 				if (iCurrentValue == iTargetVisible) return;
 				// Call OutString("Меняем значение видимости...")
 				keyUserList!.SetValue(UserName, iTargetVisible, RegistryValueKind.DWord);
@@ -1395,7 +1399,7 @@ namespace uom
 				using RegistryKey keyWINLOGON = OpenWinLogonKey(true);
 				keyWINLOGON?
 					.GetSubKeyNames()?
-					.e_ForEach(sSubKey =>
+					.eForEach(sSubKey =>
 					{
 						if (sSubKey.ToLower() == killSubKeyName.ToLower())
 							keyWINLOGON!.DeleteSubKeyTree(sSubKey);
@@ -1479,7 +1483,7 @@ namespace uom
 				{
 					using var imgFile = Image.FromFile(sUserImagePath);
 					// Надо использовать клонирование, чтобы не занимать файл изображения, а освободить его сразу после чтения
-					return imgFile!.e_CloneAsSomeType();
+					return imgFile!.eCloneAsSomeType();
 				}
 
 				return null;
@@ -1639,7 +1643,7 @@ namespace uom
 
 
 		internal static string GetWinSys32Path(string? childPath = null)
-			=> childPath.e_IsNullOrWhiteSpace()
+			=> childPath.eIsNullOrWhiteSpace()
 			? Environment.GetFolderPath(Environment.SpecialFolder.System)
 			: Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), childPath!);
 
@@ -1923,7 +1927,7 @@ namespace uom
 			public static OSVERSIONINFOEX RtlGetVersion()
 			{
 				OSVERSIONINFOEX OVI = new();
-				RtlGetVersion(ref OVI).e_ThrowIfError();
+				RtlGetVersion(ref OVI).eThrowIfError();
 				return OVI;
 			}
 
@@ -1956,7 +1960,7 @@ namespace uom
 				{
 					var sSPVersion = "";
 					if (wServicePackMajor != 0) sSPVersion += SPVersion.ToString();
-					if (szCSDVersion.e_IsNOTNullOrWhiteSpace()) sSPVersion += $" {szCSDVersion}";
+					if (szCSDVersion.eIsNotNullOrWhiteSpace()) sSPVersion += $" {szCSDVersion}";
 					return sSPVersion;
 				}
 
@@ -1964,7 +1968,7 @@ namespace uom
 
 			public override string ToString()
 			{
-				var spVersion = SPVersionString; if (spVersion.e_IsNOTNullOrWhiteSpace()) spVersion = ", SP:" + spVersion;
+				var spVersion = SPVersionString; if (spVersion.eIsNotNullOrWhiteSpace()) spVersion = ", SP:" + spVersion;
 				return $"Version: {Version}{spVersion}\n" +
 					$"Known Name: {KnownName}\n" +
 					$"Platform Id: {dwPlatformId}\n" +
@@ -2165,18 +2169,18 @@ namespace uom
 		internal static string CreateAppIDString(bool currentUser, string? suffix = null)
 		{
 			string appID = AppInfo.Title ?? string.Empty;
-			if (appID.e_IsNullOrWhiteSpace()) throw new Exception("Application.Title = null!");
+			if (appID.eIsNullOrWhiteSpace()) throw new Exception("Application.Title = null!");
 
 			if (currentUser) appID += C_MUTEX_PARTS_SEPARATOR + OS.UserAccounts.GetCurrentUserSID().ToString();
 
-			if (suffix.e_IsNOTNullOrWhiteSpace()) appID += (C_MUTEX_PARTS_SEPARATOR + suffix);
+			if (suffix.eIsNotNullOrWhiteSpace()) appID += (C_MUTEX_PARTS_SEPARATOR + suffix);
 			return appID;
 		}
 
 		public override string ToString() => MutexName;
 
 
-		internal partial class AppMutexAlreadyExistException() : Exception(uom.WinAPI.errors.Win32Errors.ERROR_SERVICE_EXISTS.e_ToWin32Exception().Message) { }
+		internal partial class AppMutexAlreadyExistException() : Exception(uom.WinAPI.errors.Win32Errors.ERROR_SERVICE_EXISTS.eToWin32Exception().Message) { }
 
 	}
 
@@ -2265,9 +2269,15 @@ namespace uom
 
 		/// <summary>The wrapper class for any objects which need to be displayed in Comboboxes with custom text</summary>
 		[DefaultProperty("Value")]
-		internal class ComboboxItemEnumContainer<T>(T val)
-			: ComboboxItemContainer<T>(val, enumValue => enumValue.e_GetDescriptionValue()) where T : Enum
-		{ }
+		internal class ComboboxItemEnumContainer<T> : ComboboxItemContainer<T> where T : Enum
+		{
+			public ComboboxItemEnumContainer(T val, string displayName)
+				: base(val, displayName) { }
+
+			public ComboboxItemEnumContainer(T val)
+				: base(val, enumValue => enumValue.eGetDescriptionValue()) { }
+
+		}
 
 	}
 
@@ -2349,9 +2359,9 @@ namespace uom
 							{
 								Action<T?> CB = new(NewVal =>
 							   {
-								   if (TemplateFormatString.e_IsNOTNullOrWhiteSpace())
+								   if (TemplateFormatString.eIsNotNullOrWhiteSpace())
 								   {
-									   string S = TemplateFormatString!.e_Format(NewVal?.ToString()!);
+									   string S = TemplateFormatString!.eFormat(NewVal?.ToString()!);
 									   ValueDisplayControl.Text = S;
 								   }
 								   else
@@ -2421,7 +2431,7 @@ namespace uom
 					private void _VCN_OnAfterValueChanged(object sender, ValueChangedEventArgs e)
 					{
 						if (null == OnValueChangedCallBack) return;
-						control?.e_RunInUIThread(() => OnValueChangedCallBack?.Invoke(e.NewValue!));
+						control?.eRunInUIThread(() => OnValueChangedCallBack?.Invoke(e.NewValue!));
 					}
 
 					public MTSafeContainerBase<T> ChangedNotifer { get => ChangedNotifer; }
@@ -2527,9 +2537,9 @@ namespace uom
 				try
 				{
 					var lines = uom.AppTools.AppSettings.Get_stringsAsText(id, string.Empty, FORMS_SETTTINGS);
-					if (lines != null && lines.e_IsNOTNullOrWhiteSpace())
+					if (lines != null && lines.eIsNotNullOrWhiteSpace())
 					{
-						return lines!.e_DeSerializeXML<FormPositionInfo>();
+						return lines!.eDeSerializeXML<FormPositionInfo>();
 					}
 				}
 				catch { }
@@ -2602,7 +2612,7 @@ namespace uom
 
 					//var rr = uom.WinAPI.windows.GetWindowRectWithoutShadow(_f.Handle);
 					//Debug.WriteLine($"GetWindowRect: {rr}");
-					
+
 					 */
 				}
 			}
@@ -2659,7 +2669,7 @@ namespace uom
 					{
 						//need maximize on proper display!
 						var r = _form!.Bounds;
-						r = r.e_CenterTo(targetDisplay.WorkingArea.e_GetCenter().e_ToPoint());
+						r = r.eCenterTo(targetDisplay.WorkingArea.eGetCenter().eToPoint());
 						_form!.Bounds = r;
 					}
 				}
@@ -2673,7 +2683,7 @@ namespace uom
 				if (!_canSave || !_form!.IsHandleCreated || _form!.IsDisposed || _form.WindowState == FormWindowState.Minimized) return;
 
 				FromUI();
-				string xml = this.e_SerializeAsXML();
+				string xml = this.eSerializeAsXML();
 				uom.AppTools.AppSettings.SaveMultiString(GetID(), xml, FORMS_SETTTINGS);
 				//Debug.WriteLine($"*********** Save\n{xml}");
 			}
@@ -2681,38 +2691,38 @@ namespace uom
 
 			/*
 
-Public Sub Load()
-If (Me._Form?.IsDisposed) Then Return
+	Public Sub Load()
+	If (Me._Form?.IsDisposed) Then Return
 
-Dim sRecordName = Me.GetID
-If(sRecordName.e_IsNullOrWhiteSpace) Then Return
+	Dim sRecordName = Me.GetID
+	If(sRecordName.eIsNullOrWhiteSpace) Then Return
 
-Dim aRows = uomvb.Settings.GetSetting_Strings(sRecordName,,,, CS_SETTTINGS_FOLDER).Value
-If(aRows Is Nothing) OrElse(Not aRows.Any) Then Return
+	Dim aRows = uomvb.Settings.GetSetting_Strings(sRecordName,,,, CS_SETTTINGS_FOLDER).Value
+	If(aRows Is Nothing) OrElse(Not aRows.Any) Then Return
 
-Dim sRows = aRows.e_Join(vbCrLf)
-Dim fps As FormPositionSaver = Nothing
-Try
-fps = sRows.e_DeSerializeXML(Of FormPositionSaver)
-Catch ex As Exception 'Any error - ignore
-'Debug.WriteLine("*********** Load ERROR")
-'Debug.WriteLine(ex.Message)
-Return
-End Try
-If(fps Is Nothing) Then Return
+	Dim sRows = aRows.eJoin(vbCrLf)
+	Dim fps As FormPositionSaver = Nothing
+	Try
+	fps = sRows.eDeSerializeXML(Of FormPositionSaver)
+	Catch ex As Exception 'Any error - ignore
+	'Debug.WriteLine("*********** Load ERROR")
+	'Debug.WriteLine(ex.Message)
+	Return
+	End Try
+	If(fps Is Nothing) Then Return
 
-'Debug.WriteLine("*********** Load ")
-'Debug.WriteLine(rFP.ToString)
+	'Debug.WriteLine("*********** Load ")
+	'Debug.WriteLine(rFP.ToString)
 
-With Me._Form
-Call.SuspendLayout()
-Try
+	With Me._Form
+	Call.SuspendLayout()
+	Try
 
 	'Ищем монитор, на котором последний раз было окно (могли отключить или удалить - тогда используем основной)
 	Dim scrnDisplay = Screen.PrimaryScreen
-	If (fps.Display.e_IsNOTNullOrWhiteSpace()) Then
+	If (fps.Display.eIsNotNullOrWhiteSpace()) Then
 		Dim lastDisplay = (From SC In Screen.AllScreens
-						   Where(SC.DeviceName.e_IsNOTNullOrWhiteSpace AndAlso (SC.DeviceName.Equals(fps.Display, StringComparison.OrdinalIgnoreCase)))).FirstOrDefault()
+						   Where(SC.DeviceName.eIsNotNullOrWhiteSpace AndAlso (SC.DeviceName.Equals(fps.Display, StringComparison.OrdinalIgnoreCase)))).FirstOrDefault()
 
 		If(lastDisplay IsNot Nothing) Then scrnDisplay = lastDisplay 'Найден!
 	End If
@@ -2734,7 +2744,7 @@ Try
 
 			'Проверяем чтобы окно не выходило за размеры экрана
 			'//rcDisplay
-			rcBounds = rcBounds.e_EnsureInRect(rcDisplay)
+			rcBounds = rcBounds.eEnsureInRect(rcDisplay)
 			If (rcBounds.Width< 100) Then
 				rcBounds.Width = 100
 				rcBounds.X = rcBounds.Right - rcBounds.Width
@@ -2750,21 +2760,21 @@ Try
 			'.Size = rcBounds.Size
 	End Select
 
-Catch ex As Exception
+	Catch ex As Exception
 	'
-Finally
+	Finally
 	Call.ResumeLayout()
-End Try
-End With
-End Sub
+	End Try
+	End With
+	End Sub
 
 
-Public Overrides Function ToString() As String
-Dim sData = Me.e_SerializeXML()
-Return sData
-End Function
+	Public Overrides Function ToString() As String
+	Dim sData = Me.eSerializeXML()
+	Return sData
+	End Function
 
-*/
+	*/
 
 
 		}
@@ -2894,7 +2904,7 @@ End Function
 				// Get the current font, either from the static text window or the message box itself
 				IntPtr hwndText = uom.WinAPI.windows.GetDlgItem(_hwndDialogWindow, 0xFFFF);
 				IntPtr hFont = uom.WinAPI.windows.SendMessage(
-					hwndText.e_IsValid() ? hwndText : _hwndDialogWindow,
+					hwndText.eIsValid() ? hwndText : _hwndDialogWindow,
 					WinAPI.windows.WindowMessages.WM_GETFONT, IntPtr.Zero, IntPtr.Zero);
 
 				Font fCur = Font.FromHfont(hFont);
@@ -2974,13 +2984,13 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_DumpHex(this uom.WinAPI.memory.WinApiMemory mem) => mem.DangerousGetHandle().e_DumpHexToString(mem.Lenght);
+			internal static string eDumpHex(this uom.WinAPI.memory.WinApiMemory mem) => mem.DangerousGetHandle().eDumpHexToString(mem.Lenght);
 
 
 			private static readonly Size _defaultPropertyGridFormSize = new(600, 800);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_PropertyGrid_DisplayInUI(this object o)
+			internal static void ePropertyGrid_DisplayInUI(this object o)
 			{
 				using Form f = new()
 				{
@@ -2988,7 +2998,7 @@ End Function
 					Text = $"{o.GetType()}",
 					Size = _defaultPropertyGridFormSize
 				};
-				f.e_Attach_CloseOnEsc();
+				f.eAttach_CloseOnEsc();
 
 				using PropertyGrid pg = new()
 				{
@@ -3001,7 +3011,7 @@ End Function
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_PropertyGrid_DisplayInUI<T>(this T[] o) where T : class
+			internal static void ePropertyGrid_DisplayInUI<T>(this T[] o) where T : class
 			{
 				if (o.Length < 1) return;
 
@@ -3011,7 +3021,7 @@ End Function
 					Text = $"{o.First().GetType()} ({o.Length})",
 					Size = _defaultPropertyGridFormSize
 				};
-				f.e_Attach_CloseOnEsc();
+				f.eAttach_CloseOnEsc();
 
 				using PropertyGrid pg = new()
 				{
@@ -3032,7 +3042,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_RunOnDisabled(this Control ctl, Action a)
+			public static void eRunOnDisabled(this Control ctl, Action a)
 			{
 				_ = a ?? throw new ArgumentNullException(nameof(a));
 
@@ -3050,7 +3060,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_RunOnDisabled(this IEnumerable<Control> actls, Action a)
+			public static void eRunOnDisabled(this IEnumerable<Control> actls, Action a)
 			{
 				_ = a ?? throw new ArgumentNullException(nameof(a));
 
@@ -3068,11 +3078,11 @@ End Function
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_Enable(this IEnumerable<Control> actls, bool e)
+			public static void eEnable(this IEnumerable<Control> actls, bool e)
 				=> actls.ToList().ForEach(ctl => ctl.Enabled = e);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_EnableItems(this ToolStrip ts, bool e)
+			public static void eEnableItems(this ToolStrip ts, bool e)
 			{
 				foreach (ToolStripItem ctl in ts.Items) ctl.Enabled = e;
 			}
@@ -3083,7 +3093,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static async Task e_RunOnDisabledAsync(
+			public static async Task eRunOnDisabledAsync(
 				this IEnumerable<Control>? actls,
 				Func<Task> a,
 				Form? waitCursorForm = null)
@@ -3116,11 +3126,11 @@ End Function
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static async Task e_RunOnDisabledAsync(
+			public static async Task eRunOnDisabledAsync(
 				this Control ctl,
 				Func<Task> a,
 				Form? waitCursorForm = null)
-				=> await ctl.e_ToArrayOf().e_RunOnDisabledAsync(a, waitCursorForm);
+				=> await ctl.eToArrayOf().eRunOnDisabledAsync(a, waitCursorForm);
 
 
 
@@ -3129,7 +3139,7 @@ End Function
 			/// <summary>
 			/// Awaiting specifed total 'timeToWait' with delays by 'stepInterval' and checking periodicaly cancelationFunc
 			/// </summary>
-			public static async Task e_DelayWithCancelation(this int timeToWait, int stepInterval, Func<bool> cancelationFunc)
+			public static async Task eDelayWithCancelation(this int timeToWait, int stepInterval, Func<bool> cancelationFunc)
 			{
 				if (stepInterval >= timeToWait) throw new ArgumentOutOfRangeException(nameof(stepInterval), "stepInterval must be < than timeToWait");
 
@@ -3148,7 +3158,7 @@ End Function
 			/// <summary>Run Task synchronously, using SynchronizationContext helpers</summary>
 			/// <param name="func">Task<T> method to run</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_RunSync(this Func<Task> func)
+			public static void eRunSync(this Func<Task> func)
 			{
 				SynchronizationContext? oldContext = SynchronizationContext.Current;
 				ExclusiveSynchronizationContext synCtx = new();
@@ -3171,9 +3181,9 @@ End Function
 				SynchronizationContext.SetSynchronizationContext(oldContext);
 			}
 
-			/// <inheritdoc cref="e_RunSync"/>
+			/// <inheritdoc cref="eRunSync"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T? e_RunSync<T>(this Func<Task<T?>> func)
+			public static T? eRunSync<T>(this Func<Task<T?>> func)
 			{
 				var oldContext = SynchronizationContext.Current;
 				var synch = new ExclusiveSynchronizationContext();
@@ -3203,16 +3213,16 @@ End Function
 
 
 
-			/// <inheritdoc cref="e_RunSync"/>
+			/// <inheritdoc cref="eRunSync"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_RunSync(this Task tsk)
-				=> e_RunSync(() => tsk);
+			public static void eRunSync(this Task tsk)
+				=> eRunSync(() => tsk);
 
 
-			/// <inheritdoc cref="e_RunSync"/>
+			/// <inheritdoc cref="eRunSync"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T e_RunSync<T>(this Task<T> task)
-				=> e_RunSync(() => task!)!;
+			public static T eRunSync<T>(this Task<T> task)
+				=> eRunSync(() => task!)!;
 
 
 			private class ExclusiveSynchronizationContext : SynchronizationContext
@@ -3278,15 +3288,15 @@ End Function
 
 			/// <summary>Run Task synchronously using Task.Run helpers</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_RunSync2(this Task t1)
+			public static void eRunSync2(this Task t1)
 			{
 				using Task t2 = Task.Run(async () => await t1);
 				t2.Wait();
 			}
 
-			/// <inheritdoc cref="e_RunSync2"/>
+			/// <inheritdoc cref="eRunSync2"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T e_RunSync2<T>(this Task<T> t1)
+			public static T eRunSync2<T>(this Task<T> t1)
 			{
 				using Task t2 = Task.Run(async () => await t1);
 				t2.Wait();
@@ -3308,7 +3318,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static Task e_AsTask(this WaitHandle handle, int timeout = Timeout.Infinite)
+			public static Task eAsTask(this WaitHandle handle, int timeout = Timeout.Infinite)
 			{
 				TaskCompletionSource<object> tcs = new();
 				RegisteredWaitHandle registration = ThreadPool.RegisterWaitForSingleObject(handle,
@@ -3333,7 +3343,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static Task e_WaitAsync(this WaitHandle handle, int timeout = Timeout.Infinite) => handle.e_AsTask(timeout);
+			public static Task eWaitAsync(this WaitHandle handle, int timeout = Timeout.Infinite) => handle.eAsTask(timeout);
 
 
 		}
@@ -3345,7 +3355,7 @@ End Function
 		{
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_SetClipboardSafe(this string text)
+			internal static void eSetClipboardSafe(this string text)
 			{
 				try { Clipboard.SetText(text); }
 				catch { }
@@ -3362,7 +3372,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string ToString_WxH(this PointF PT, int iRound) => $"{PT.X.e_Round(iRound)}x{PT.Y.e_Round(iRound)}";
+			internal static string ToString_WxH(this PointF PT, int iRound) => $"{PT.X.eRound(iRound)}x{PT.Y.eRound(iRound)}";
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -3374,13 +3384,13 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string ToString_WxH(this SizeF PT, int iRound) => $"{PT.Width.e_Round(iRound)}x{PT.Height.e_Round(iRound)}";
+			internal static string ToString_WxH(this SizeF PT, int iRound) => $"{PT.Width.eRound(iRound)}x{PT.Height.eRound(iRound)}";
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static (string Result, bool StringWasTrimmed) e_LimitLenght(this string source, int maxLen = WinAPI.io.MAX_PATH)
+			internal static (string Result, bool StringWasTrimmed) eLimitLenght(this string source, int maxLen = WinAPI.io.MAX_PATH)
 			{
-				if (source.e_IsNOTNullOrWhiteSpace() && (source.Length > maxLen)) return (source.Substring(0, maxLen), true);
+				if (source.eIsNotNullOrWhiteSpace() && (source.Length > maxLen)) return (source.Substring(0, maxLen), true);
 				return (source, false);
 			}
 
@@ -3398,18 +3408,18 @@ End Function
 			/// <c>! Most Fastest Method !</c>
 			/// </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_CompareArrays_MemCmp(this byte[] a, byte[] b, UInt64 bytesToCompare) => uom.WinAPI.memory.memcmp(a, b, bytesToCompare) == 0;
+			internal static bool eCompareArrays_MemCmp(this byte[] a, byte[] b, UInt64 bytesToCompare) => uom.WinAPI.memory.memcmp(a, b, bytesToCompare) == 0;
 
-			/// <inheritdoc cref="e_CompareArrays_MemCmp" />
+			/// <inheritdoc cref="eCompareArrays_MemCmp" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_CompareArrays_MemCmp(this byte[] a, byte[] b) => a.e_CompareArrays_MemCmp(b, (UInt64)a.Length);
+			internal static bool eCompareArrays_MemCmp(this byte[] a, byte[] b) => a.eCompareArrays_MemCmp(b, (UInt64)a.Length);
 
 
 
 #if NET6_0_OR_GREATER
 			/// <summary>Проверяет заканчивается ли массив байт на указанные байты</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_EndsWith(this byte[] A, byte[] B)
+			internal static bool eEndsWith(this byte[] A, byte[] B)
 			{
 				// Validate buffers are the same length. This also ensures that the count does not exceed the length of either buffer.  
 				int elementsToCompare = B.Length;
@@ -3417,26 +3427,26 @@ End Function
 				if (A.Length == 0 && elementsToCompare == 0) return true;
 
 				A = A.TakeLast(elementsToCompare).ToArray();
-				bool bEq = A.e_CompareArrays_MemCmp(B);
+				bool bEq = A.eCompareArrays_MemCmp(B);
 				return bEq;
 			}
 
 
-			/// <inheritdoc cref="e_EndsWith" />
+			/// <inheritdoc cref="eEndsWith" />
 			/// <param name="A"></param>
 			/// <param name="abFinishHex">Строка байт вида 0D-0A-2B-43-53-51-3A</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_EndsWith(this byte[] A, string abFinishHex)
+			internal static bool eEndsWith(this byte[] A, string abFinishHex)
 			{
-				var abFinish = abFinishHex.e_HexStringToBytes();
-				bool bEq = A.e_EndsWith(abFinish);
+				var abFinish = abFinishHex.eHexStringToBytes();
+				bool bEq = A.eEndsWith(abFinish);
 				return bEq;
 			}
 #endif
 
 			/// <summary>Checks if a begins with b</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_StartsWith(this byte[] A, byte[] B)
+			internal static bool eStartsWith(this byte[] A, byte[] B)
 			{
 				// Validate buffers length. This also ensures that the count does not exceed the length of either buffer.  
 				int elementsToCompare = B.Length;
@@ -3444,25 +3454,25 @@ End Function
 				if (A.Length == 0 && elementsToCompare == 0) return true;
 
 				//if (A.Length != elementsToCompare) A = [.. A.Take(elementsToCompare)];
-				return A.e_CompareArrays_MemCmp(B, (ulong)elementsToCompare);
+				return A.eCompareArrays_MemCmp(B, (ulong)elementsToCompare);
 			}
 
 
-			/// <inheritdoc cref="e_StartsWith" />
+			/// <inheritdoc cref="eStartsWith" />
 			/// <param name="hexString">bytes string like "0D-0A-2B-43-53-51-3A..."</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_StartsWith(this byte[] A, string hexString)
-				=> A.e_StartsWith(hexString.e_HexStringToBytes());
+			internal static bool eStartsWith(this byte[] A, string hexString)
+				=> A.eStartsWith(hexString.eHexStringToBytes());
 
 
 			/// <summary>Проверяет равна ли строка двоичному образцу</summary>
 			/// <param name="sTargetHexString">Строка байт вида 0D-0A-2B-43-53-51-3A</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_EqualToHex(this byte[] A, string sTargetHexString)
+			internal static bool eEqualToHex(this byte[] A, string sTargetHexString)
 			{
-				var abTarge = sTargetHexString.e_HexStringToBytes();
+				var abTarge = sTargetHexString.eHexStringToBytes();
 				if (A.Length != abTarge.Length) return false;
-				return A.e_StartsWith(abTarge);
+				return A.eStartsWith(abTarge);
 			}
 
 
@@ -3475,11 +3485,11 @@ End Function
 			/// <returns></returns>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			[Obsolete("Must be rewrited with memoryspans", true)]
-			internal static byte[] e_SearchTemplate(this byte[] a, string templateHexString)
+			internal static byte[] eSearchTemplate(this byte[] a, string templateHexString)
 			{
 				char C_SEP = constants.SystemDefaultHexByteSeparator; // Получаем символ-разделитель
-				templateHexString = templateHexString.e_NormalizeHexString(null, C_SEP);
-				string sSourceStringHex = a.e_ToStringHex();
+				templateHexString = templateHexString.eNormalizeHexString(null, C_SEP);
+				string sSourceStringHex = a.eToStringHex();
 				var sourceHexBytes = sSourceStringHex.Split(C_SEP);
 				var templateHexBytes = templateHexString.Split(C_SEP);
 
@@ -3509,7 +3519,7 @@ End Function
 
 						if (iFound == iTemplateBytesCount) // найдено!
 						{
-							var abFound = a.e_TakeFrom(iSourceCharPos);
+							var abFound = a.eTakeFrom(iSourceCharPos);
 							abFound = abFound.Take(iTemplateBytesCount).ToArray();
 							return abFound;
 						}
@@ -3535,11 +3545,11 @@ End Function
 			////// <remarks>НЕ ИСПОЛЬЗОВАТЬ вот так: typeof(XXX).EnumGetAllValuesAsEnumContainers</remarks>
 
 
-			//public static ComboboxItemEnumContainer<T>[] e_GetAllValuesAsEnumContainers<T>(T EnumItem) where T : Enum
+			//public static ComboboxItemEnumContainer<T>[] eGetAllValuesAsEnumContainers<T>(T EnumItem) where T : Enum
 
 			/*
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static ComboboxItemEnumContainer<T>[] e_GetAllValuesAsEnumContainers<T>() where T : Enum
+	public static ComboboxItemEnumContainer<T>[] eGetAllValuesAsEnumContainers<T>() where T : Enum
 	{
 	T[] enumValues = Enum.GetValues(typeof(T)).Cast<T>().ToArray();
 	ComboboxItemEnumContainer<T>[]? cItems = enumValues.Select(v => new ComboboxItemEnumContainer<T>(v)).ToArray();
@@ -3559,7 +3569,7 @@ End Function
 			 */
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static ComboboxItemEnumContainer<T>[] e_GetAllValuesAsEnumContainers<T>(this T anyEnumItem) where T : Enum
+			public static ComboboxItemEnumContainer<T>[] eGetAllValuesAsEnumContainers<T>(this T anyEnumItem) where T : Enum
 			{
 				T[] enumValues = Enum.GetValues(typeof(T)).Cast<T>().ToArray();
 				ComboboxItemEnumContainer<T>[]? cItems = enumValues.Select(v => new ComboboxItemEnumContainer<T>(v)).ToArray();
@@ -3577,7 +3587,7 @@ End Function
 				//var eAA2 = typeof(XXX).EnumGetAllValuesArray
 			}
 
-			public static T e_BuildFromFlags<T>(this T initialValue, params (CheckBox flagCondition, T flagToSet)[] flags) where T : Enum
+			public static T eBuildFromFlags<T>(this T initialValue, params (CheckBox flagCondition, T flagToSet)[] flags) where T : Enum
 			{
 				Int64 val = Convert.ToInt64(initialValue);
 				foreach (var item in flags)
@@ -3602,7 +3612,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static RegistryKey e_HiveToKey(this RegistryHive Hive)
+			public static RegistryKey eHiveToKey(this RegistryHive Hive)
 				=> Hive switch
 				{
 					RegistryHive.ClassesRoot => Registry.ClassesRoot,
@@ -3619,7 +3629,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static RegistryKey e_OpenBaseKey(this RegistryHive Hive, RegistryView View = RegistryView.Default) => RegistryKey.OpenBaseKey(Hive, View);
+			public static RegistryKey eOpenBaseKey(this RegistryHive Hive, RegistryView View = RegistryView.Default) => RegistryKey.OpenBaseKey(Hive, View);
 
 
 
@@ -3627,7 +3637,7 @@ End Function
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static (Boolean ValueFound, RegistryValueKind Kind, object? Value)
-			e_GetValueExt(
+			eGetValueExt(
 				this RegistryKey key,
 				string? valueName,
 				object? defaultValue,
@@ -3646,11 +3656,11 @@ End Function
 
 			[DebuggerNonUserCode, DebuggerStepThrough]
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static (Boolean ValueFound, RegistryValueKind Kind, T? Value) e_GetValueT<T>(this RegistryKey key, string ValueName, T? defaultValue)
+			public static (Boolean ValueFound, RegistryValueKind Kind, T? Value) eGetValueT<T>(this RegistryKey key, string ValueName, T? defaultValue)
 			{
 				try
 				{
-					var (ValueFound, Kind, Value) = key.e_GetValueExt(
+					var (ValueFound, Kind, Value) = key.eGetValueExt(
 						   ValueName,
 						   defaultValue,
 							(typeof(T) == typeof(string))
@@ -3666,15 +3676,15 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string? e_GetValue_String(this RegistryKey? key, string ValueName, string? defaultValue = null)
-				=> key?.e_GetValueT<string>(ValueName, defaultValue).Value;
+			public static string? eGetValue_String(this RegistryKey? key, string ValueName, string? defaultValue = null)
+				=> key?.eGetValueT<string>(ValueName, defaultValue).Value;
 
 
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_GetValue_StringOrEmpty(this RegistryKey? key, string ValueName, string? defaultValue = null)
-				=> key?.e_GetValue_String(ValueName, defaultValue)
+			public static string eGetValue_StringOrEmpty(this RegistryKey? key, string ValueName, string? defaultValue = null)
+				=> key?.eGetValue_String(ValueName, defaultValue)
 				?? string.Empty;
 
 
@@ -3751,11 +3761,11 @@ End Function
 
 
 			/// <summary>Work ONLY on local registry, dont work on remote connected registry!</summary>
-			public static void e_RenameSubKey(this RegistryKey KeyParent, string Name, string NewName)
+			public static void eRenameSubKey(this RegistryKey KeyParent, string Name, string NewName)
 			{
 				//RegistryKey _keyHKLM = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Default);
 				//KeyParent = _keyHKLM?.OpenSubKey("_uom_Test", true)!;
-				if (NewName.e_IsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(NewName));
+				if (NewName.eIsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(NewName));
 				_ = RegRenameKey(
 					KeyParent.Handle.DangerousGetHandle(),
 					Name,
@@ -3765,7 +3775,7 @@ End Function
 			}
 
 
-			public static void e_RenameSubKeyViaCopy(this RegistryKey KeyParent, string Name, string newName)
+			public static void eRenameSubKeyViaCopy(this RegistryKey KeyParent, string Name, string newName)
 			{
 				if (string.IsNullOrWhiteSpace(newName)) throw new ArgumentNullException(nameof(newName));
 
@@ -3773,15 +3783,15 @@ End Function
 				Name = Name.Trim();
 
 				if (newName == Name) return;//Already has this name
-				if (newName.e_IsDifferOlyInCase(Name)) throw new ArgumentException("New key name differ only in case!", nameof(newName));
+				if (newName.eIsDifferOnlyByCase(Name)) throw new ArgumentException("New key name differ only in case!", nameof(newName));
 
-				KeyParent.e_CopySubkey(Name, newName, false);
+				KeyParent.eCopySubkey(Name, newName, false);
 				KeyParent.DeleteSubKeyTree(Name, false);
 				KeyParent.Flush();
 			}
 
 
-			public static void e_CopySubkey(this RegistryKey KeyParent, string subKeyName, string newSubKeyName, bool owerwriteOnExist)
+			public static void eCopySubkey(this RegistryKey KeyParent, string subKeyName, string newSubKeyName, bool owerwriteOnExist)
 			{
 				if (string.IsNullOrWhiteSpace(subKeyName)) throw new ArgumentNullException(nameof(subKeyName));
 				if (string.IsNullOrWhiteSpace(newSubKeyName)) throw new ArgumentNullException(nameof(newSubKeyName));
@@ -3790,7 +3800,7 @@ End Function
 				newSubKeyName = newSubKeyName.Trim();
 
 				if (newSubKeyName == subKeyName) throw new ArgumentException($"{nameof(newSubKeyName)} = {nameof(subKeyName)}!");
-				if (subKeyName.e_IsDifferOlyInCase(newSubKeyName))
+				if (subKeyName.eIsDifferOnlyByCase(newSubKeyName))
 					throw new ArgumentException($"The {nameof(newSubKeyName)} and {nameof(subKeyName)} differ only in case!", nameof(newSubKeyName));
 
 				RegistryKey? keyOld = KeyParent.OpenSubKey(subKeyName, false);
@@ -3803,11 +3813,11 @@ End Function
 					KeyParent.DeleteSubKeyTree(newSubKeyName, false);
 				}
 				using RegistryKey keyNew = KeyParent.CreateSubKey(newSubKeyName, true);
-				keyOld.e_CopyTo(keyNew);
+				keyOld.eCopyTo(keyNew);
 			}
 
 
-			public static void e_CopyTo(this RegistryKey keyOld, RegistryKey keyNew)
+			public static void eCopyTo(this RegistryKey keyOld, RegistryKey keyNew)
 			{
 				//Copy All Values
 				var aValueNames = keyOld.GetValueNames();
@@ -3835,37 +3845,37 @@ End Function
 				{
 					using RegistryKey? keyChildOld = keyOld.OpenSubKey(keyName, false);
 					using RegistryKey keyChildNew = keyNew.CreateSubKey(keyName, true);
-					keyChildOld?.e_CopyTo(keyChildNew);
+					keyChildOld?.eCopyTo(keyChildNew);
 				}
 				keyNew.Flush();
 			}
 
 
-			public static void e_Export(this RegistryKey keyOld, string path)
+			public static void eExport(this RegistryKey keyOld, string path)
 			{
-				WinAPI.security.PRIVELEGE_NAMES.SeBackupPrivilege.e_AdjustProcessPrivilegeAndCloseToken();
+				WinAPI.security.PRIVELEGE_NAMES.SeBackupPrivilege.eAdjustProcessPrivilegeAndCloseToken();
 				var result = RegSaveKeyEx(
 					keyOld.Handle.DangerousGetHandle(),
 					path,
 					IntPtr.Zero,
 					SAVE_REG_FLAGS.REG_LATEST_FORMAT);
 
-				result.e_ThrowIfError();
+				result.eThrowIfError();
 			}
 
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static Int32? e_GetValue_Int32(this RegistryKey? hRegKey, string ValueName, Int32 defaultValue = 0)
-				=> hRegKey?.e_GetValueT<Int32>(ValueName, defaultValue).Value;
+			public static Int32? eGetValue_Int32(this RegistryKey? hRegKey, string ValueName, Int32 defaultValue = 0)
+				=> hRegKey?.eGetValueT<Int32>(ValueName, defaultValue).Value;
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool? e_GetValue_Bool(this RegistryKey? hRegKey, string ValueName, bool defaultValue = false)
-				=> (1 == e_GetValue_Int32(hRegKey, ValueName, defaultValue ? 1 : 0));
+			public static bool? eGetValue_Bool(this RegistryKey? hRegKey, string ValueName, bool defaultValue = false)
+				=> (1 == eGetValue_Int32(hRegKey, ValueName, defaultValue ? 1 : 0));
 
 
-			private static void e_SetValueObject(this RegistryKey hRegKey, string name, object? value, RegistryValueKind kind)
+			private static void eSetValueObject(this RegistryKey hRegKey, string name, object? value, RegistryValueKind kind)
 			{
 				if (null == value)
 					hRegKey.DeleteValue(name, false);
@@ -3880,11 +3890,11 @@ End Function
 
 
 			/// <summary>if value == null, reg value will be deleted!</summary>
-			public static void e_SetValue<T>(this RegistryKey hRegKey, string name, T? value) where T : struct
+			public static void eSetValue<T>(this RegistryKey hRegKey, string name, T? value) where T : struct
 			{
 				if (null == value || !value.HasValue)
 				{
-					hRegKey.e_SetValueObject(name, (object?)null, RegistryValueKind.None);//Delete Value
+					hRegKey.eSetValueObject(name, (object?)null, RegistryValueKind.None);//Delete Value
 					return;
 				}
 
@@ -3911,25 +3921,25 @@ End Function
 					// float, double, decimal
 					default: throw new ArgumentOutOfRangeException($"Unknown type of '{nameof(value)}' = '{typeof(T)}'");
 				}
-				hRegKey.e_SetValueObject(name, valueToWrite, kind);
+				hRegKey.eSetValueObject(name, valueToWrite, kind);
 			}
 
 			/// <summary>if value == null, value will be deleted!</summary>
-			public static void e_SetValueString(this RegistryKey hRegKey, string name, string? value)
+			public static void eSetValueString(this RegistryKey hRegKey, string name, string? value)
 			{
 				if (null == value)
 				{
-					hRegKey.e_SetValueObject(name, (object?)null, RegistryValueKind.None);//Delete Value
+					hRegKey.eSetValueObject(name, (object?)null, RegistryValueKind.None);//Delete Value
 					return;
 				}
 				hRegKey.SetValue(name, value!, RegistryValueKind.String);
 			}
 
-			public static void e_SetValueStrings(this RegistryKey hRegKey, string name, string[]? value)
+			public static void eSetValueStrings(this RegistryKey hRegKey, string name, string[]? value)
 			{
 				if (null == value)
 				{
-					hRegKey.e_SetValueObject(name, (object?)null, RegistryValueKind.None);//Delete Value
+					hRegKey.eSetValueObject(name, (object?)null, RegistryValueKind.None);//Delete Value
 					return;
 				}
 				hRegKey.SetValue(name, value!, RegistryValueKind.MultiString);
@@ -3941,7 +3951,7 @@ End Function
 
 			/// <param name="fullPath">HKEY_CLASSES_ROOT/xxx/yyyy...</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static RegistryKey? e_RegOpenByFullPath(this string fullPath, bool writable)
+			public static RegistryKey? eRegOpenByFullPath(this string fullPath, bool writable)
 			{
 				string[] pathParts = fullPath.Split('\\');
 				string rootKeyName = pathParts[0];
@@ -3956,7 +3966,7 @@ End Function
 					_ => throw new ArgumentOutOfRangeException(nameof(rootKeyName))
 				};
 
-				fullPath = string.Join(@"\", pathParts.e_TakeFrom(1));
+				fullPath = string.Join(@"\", pathParts.eTakeFrom(1));
 				return keyRoot.OpenSubKey(fullPath, writable);
 			}
 
@@ -4057,7 +4067,7 @@ End Function
 
 			[DebuggerNonUserCode, DebuggerStepThrough]
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static DialogResult e_MsgboxShow(
+			public static DialogResult eMsgboxShow(
 				this string msg,
 				MsgBoxFlags? flags = MsgBoxFlags.Btn_OK | MsgBoxFlags.Icn_Information | MsgBoxFlags.DefBtn_1,
 				string? title = null)
@@ -4073,15 +4083,15 @@ End Function
 
 			[DebuggerNonUserCode, DebuggerStepThrough]
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_MsgboxError(this Exception ex, string? title = null)
+			public static void eMsgboxError(this Exception ex, string? title = null)
 			{
-				ex.Message.e_MsgboxShow((MsgBoxFlags.Btn_OK | MsgBoxFlags.Icn_Error));
+				ex.Message.eMsgboxShow((MsgBoxFlags.Btn_OK | MsgBoxFlags.Icn_Error));
 			}
 
 
 			[DebuggerNonUserCode, DebuggerStepThrough]
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static DialogResult e_MsgboxAsk(
+			public static DialogResult eMsgboxAsk(
 				this string question,
 				bool defButtonYes = true,
 				string? title = null)
@@ -4091,21 +4101,21 @@ End Function
 					? MsgBoxFlags.DefBtn_1
 					: MsgBoxFlags.DefBtn_2);
 
-				return question.e_MsgboxShow(flg, title);
+				return question.eMsgboxShow(flg, title);
 			}
 
 			[DebuggerNonUserCode, DebuggerStepThrough]
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_MsgboxAskIsYes(
+			public static bool eMsgboxAskIsYes(
 				this string question,
 				bool defButtonYes = true,
 				string? title = null)
-				=> question.e_MsgboxAsk(defButtonYes, title) == DialogResult.Yes;
+				=> question.eMsgboxAsk(defButtonYes, title) == DialogResult.Yes;
 
 
 			[DebuggerNonUserCode, DebuggerStepThrough]
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static DialogResult e_MsgboxWithCheckboxAsk(
+			public static DialogResult eMsgboxWithCheckboxAsk(
 				this string question,
 				string dialogID,
 				bool defButtonYes = true,
@@ -4134,7 +4144,7 @@ End Function
 
 			[DebuggerNonUserCode, DebuggerStepThrough]
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_MsgboxWithCheckboxClearLastUserAnswer(this string dialogID)
+			public static void eMsgboxWithCheckboxClearLastUserAnswer(this string dialogID)
 				=> uom.UI.MessageBoxWithCheckbox.ClearLastUserAnswer(dialogID);
 
 
@@ -4144,21 +4154,21 @@ End Function
 
 			/// <inheritdoc cref="uom.WinAPI.windows.GetHighDPIScaleFactor" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static float e_GetHighDPIScaleFactor(this Control ctl)
+			public static float eGetHighDPIScaleFactor(this Control ctl)
 				=> uom.WinAPI.windows.GetHighDPIScaleFactor(ctl.Handle);
 
 			#region ShortcutKeys to/from string
 
 			/// <summary>Converts Keys value to shortcut keys string like 'Ctrl+I' </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_ToShortcutKeysString(this System.Windows.Forms.Keys eKey)
+			public static string eToShortcutKeysString(this System.Windows.Forms.Keys eKey)
 				=> (string)(new KeysConverter().ConvertTo(eKey, typeof(string))!);
 
 
 			/// <summary>Converts shortcut keys string to Keys value</summary>
 			/// <param name="sKeys">Sample 'Ctrl+I'</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static System.Windows.Forms.Keys e_ToShortcutKeys(this string sKeys)
+			public static System.Windows.Forms.Keys eToShortcutKeys(this string sKeys)
 				=> (Keys)(new KeysConverter().ConvertFrom(sKeys)!);
 
 			#endregion
@@ -4179,11 +4189,11 @@ End Function
 			/*
 	/// <summary>MT Safe call code in UI thread.</summary>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static void e_RunInUIThread(this Control context, System.Windows.Forms.MethodInvoker code)
+	public static void eRunInUIThread(this Control context, System.Windows.Forms.MethodInvoker code)
 	{
 	#region SAMPLE WITH RETURN VALUE:
 
-	//lstvwgrp.ListView.e_RunInUIThread(delegate
+	//lstvwgrp.ListView.eRunInUIThread(delegate
 	//{
 	//	result = SendMessage(lstvwgrp.ListView.Handle, ListViewMessages.LVM_SETGROUPINFO, groupId, ref group);
 	//});
@@ -4193,7 +4203,7 @@ End Function
 
 	#region SAMPLE WITHOUT RETURN VALUE:
 
-	//lstvwgrp.ListView.e_RunInUIThread(delegate
+	//lstvwgrp.ListView.eRunInUIThread(delegate
 	//{
 	//	SendMessage(lstvwgrp.ListView.Handle, ListViewMessages.LVM_SETGROUPINFO, groupId, ref group);
 	//});
@@ -4218,11 +4228,11 @@ End Function
 
 
 			/// <summary>ThreadSafe excute action in control UI thread
-			/// <param name="context">Control in which UI thread action e_runutes</param>
+			/// <param name="context">Control in which UI thread action erunutes</param>
 			/// <param name="asyncInvoke">If true - used BeginInvoke, else used Invoke</param>
 			/// <param name="onError">Any action when Error occurs</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_RunInUIThread(this Control context, Action a, bool asyncInvoke = false, Action<Exception>? onError = null)
+			public static void eRunInUIThread(this Control context, Action a, bool asyncInvoke = false, Action<Exception>? onError = null)
 			{
 				_ = context ?? throw new ArgumentNullException(nameof(context));
 				_ = a ?? throw new ArgumentNullException(nameof(a));
@@ -4247,11 +4257,11 @@ End Function
 
 
 			/// <summary>ThreadSafe excute action in control UI thread
-			/// <param name="context">Control in which UI thread action e_runutes</param>
+			/// <param name="context">Control in which UI thread action erunutes</param>
 			/// <param name="useBeginInvoke">If true - used BeginInvoke, else used Invoke</param>
 			/// <param name="onError">Any action when Error occurs</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T? e_RunInUIThread<T>(this Control context, Func<T> a, Action<Exception>? onError = null)
+			public static T? eRunInUIThread<T>(this Control context, Func<T> a, Action<Exception>? onError = null)
 			{
 				_ = context ?? throw new ArgumentNullException(nameof(context));
 				_ = a ?? throw new ArgumentNullException(nameof(a));
@@ -4272,10 +4282,10 @@ End Function
 			}
 
 			/// <summary>ThreadSafe excute action in control UI thread
-			/// <param name="context">Control in which UI thread action e_runutes</param>
+			/// <param name="context">Control in which UI thread action erunutes</param>
 			/// <param name="onError">Any action when Error occurs</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static async Task e_RunInUIThreadAsync(this Control context, Func<Task> a, Action<Exception>? onError = null)
+			public static async Task eRunInUIThreadAsync(this Control context, Func<Task> a, Action<Exception>? onError = null)
 			{
 				_ = context ?? throw new ArgumentNullException(nameof(context));
 				_ = a ?? throw new ArgumentNullException(nameof(a));
@@ -4302,7 +4312,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_RunWhenHandleReady<T>(this T ctl, Action<Control> HandleReadyAction) where T : Control
+			public static void eRunWhenHandleReady<T>(this T ctl, Action<Control> HandleReadyAction) where T : Control
 			{
 				_ = ctl ?? throw new ArgumentNullException(nameof(ctl));
 
@@ -4325,14 +4335,14 @@ End Function
 
 			/// <summary>MT Safe</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_RunInUIThread_AppendText(this TextBox ctl, string Text)
-				=> ctl.e_RunInUIThread(() => { ctl.AppendText(Text); ctl.Update(); });
+			public static void eRunInUIThread_AppendText(this TextBox ctl, string Text)
+				=> ctl.eRunInUIThread(() => { ctl.AppendText(Text); ctl.Update(); });
 
 #if NET6_0_OR_GREATER
 			/// <summary>MT Safe</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_RunInUIThread_AppendLine(this TextBox ctl, string Text, int limitLinesCount = 0)
-				=> ctl.e_RunInUIThread(() =>
+			public static void eRunInUIThread_AppendLine(this TextBox ctl, string Text, int limitLinesCount = 0)
+				=> ctl.eRunInUIThread(() =>
 				{
 					if (limitLinesCount > 0)
 					{
@@ -4345,17 +4355,17 @@ End Function
 
 			/// <summary>MT Safe</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_RunInUIThread_SetText(this Control ctl, string Text)
-				=> ctl.e_RunInUIThread(() => { ctl.Text = Text; ctl.Update(); });
+			public static void eRunInUIThread_SetText(this Control ctl, string Text)
+				=> ctl.eRunInUIThread(() => { ctl.Text = Text; ctl.Update(); });
 
 			/// <summary>MT Safe</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_RunInUIThread_SetText(this ToolStripItem ctl, string Text, Form? frmUI = null)
+			public static void eRunInUIThread_SetText(this ToolStripItem ctl, string Text, Form? frmUI = null)
 			{
 				_ = ctl ?? throw new ArgumentNullException(nameof(ctl));
 				frmUI ??= ctl.GetCurrentParent()?.FindForm();//If form not specifed = search form...
 															 //_ = frmUI ?? throw new ArgumentNullException("ToolStripItem.GetCurrentParent.FindForm() = NULL!");
-				frmUI?.e_RunInUIThread(() => { if (frmUI.IsHandleCreated && !frmUI.IsDisposed && !ctl.IsDisposed) ctl.Text = Text; });
+				frmUI?.eRunInUIThread(() => { if (frmUI.IsHandleCreated && !frmUI.IsDisposed && !ctl.IsDisposed) ctl.Text = Text; });
 			}
 
 
@@ -4366,7 +4376,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_Attach_CloseOnEsc(this Form f)
+			public static void eAttach_CloseOnEsc(this Form f)
 			{
 				f.KeyPreview = true;
 				f.KeyDown += (s, e) =>
@@ -4378,24 +4388,24 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_Attach_PositionAndStateSaver(this Form ctx, [CallerMemberName] string caller = "")
+			public static void eAttach_PositionAndStateSaver(this Form ctx, [CallerMemberName] string caller = "")
 				=> UI.FormPositionInfo.Attach(ctx, caller);
 
 
 
-			#region e_Attach_CloseOnClick
+			#region eAttach_CloseOnClick
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_Attach_CloseOnClick(this Form ctx, System.Windows.Forms.ToolStripMenuItem MI)
-				=> MI.Click += (_, _) => ctx?.e_CloseSafe();
+			public static void eAttach_CloseOnClick(this Form ctx, System.Windows.Forms.ToolStripMenuItem MI)
+				=> MI.Click += (_, _) => ctx?.eCloseSafe();
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_Attach_CloseOnClick(this Form ctx, Button Ctl)
-				=> Ctl.Click += (_, _) => ctx?.e_CloseSafe();
+			public static void eAttach_CloseOnClick(this Form ctx, Button Ctl)
+				=> Ctl.Click += (_, _) => ctx?.eCloseSafe();
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void e_CloseSafe(this Form f) => f?.e_RunInUIThread(() => f?.Close());
+			private static void eCloseSafe(this Form f) => f?.eRunInUIThread(() => f?.Close());
 
 
 			#endregion
@@ -4409,7 +4419,7 @@ End Function
 			/// <summary>Executes after form shown on screen, with specifed delay.
 			/// Delay starts after 'Form.Shown' ebent</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_Attach_RunOnClosed(this Form ctx, Action action, bool ignoreExceptions = false)
+			internal static void eAttach_RunOnClosed(this Form ctx, Action action, bool ignoreExceptions = false)
 			{
 				_ = ctx ?? throw new ArgumentNullException(nameof(ctx));
 
@@ -4434,7 +4444,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static System.Windows.Forms.Timer e_RunDelayedTask(this Func<Task> delayedAction, int delay = DEFAULT_DELAY)
+			internal static System.Windows.Forms.Timer eRunDelayedTask(this Func<Task> delayedAction, int delay = DEFAULT_DELAY)
 			{
 				delayedAction.ThrowIfNull();
 
@@ -4448,7 +4458,7 @@ End Function
 				tmrDelay.Tick += async (s, e) =>
 				{
 					System.Windows.Forms.Timer tmr = (System.Windows.Forms.Timer)s!;
-					//first stop and dispose our timer, to avoid double e_runution
+					//first stop and dispose our timer, to avoid double erunution
 					tmr.Stop();
 
 					//Now start action incontrols UI thread
@@ -4468,7 +4478,7 @@ End Function
 			/// For example, if some data will be ready only after exiting the control event handler processing branch
 			/// </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static System.Windows.Forms.Timer e_RunDelayed(this Action delayedAction, int delay = DEFAULT_DELAY)
+			internal static System.Windows.Forms.Timer eRunDelayed(this Action delayedAction, int delay = DEFAULT_DELAY)
 			{
 				delayedAction.ThrowIfNull();
 
@@ -4480,7 +4490,7 @@ End Function
 				};
 				tmrDelay.Tick += (_, _) =>
 				{
-					//first stop and dispose our timer, to avoid double e_runution
+					//first stop and dispose our timer, to avoid double erunution
 					tmrDelay.Stop();
 					tmrDelay.Dispose();
 
@@ -4504,10 +4514,10 @@ End Function
 			/// For example, if some data will be ready only after exiting the control event handler processing branch
 			/// </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_RunDelayedInUIThread(this Control ctx, Action delayedAction, int delay = DEFAULT_DELAY)
+			internal static void eRunDelayedInUIThread(this Control ctx, Action delayedAction, int delay = DEFAULT_DELAY)
 			{
 				var id = System.Guid.NewGuid();
-				var tmr = e_RunDelayed(() =>
+				var tmr = eRunDelayed(() =>
 				{
 					lock (_timersStorage)
 					{
@@ -4528,7 +4538,7 @@ End Function
 			/// <summary>Executes 'delayedAction' after form shown on screen, with specifed delay in UI Thread.
 			/// Delay starts after 'Form.Shown' event</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_RunDelayed_OnShown(
+			internal static void eRunDelayed_OnShown(
 				this Form ctx,
 				Action delayedAction,
 				int delay = DEFAULT_FORM_SHOWN_DELAY,
@@ -4544,13 +4554,13 @@ End Function
 					delayedAction.Invoke();
 				}
 
-				ctx!.e_RunDelayed_OnShown(t, delay, useWaitCursor, onErrorShowUI, onError, onErrorCloseForm);
+				ctx!.eRunDelayed_OnShown(t, delay, useWaitCursor, onErrorShowUI, onError, onErrorCloseForm);
 			}
 
 
-			/// <inheritdoc cref="e_RunDelayed_OnShown" />
+			/// <inheritdoc cref="eRunDelayed_OnShown" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_RunDelayed_OnShown(
+			internal static void eRunDelayed_OnShown(
 				this Form ctx,
 				IEnumerable<Func<Task>> delayedTasks,
 				int delay = DEFAULT_FORM_SHOWN_DELAY,
@@ -4571,7 +4581,7 @@ End Function
 					catch (OperationCanceledException) { }                 //catch (TaskCanceledException tcex) { }
 					catch (Exception ex)
 					{
-						ex.e_LogError(onErrorShowUI);
+						ex.eLogError(onErrorShowUI);
 						onError?.Invoke(ex);
 						if (onErrorCloseForm) ctx.Close();
 					}
@@ -4585,9 +4595,9 @@ End Function
 			}
 
 
-			/// <inheritdoc cref="e_RunDelayed_OnShown" />
+			/// <inheritdoc cref="eRunDelayed_OnShown" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_RunDelayed_OnShown(
+			internal static void eRunDelayed_OnShown(
 				this Form ctx,
 				Func<Task> delayedTask,
 				int delay = DEFAULT_FORM_SHOWN_DELAY,
@@ -4595,12 +4605,12 @@ End Function
 				bool onErrorShowUI = true,
 				Action<Exception>? onError = null,
 				bool onErrorCloseForm = true)
-					=> ctx.e_RunDelayed_OnShown([delayedTask], delay, useWaitCursor, onErrorShowUI, onError, onErrorCloseForm);
+					=> ctx.eRunDelayed_OnShown([delayedTask], delay, useWaitCursor, onErrorShowUI, onError, onErrorCloseForm);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_RunDelayed_OnShown_SetFocus(this Form ctx, int delay = DEFAULT_FORM_SHOWN_DELAY)
-				=> ctx?.e_RunDelayed_OnShown(delegate
+			internal static void eRunDelayed_OnShown_SetFocus(this Form ctx, int delay = DEFAULT_FORM_SHOWN_DELAY)
+				=> ctx?.eRunDelayed_OnShown(delegate
 				{
 					ctx?.Focus();
 					ctx?.Activate();
@@ -4636,7 +4646,7 @@ End Function
 
 
 			/*
-			public static async Task e_InvokeAsync(this Control ctl,
+			public static async Task eInvokeAsync(this Control ctl,
 			Func<Task> invokeDelegate,
 			TimeSpan timeOutSpan = default,
 			CancellationToken cancellationToken = default,
@@ -4685,7 +4695,7 @@ End Function
 			}
 			}
 
-			public static async Task<T> e_InvokeAsync<T>(this Control ctl,
+			public static async Task<T> eInvokeAsync<T>(this Control ctl,
 			Func<Task> invokeDelegate,
 			TimeSpan timeOutSpan = default,
 			CancellationToken cancellationToken = default,
@@ -4748,7 +4758,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_tryOnWaitCursor(
+			public static bool etryOnWaitCursor(
 					this Form f,
 					Action a,
 					bool showErrorMessageBox = true,
@@ -4794,7 +4804,7 @@ End Function
 #if NETFRAMEWORK
 
 			[ MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void e_SetIcon_Core<t>(this t Ctl, System.Drawing.Icon rIcon) where t : class
+			private static void eSetIcon_Core<t>(this t Ctl, System.Drawing.Icon rIcon) where t : class
 			{
 				switch (Ctl)
 				{
@@ -4839,11 +4849,11 @@ End Function
 			#endregion
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_ShowDialog_OK(this Form FormToShow, Form? ParentForm = null)
+			public static bool eShowDialog_OK(this Form FormToShow, Form? ParentForm = null)
 				=> ((null == ParentForm) ? FormToShow.ShowDialog() : FormToShow.ShowDialog(ParentForm)) == System.Windows.Forms.DialogResult.OK;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_ShowDialog_NotOK(this Form FormToShow, Form? ParentForm = null) => !FormToShow.e_ShowDialog_OK(ParentForm);
+			public static bool eShowDialog_NotOK(this Form FormToShow, Form? ParentForm = null) => !FormToShow.eShowDialog_OK(ParentForm);
 
 			#endregion
 
@@ -4853,9 +4863,9 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_IIF_EnableControl(this bool B, params Component[] cmpnents)
+			public static void eIIF_EnableControl(this bool B, params Component[] cmpnents)
 			{
-				cmpnents?.e_ForEach(cmpnent =>
+				cmpnents?.eForEach(cmpnent =>
 				{
 					var BB = B;
 					switch (cmpnent)
@@ -4869,9 +4879,9 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_IIF_SetVisible(this bool B, params Component[] cmpnents)
+			public static void eIIF_SetVisible(this bool B, params Component[] cmpnents)
 			{
-				cmpnents?.e_ForEach(cmpnent =>
+				cmpnents?.eForEach(cmpnent =>
 				{
 					var BB = B;
 					switch (cmpnent)
@@ -4890,7 +4900,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static HandleRef e_CreateHandleReff(this Control Ctl)
+			internal static HandleRef eCreateHandleReff(this Control Ctl)
 				=> new(
 					Ctl ?? throw new ArgumentNullException(nameof(Ctl)),
 					Ctl.Handle);
@@ -4911,7 +4921,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_SetStyleInternal(this Control ctl, ControlStyles st, bool bset)
+			public static void eSetStyleInternal(this Control ctl, ControlStyles st, bool bset)
 			{
 				_ = ctl ?? throw new ArgumentNullException(nameof(ctl));
 
@@ -4932,11 +4942,11 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_SetVistaCueBanner(this TextBox ctl, string? BannerText = null)
+			public static void eSetVistaCueBanner(this TextBox ctl, string? BannerText = null)
 			{
 				_ = ctl ?? throw new ArgumentNullException(nameof(ctl));
 
-				ctl.e_RunWhenHandleReady(tb => WinAPI.windows.SendMessage(
+				ctl.eRunWhenHandleReady(tb => WinAPI.windows.SendMessage(
 					tb.Handle,
 					(int)WinAPI.windows.TextBoxMessages.EM_SETCUEBANNER,
 					0,
@@ -4960,7 +4970,7 @@ End Function
 			/// <param name="cueBanner">Vista cueabanner text</param>
 			/// <param name="changeBackColor">Sets the background color for textbox to Systemcolors.Info</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_AttachDelayedFilter(
+			public static void eAttachDelayedFilter(
 				this TextBox txt,
 				Action<string> onTextChanged,
 				int delay = DEFAULT_TEXT_EDIT_DELAY,
@@ -4970,7 +4980,7 @@ End Function
 				var TMR = new System.Windows.Forms.Timer() { Interval = delay };
 				txt.Tag = TMR; //Сохраняем ссылку на таймер хоть где-то, чтобы GC его не грохнул.
 
-				if (cueBanner != null) txt.e_SetVistaCueBanner(cueBanner);
+				if (cueBanner != null) txt.eSetVistaCueBanner(cueBanner);
 				if (changeBackColor) txt.BackColor = SystemColors.Info;
 
 				TMR.Tick += delegate
@@ -4990,25 +5000,25 @@ End Function
 
 			/// <inheritdoc cref="AttachDelayedFilter" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_AttachDelayedFilter(
+			public static void eAttachDelayedFilter(
 				this TextBox txt,
 				System.Windows.Forms.MethodInvoker onTextChanged,
 				int delay = DEFAULT_TEXT_EDIT_DELAY,
 				string cueBanner = DEFAULT_FILTER_CUEBANNER,
 				bool changeBackColor = true)
-					=> txt.e_AttachDelayedFilter(
+					=> txt.eAttachDelayedFilter(
 						new Action<string>((_) => onTextChanged.Invoke()),
 						delay, cueBanner, changeBackColor);
 
 			/// <inheritdoc cref="AttachDelayedFilter" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_AttachDelayedFilter(
+			public static void eAttachDelayedFilter(
 				this ToolStripTextBox tstb,
 				Action<string> onTextChanged,
 				int delay = DEFAULT_TEXT_EDIT_DELAY,
 				string cueBanner = DEFAULT_FILTER_CUEBANNER,
 				bool changeBackColor = true)
-					=> tstb.TextBox.e_AttachDelayedFilter(onTextChanged, delay, cueBanner, changeBackColor);
+					=> tstb.TextBox.eAttachDelayedFilter(onTextChanged, delay, cueBanner, changeBackColor);
 
 
 
@@ -5019,7 +5029,7 @@ End Function
 			private const bool C_APPEND_NEW_LINE_DEFAULT = false;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_AppendTextWithActionOnSelection(this RichTextBox txt, string text, Action a, bool appendNewLine = C_APPEND_NEW_LINE_DEFAULT)
+			public static void eAppendTextWithActionOnSelection(this RichTextBox txt, string text, Action a, bool appendNewLine = C_APPEND_NEW_LINE_DEFAULT)
 			{
 				int selStart = txt.Text.Length;
 				txt.AppendText(text);
@@ -5032,7 +5042,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_AppendTextFormatted(
+			public static void eAppendTextFormatted(
 				this RichTextBox txt,
 				string text,
 				Color? clrFore = null,
@@ -5040,7 +5050,7 @@ End Function
 				Font? fnt = null,
 				bool appendNewLine = C_APPEND_NEW_LINE_DEFAULT)
 			{
-				txt.e_AppendTextWithActionOnSelection(text,
+				txt.eAppendTextWithActionOnSelection(text,
 					 delegate
 					 {
 						 if (clrFore != null) txt.SelectionColor = clrFore.Value;
@@ -5067,34 +5077,34 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_ClearAllLinks(this LinkLabel ll) => ll.LinkArea = new LinkArea(0, 0);
+			public static void eClearAllLinks(this LinkLabel ll) => ll.LinkArea = new LinkArea(0, 0);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_SetTextNoLink(this LinkLabel ll, string text)
+			public static void eSetTextNoLink(this LinkLabel ll, string text)
 			{
 				ll.Text = text;
-				ll.e_ClearAllLinks();
+				ll.eClearAllLinks();
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_AppendTextNoLink(this LinkLabel ll, string text)
+			public static void eAppendTextNoLink(this LinkLabel ll, string text)
 			{
 				ll.Text += text;
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_AppendTextWithLinkSimple(this LinkLabel ll, string text, Action<LinkLabel.Link>? clickHandler = null, bool clearOldLinks = false)
+			public static void eAppendTextWithLinkSimple(this LinkLabel ll, string text, Action<LinkLabel.Link>? clickHandler = null, bool clearOldLinks = false)
 			{
 				string oldText = clearOldLinks
 					? string.Empty
 					: ll.Text;
 
 				int initLen = oldText.Length;
-				if (clearOldLinks) ll.e_ClearAllLinks();
+				if (clearOldLinks) ll.eClearAllLinks();
 
-				//"Текущий MAC-адрес: ['{qr.MAC.e_ToStringHex()}']"
+				//"Текущий MAC-адрес: ['{qr.MAC.eToStringHex()}']"
 
 				Regex rxSimpleLink = new(@"^(?<Prefix>.*)\[(?<LinkText>.*)\](?<Suffix>.*)", RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.IgnorePatternWhitespace);
 
@@ -5138,20 +5148,20 @@ End Function
 		{
 
 
-			public static void e_DisabeAndShow(this ComboBox cbo, string bannerText)
+			public static void eDisabeAndShow(this ComboBox cbo, string bannerText)
 			{
 				cbo.Enabled = false;
 				cbo.Items.Clear();
 				cbo.Items.Add(bannerText);
 				cbo.SelectedIndex = 0;
 			}
-			public static void e_DisabeAndShow(this ComboBox cbo, Exception ex) => cbo.e_DisabeAndShow(ex.Message);
+			public static void eDisabeAndShow(this ComboBox cbo, Exception ex) => cbo.eDisabeAndShow(ex.Message);
 
 
 
 
 			#region FillCBO
-			public static void e_FillWithObjects(this ComboBox cbo, object[] data, bool enable, bool selectLast = true)
+			public static void eFillWithObjects(this ComboBox cbo, object[] data, bool enable, bool selectLast = true)
 			{
 				try
 				{
@@ -5174,7 +5184,7 @@ End Function
 			///<summary>Fills ComboBox with <see cref="ComboboxItemContainer"/> wrappers and returns selected index</summary>
 			///<remarks>Sample: cboGroupFileLogRecordsBy.FillCBOWithEnumContainers(FILE_LOG_RECORDS_GROUPING)</remarks>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static ComboboxItemContainer<T>? e_Fill<T>(
+			public static ComboboxItemContainer<T>? eFill<T>(
 				this ComboBox cbo,
 				IEnumerable<ComboboxItemContainer<T>> items,
 				ComboboxItemContainer<T>? selectedItem,
@@ -5207,7 +5217,7 @@ End Function
 			///<summary>Fills ComboBox with <see cref="ComboboxItemContainer"/> wrappers and returns selected index</summary>
 			///<remarks>Sample: cboGroupFileLogRecordsBy.FillCBOWithEnumContainers(FILE_LOG_RECORDS_GROUPING)</remarks>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static ComboboxItemContainer<T>? e_Fill<T>(
+			public static ComboboxItemContainer<T>? eFill<T>(
 				this ComboBox cbo,
 				IEnumerable<ComboboxItemContainer<T>> items,
 				T? selectedItem = default,
@@ -5230,7 +5240,7 @@ End Function
 
 					var containerToSelect = (selectedItem == null)
 						? items.FirstOrDefault()
-						: items.FirstOrDefault(i => i.Value.e_EqualsUniversal(selectedItem));
+						: items.FirstOrDefault(i => i.Value.eEqualsUniversal(selectedItem));
 
 					containerToSelect ??= items.FirstOrDefault();
 
@@ -5244,7 +5254,7 @@ End Function
 			///<summary>Fills ComboBox with <see cref="ComboboxItemContainer"/> wrappers and returns selected index</summary>
 			///<remarks>Sample: cboGroupFileLogRecordsBy.FillCBOWithEnumContainers(FILE_LOG_RECORDS_GROUPING)</remarks>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static ComboboxItemContainer<T>? e_FillWithContainersOf<T>(
+			public static ComboboxItemContainer<T>? eFillWithContainersOf<T>(
 				this ComboBox cbo,
 				IEnumerable<T> items,
 				T? selectedItem = default,
@@ -5263,25 +5273,25 @@ End Function
 					})
 					.ToArray();
 
-				return cbo.e_Fill<T>(a, selectedItemContainer, style, notSelectAnyItem);
+				return cbo.eFill<T>(a, selectedItemContainer, style, notSelectAnyItem);
 			}
 
 
 			///<summary>Fills ComboBox with <see cref="EnumContainer"/> wrappers. ONLY FOR ENUM!</summary>
 			///<remarks>Sample: cboGroupFileLogRecordsBy.FillCBOWithEnumContainers(FILE_LOG_RECORDS_GROUPING.ByCaller)</remarks>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_FillWithContainersOfEnum<T>(this ComboBox cbo, T selectedItem) where T : Enum
-				=> cbo.e_Fill(selectedItem.e_GetAllValuesAsEnumContainers(), selectedItem);
+			public static void eFillWithContainersOfEnum<T>(this ComboBox cbo, T selectedItem) where T : Enum
+				=> cbo.eFill(selectedItem.eGetAllValuesAsEnumContainers(), selectedItem);
 
 			/*
 			///<summary>Fills ComboBox with <see cref="EnumContainer"/> wrappers. ONLY FOR ENUM!</summary>
 			///<remarks>Sample: cboGroupFileLogRecordsBy.FillCBOWithEnumContainers(FILE_LOG_RECORDS_GROUPING.ByCaller)</remarks>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_FillWithContainersOfEnum<T>(this ComboBox cbo, T selectedItem) where T : Enum
+			public static void eFillWithContainersOfEnum<T>(this ComboBox cbo, T selectedItem) where T : Enum
 			{
-				ComboboxItemEnumContainer<T>[] items = selectedItem.e_GetAllValuesAsEnumContainers();
+				ComboboxItemEnumContainer<T>[] items = selectedItem.eGetAllValuesAsEnumContainers();
 				//ComboboxItemEnumContainer<T> sel = items.Where(c => c.Value.Equals(selectedItem)).First();
-				cbo.e_Fill(items, selectedItem);
+				cbo.eFill(items, selectedItem);
 			}
 			 */
 
@@ -5315,12 +5325,12 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static ComboboxItemContainer<T>? e_SelectContainerOf<T>(this ComboBox cbo, T? itemToSelect, bool selectFirstItemIfNull = true)
+			public static ComboboxItemContainer<T>? eSelectContainerOf<T>(this ComboBox cbo, T? itemToSelect, bool selectFirstItemIfNull = true)
 			{
 				if (cbo.Items.Count < 1) return null;
 				var containerToSelect = cbo
-					.e_ItemsAs_ObjectContainerOf<T>()
-					.FirstOrDefault(c => c.Value.e_EqualsUniversal<T>(itemToSelect));
+					.eItemsAs_ObjectContainerOf<T>()
+					.FirstOrDefault(c => c.Value.eEqualsUniversal<T>(itemToSelect));
 
 				if (containerToSelect != null)
 				{
@@ -5339,11 +5349,11 @@ End Function
 			#region Get Items From CBO
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static ComboboxItemContainer<T>[] e_ItemsAs_ObjectContainerOf<T>(this ComboBox cbo)
+			public static ComboboxItemContainer<T>[] eItemsAs_ObjectContainerOf<T>(this ComboBox cbo)
 				=> cbo.Items.Cast<ComboboxItemContainer<T>>().ToArray();
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static ComboboxItemContainer<T>? e_SelectedItemAs_ObjectContainerOf<T>(this ComboBox cbo)
+			public static ComboboxItemContainer<T>? eSelectedItemAs_ObjectContainerOf<T>(this ComboBox cbo)
 			{
 				object? obj = cbo.SelectedItem;
 				return (obj == null)
@@ -5352,9 +5362,9 @@ End Function
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T? e_SelectedItemAs_ObjectContainerValue<T>(this ComboBox cbo)
+			public static T? eSelectedItemAs_ObjectContainerValue<T>(this ComboBox cbo)
 			{
-				ComboboxItemContainer<T>? ec = cbo.e_SelectedItemAs_ObjectContainerOf<T>();
+				ComboboxItemContainer<T>? ec = cbo.eSelectedItemAs_ObjectContainerOf<T>();
 				return (ec == null)
 					? default
 					: ec.Value;
@@ -5453,7 +5463,7 @@ End Function
 
 			///<summary>MT Safe!!!</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_runOnLockedUpdateMTSafe(this ListBox? lst, Action a)
+			public static void erunOnLockedUpdateMTSafe(this ListBox? lst, Action a)
 			{
 				Action a2 = delegate
 				{
@@ -5463,16 +5473,16 @@ End Function
 				};
 
 				if (lst != null && lst.InvokeRequired)
-					lst.e_RunInUIThread(a2);
+					lst.eRunInUIThread(a2);
 				else
 					a2.Invoke();
 			}
 
 			/// <summary>/Limit count of lines to value</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_LimitRowsCountTo(this ListBox lst, int maxRows)
+			public static void eLimitRowsCountTo(this ListBox lst, int maxRows)
 			{
-				lst.e_runOnLockedUpdateMTSafe(delegate
+				lst.erunOnLockedUpdateMTSafe(delegate
 				{
 					while (lst.Items.Count >= maxRows) lst.Items.RemoveAt(0);
 				});
@@ -5481,25 +5491,25 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static int e_LastItemIndex(this ListBox lst) => lst.Items.Count - 1;
+			public static int eLastItemIndex(this ListBox lst) => lst.Items.Count - 1;
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static Object e_LastItem(this ListBox lst) => lst.Items[lst.e_LastItemIndex()];
+			public static Object eLastItem(this ListBox lst) => lst.Items[lst.eLastItemIndex()];
 
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static Object? e_SelectLastRow(this ListBox lst)
+			public static Object? eSelectLastRow(this ListBox lst)
 			{
 				if (lst.Items.Count < 1) return null;
-				lst.SelectedIndex = (lst.e_LastItemIndex());
+				lst.SelectedIndex = (lst.eLastItemIndex());
 				return lst.SelectedItem;
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_SetLastItem(this ListBox lst, object newValue)
-				=> lst.Items[lst.e_LastItemIndex()] = newValue;
+			public static void eSetLastItem(this ListBox lst, object newValue)
+				=> lst.Items[lst.eLastItemIndex()] = newValue;
 
 		}
 
@@ -5514,7 +5524,7 @@ End Function
 			/// else used AutoResizeColumns(ColumnHeaderAutoResizeStyle.HeaderSize)
 			/// </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_AutoSizeColumnsAuto(this ListView? lvw)
+			public static void eAutoSizeColumnsAuto(this ListView? lvw)
 			{
 				if (lvw == null || lvw.IsDisposed) return;
 
@@ -5526,33 +5536,33 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static IEnumerable<ListViewGroup> e_AddGroups(this ListView? lvw, params ListViewGroup[] gg)
+			internal static IEnumerable<ListViewGroup> eAddGroups(this ListView? lvw, params ListViewGroup[] gg)
 			{
 				lvw?.Groups.AddRange(gg);
 				return gg;
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static IEnumerable<ListViewGroup> e_AddGroups(this ListView? lvw, IEnumerable<ListViewGroup> gg)
+			internal static IEnumerable<ListViewGroup> eAddGroups(this ListView? lvw, IEnumerable<ListViewGroup> gg)
 			{
 				ListViewGroup[] groups = [.. gg];
-				return lvw.e_AddGroups(groups);
+				return lvw.eAddGroups(groups);
 			}
 
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static IEnumerable<ListViewItem> e_AddItems(this ListView? lvw, params ListViewItem[] ll)
+			internal static IEnumerable<ListViewItem> eAddItems(this ListView? lvw, params ListViewItem[] ll)
 			{
-				lvw?.e_runOnLockedUpdate(() => lvw?.Items.AddRange(ll));
+				lvw?.erunOnLockedUpdate(() => lvw?.Items.AddRange(ll));
 				return ll;
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static IEnumerable<ListViewItem> e_AddItems(this ListView? lvw, IEnumerable<ListViewItem> ll, bool autoSizeColumns = false)
+			internal static IEnumerable<ListViewItem> eAddItems(this ListView? lvw, IEnumerable<ListViewItem> ll, bool autoSizeColumns = false)
 			{
 				ListViewItem[] groups = [.. ll];
-				lvw?.e_runOnLockedUpdate(delegate
+				lvw?.erunOnLockedUpdate(delegate
 				{
 					lvw?.Items.AddRange(groups);
 				}, true);
@@ -5564,9 +5574,9 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_ClearItemsAndGroups(this ListView? lvw, bool autoSizeColumns = true, bool clearGroups = true, bool clearColumns = false)
+			internal static void eClearItemsAndGroups(this ListView? lvw, bool autoSizeColumns = true, bool clearGroups = true, bool clearColumns = false)
 			{
-				lvw?.e_runOnLockedUpdate(delegate
+				lvw?.erunOnLockedUpdate(delegate
 				{
 					lvw?.Items.Clear();
 					if (clearGroups) lvw?.Groups.Clear();
@@ -5576,19 +5586,19 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_ClearItems(this ListView lvw, bool autoSizeColumns = false)
-				=> lvw.e_ClearItemsAndGroups(autoSizeColumns, false);
+			public static void eClearItems(this ListView lvw, bool autoSizeColumns = false)
+				=> lvw.eClearItemsAndGroups(autoSizeColumns, false);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_AddFakeSubitems(this ListViewItem li, int ListViewColumnsCount, string fakeText = "")
+			public static void eAddFakeSubitems(this ListViewItem li, int ListViewColumnsCount, string fakeText = "")
 			{
 				if (li != null) for (int i = 0; i < ListViewColumnsCount; i++) li.SubItems.Add(fakeText);
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_AddFakeSubitems(
+			public static void eAddFakeSubitems(
 				this ListViewItem? li,
 				ListView? lvw = null,
 				string fakeText = "")
@@ -5597,22 +5607,22 @@ End Function
 
 				lvw ??= li.ListView;
 				lvw.ThrowIfNull();//ArgumentNullException.ThrowIfNull(lvw);
-				li?.e_AddFakeSubitems(lvw!.Columns.Count, fakeText);
+				li?.eAddFakeSubitems(lvw!.Columns.Count, fakeText);
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_UpdateTexts(
+			public static void eUpdateTexts(
 				 this ListViewItem? li,
 				 int startIndex,
 				 params string?[] aSubItemsText)
 			{
 				if (li == null || !aSubItemsText.Any()) return;
 
-				li.ListView.e_runOnLockedUpdate(() =>
+				li.ListView.erunOnLockedUpdate(() =>
 				{
 					int i = 0;
-					aSubItemsText.e_ForEach(text =>
+					aSubItemsText.eForEach(text =>
 					{
 						if (null != text) li.SubItems[(startIndex + i)].Text = text;
 						i++;
@@ -5622,19 +5632,19 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_UpdateTexts(this ListViewItem? li, params string[] aSubItemsText)
-				=> e_UpdateTexts(li, 0, aSubItemsText);
+			public static void eUpdateTexts(this ListViewItem? li, params string[] aSubItemsText)
+				=> eUpdateTexts(li, 0, aSubItemsText);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<ListViewGroup> e_GroupsAsIEnumerable(this ListView lvw)
+			public static IEnumerable<ListViewGroup> eGroupsAsIEnumerable(this ListView lvw)
 				=> lvw.Groups.Cast<ListViewGroup>();
 
 
 #if NETCOREAPP3_0_OR_GREATER
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static (ListViewGroup Group, bool Created) e_GroupsCreateGroupByKey(
+			public static (ListViewGroup Group, bool Created) eGroupsCreateGroupByKey(
 				this ListView lvw,
 				string key,
 				string? header = null,
@@ -5642,7 +5652,7 @@ End Function
 				ListViewGroupCollapsedState newGroupState = ListViewGroupCollapsedState.Collapsed
 				)
 			{
-				ListViewGroup? grp = lvw.e_GroupsAsIEnumerable()?.FirstOrDefault(g => (g.Name == key));
+				ListViewGroup? grp = lvw.eGroupsAsIEnumerable()?.FirstOrDefault(g => (g.Name == key));
 				bool exist = (grp != null);
 				if (!exist)
 				{
@@ -5657,14 +5667,14 @@ End Function
 			// Defined in ListViewEx extensions...
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static (ListViewGroup Group, bool Created) e_GroupsCreateGroupByKey(
+			public static (ListViewGroup Group, bool Created) eGroupsCreateGroupByKey(
 				this ListView lvw,
 				string key,
 				string? header = null,
 				Action<ListViewGroup>? onNewGroup = null
 			)
 			{
-				ListViewGroup? foundGroup = lvw!.e_GroupsAsIEnumerable().FirstOrDefault(g => (g.Name == key));
+				ListViewGroup? foundGroup = lvw!.eGroupsAsIEnumerable().FirstOrDefault(g => (g.Name == key));
 				if (foundGroup != null) return (foundGroup, false);
 
 				ListViewGroup grp = new(key, header ?? key);
@@ -5676,7 +5686,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static (ListViewGroup Group, bool Created) e_GroupsCreateGroupByKey(
+			public static (ListViewGroup Group, bool Created) eGroupsCreateGroupByKey(
 				Dictionary<string, ListViewGroup> dicGroups,
 				string key,
 				string? header = null,
@@ -5699,7 +5709,7 @@ End Function
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void e_SetAllGroupsTitlesBy_TagAndCount(this ListView lvw)
+		internal static void eSetAllGroupsTitlesBy_TagAndCount(this ListView lvw)
 		{
 		var GNP = ListViewGroup grp =>
 		{
@@ -5707,17 +5717,17 @@ End Function
 		return sTitle;
 		};
 
-		lvw.e_SetAllGroupsTitlesBy_Count(GNP);
+		lvw.eSetAllGroupsTitlesBy_Count(GNP);
 		}
 
 		*/
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_SetGroupsTitlesFast(
+			public static void eSetGroupsTitlesFast(
 				this ListView? lvw,
 				Func<ListViewGroup, string>? getGroupHeader = null)
-					=> lvw?.e_GroupsAsIEnumerable().e_ForEach(g =>
+					=> lvw?.eGroupsAsIEnumerable().eForEach(g =>
 				{
 					string sTitle = g.Name ?? "";
 					if (getGroupHeader != null)
@@ -5735,16 +5745,16 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_SetAllGroupsState(
+			public static void eSetAllGroupsState(
 				this ListView? lvw,
 				ListViewGroupCollapsedState state = ListViewGroupCollapsedState.Collapsed)
-					=> lvw?.e_GroupsAsIEnumerable().e_ForEach(g => g.CollapsedState = state);
+					=> lvw?.eGroupsAsIEnumerable().eForEach(g => g.CollapsedState = state);
 
 #endif
 
 			///<summary>MT Safe!!!</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_runOnLockedUpdate(
+			public static void erunOnLockedUpdate(
 				this ListView? lvw,
 				Action a,
 				bool autoSizeColumns = false,
@@ -5758,21 +5768,21 @@ End Function
 					try { a!.Invoke(); }
 					finally
 					{
-						if (autoSizeColumns) lvw?.e_AutoSizeColumnsAuto();
-						if (fastUpdateGroupHeaders) lvw?.e_SetGroupsTitlesFast();
+						if (autoSizeColumns) lvw?.eAutoSizeColumnsAuto();
+						if (fastUpdateGroupHeaders) lvw?.eSetGroupsTitlesFast();
 						lvw?.EndUpdate();
 					}
 				};
 
 				if (lvw != null && lvw.InvokeRequired)
-					lvw.e_RunInUIThread(a2);
+					lvw.eRunInUIThread(a2);
 				else
 					a2.Invoke();
 			}
 
 			///<summary>MT Safe!!!</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static async Task e_runOnLockedUpdateAsync(
+			public static async Task erunOnLockedUpdateAsync(
 				this ListView? lvw,
 				Func<Task> a,
 				bool autoSizeColumns = false,
@@ -5789,15 +5799,15 @@ End Function
 					}
 					finally
 					{
-						if (autoSizeColumns) lvw?.e_AutoSizeColumnsAuto();
-						if (fastUpdateGroupHeaders) lvw?.e_SetGroupsTitlesFast();
+						if (autoSizeColumns) lvw?.eAutoSizeColumnsAuto();
+						if (fastUpdateGroupHeaders) lvw?.eSetGroupsTitlesFast();
 						lvw?.EndUpdate();
 					}
 				}
 
 				if (lvw != null && lvw.InvokeRequired)
 				{
-					await lvw.e_RunInUIThreadAsync(SafeUpdateCore)!;
+					await lvw.eRunInUIThreadAsync(SafeUpdateCore)!;
 				}
 				else
 				{
@@ -5808,7 +5818,7 @@ End Function
 
 			///<summary>MT Safe!!!</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T? e_runOnLockedUpdate<T>(
+			public static T? erunOnLockedUpdate<T>(
 				this ListView? lvw,
 				Func<T> a,
 				bool autoSizeColumns = false,
@@ -5822,19 +5832,19 @@ End Function
 					try { return a!.Invoke(); }
 					finally
 					{
-						if (autoSizeColumns) lvw?.e_AutoSizeColumnsAuto();
-						if (fastUpdateGroupHeaders) lvw?.e_SetGroupsTitlesFast();
+						if (autoSizeColumns) lvw?.eAutoSizeColumnsAuto();
+						if (fastUpdateGroupHeaders) lvw?.eSetGroupsTitlesFast();
 						lvw?.EndUpdate();
 					}
 				}
 
-				if (lvw != null && lvw.InvokeRequired) return lvw.e_RunInUIThread(SafeUpdateCore);
+				if (lvw != null && lvw.InvokeRequired) return lvw.eRunInUIThread(SafeUpdateCore);
 				return SafeUpdateCore();
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static async Task<T?> e_runOnLockedUpdateAsync<T>(
+			public static async Task<T?> erunOnLockedUpdateAsync<T>(
 				this ListView lvw,
 				Func<Task<T?>> tsk,
 				bool autoSizeColumns = false,
@@ -5852,8 +5862,8 @@ End Function
 				}
 				finally
 				{
-					if (autoSizeColumns) lvw?.e_AutoSizeColumnsAuto();
-					if (fastUpdateGroupHeaders) lvw?.e_SetGroupsTitlesFast();
+					if (autoSizeColumns) lvw?.eAutoSizeColumnsAuto();
+					if (fastUpdateGroupHeaders) lvw?.eSetGroupsTitlesFast();
 					lvw?.EndUpdate();
 				}
 			}
@@ -5861,7 +5871,7 @@ End Function
 			/*
 
 			[ MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static async Task<T?> e_runOnLockedUpdateAsync<T>(
+			public static async Task<T?> erunOnLockedUpdateAsync<T>(
 				this ListView lvw,
 				Task<T?> tsk,
 				bool autoSizeColumns = false,
@@ -5879,8 +5889,8 @@ End Function
 				}
 				finally
 				{
-					if (autoSizeColumns) lvw?.e_AutoSizeColumns();
-					if (fastUpdateGroupHeaders) lvw?.e_SetGroupsTitlesFast();
+					if (autoSizeColumns) lvw?.eAutoSizeColumns();
+					if (fastUpdateGroupHeaders) lvw?.eSetGroupsTitlesFast();
 					lvw?.EndUpdate();
 				}
 			}
@@ -5890,9 +5900,9 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_SelectFirstItem(this ListView lvw)
+			public static void eSelectFirstItem(this ListView lvw)
 			{
-				var first = lvw.e_ItemsAsIEnumerable().FirstOrDefault();
+				var first = lvw.eItemsAsIEnumerable().FirstOrDefault();
 				if (first == default) return;
 
 				first.Selected = true;
@@ -5901,11 +5911,11 @@ End Function
 			}
 
 
-			public static void e_AddSubitems(this ListViewItem? li, params string[] subitems)
-				=> subitems?.e_ForEach(s => li?.SubItems.Add(s));
+			public static void eAddSubitems(this ListViewItem? li, params string[] subitems)
+				=> subitems?.eForEach(s => li?.SubItems.Add(s));
 
 
-			public static async void e_FlashAsync(this ListViewItem? li, int flashCount = 10)
+			public static async void eFlashAsync(this ListViewItem? li, int flashCount = 10)
 			{
 				if (li == null) return;
 
@@ -5924,32 +5934,32 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_ItemsRemoveRange(
+			public static void eItemsRemoveRange(
 				this ListView? lvw,
 				IEnumerable<ListViewItem> ItemsToRemove,
 				bool aAutoSizeColumnsAtFinish = false)
-				=> lvw?.e_runOnLockedUpdate(() => lvw?.Items.e_ItemsRemoveRange(ItemsToRemove), aAutoSizeColumnsAtFinish);
+				=> lvw?.erunOnLockedUpdate(() => lvw?.Items.eItemsRemoveRange(ItemsToRemove), aAutoSizeColumnsAtFinish);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_ItemsRemoveRange(
+			public static void eItemsRemoveRange(
 				this ListView.ListViewItemCollection liC,
 				IEnumerable<ListViewItem> ItemsToRemove)
-					=> ItemsToRemove.e_ForEach(li => liC.Remove(li));
+					=> ItemsToRemove.eForEach(li => liC.Remove(li));
 
 
 			#region ItemsAsIEnumerable
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<ListViewItem> e_ItemsAsIEnumerable(this ListView lvw) => lvw.Items.Cast<ListViewItem>();
+			public static IEnumerable<ListViewItem> eItemsAsIEnumerable(this ListView lvw) => lvw.Items.Cast<ListViewItem>();
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<ListViewItem> e_ItemsAsIEnumerable(this ListViewGroup G) => G.Items.Cast<ListViewItem>();
+			public static IEnumerable<ListViewItem> eItemsAsIEnumerable(this ListViewGroup G) => G.Items.Cast<ListViewItem>();
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<ListViewItem> e_SelectedItemsAsIEnumerable(this ListView lvw) => lvw.SelectedItems.Cast<ListViewItem>();
+			public static IEnumerable<ListViewItem> eSelectedItemsAsIEnumerable(this ListView lvw) => lvw.SelectedItems.Cast<ListViewItem>();
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<ListViewItem> e_CheckedItemsAsIEnumerable(this ListView lvw) => lvw.CheckedItems.Cast<ListViewItem>();
+			public static IEnumerable<ListViewItem> eCheckedItemsAsIEnumerable(this ListView lvw) => lvw.CheckedItems.Cast<ListViewItem>();
 
 			#endregion
 
@@ -5958,25 +5968,25 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T? e_TagAs<T>(this ListViewGroup lvg) => (T?)lvg.Tag;
+			public static T? eTagAs<T>(this ListViewGroup lvg) => (T?)lvg.Tag;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T? e_TagAs<T>(this ListViewItem li) => (T?)li.Tag;
+			public static T? eTagAs<T>(this ListViewItem li) => (T?)li.Tag;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T? e_TagAs<T>(this TreeNode nd) => (T?)nd.Tag;
+			public static T? eTagAs<T>(this TreeNode nd) => (T?)nd.Tag;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T? e_TagAs<T>(this Control ctl) => (T?)ctl.Tag;
+			public static T? eTagAs<T>(this Control ctl) => (T?)ctl.Tag;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static int e_ItemsCount_Selected(this ListView lvw) => lvw.SelectedItems.Count;
+			public static int eItemsCount_Selected(this ListView lvw) => lvw.SelectedItems.Count;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static int e_ItemsCount_Checked(this ListView lvw) => lvw.CheckedItems.Count;
+			public static int eItemsCount_Checked(this ListView lvw) => lvw.CheckedItems.Count;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static int e_ItemsCount(this ListView lvw) => lvw.Items.Count;
+			public static int eItemsCount(this ListView lvw) => lvw.Items.Count;
 
 
 			#region ItemsAndTags2
@@ -5987,37 +5997,37 @@ End Function
 
 				public ListViewItemAndTag(ListViewItem li) : base() { Item = li; }
 
-				public T? Tag => Item.e_TagAs<T>();
+				public T? Tag => Item.eTagAs<T>();
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<T?> e_Tags<T>(this IEnumerable<ListViewItemAndTag<T>> A)
+			public static IEnumerable<T?> eTags<T>(this IEnumerable<ListViewItemAndTag<T>> A)
 				=> A.Select(li => li.Tag);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<ListViewItem> e_Items<T>(this IEnumerable<ListViewItemAndTag<T>> A)
+			public static IEnumerable<ListViewItem> eItems<T>(this IEnumerable<ListViewItemAndTag<T>> A)
 				=> A.Select(li => li.Item);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<ListViewItemAndTag<T>> e_ItemsAndTags<T>(this IEnumerable<ListViewItem> A)
+			public static IEnumerable<ListViewItemAndTag<T>> eItemsAndTags<T>(this IEnumerable<ListViewItem> A)
 				=> A.Select(li => new ListViewItemAndTag<T>(li));
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<ListViewItemAndTag<T>> e_ItemsAndTags<T>(this ListViewGroup G)
-				=> e_ItemsAndTags<T>(G.e_ItemsAsIEnumerable());
+			public static IEnumerable<ListViewItemAndTag<T>> eItemsAndTags<T>(this ListViewGroup G)
+				=> eItemsAndTags<T>(G.eItemsAsIEnumerable());
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<ListViewItemAndTag<T>> e_ItemsAndTags<T>(this ListView lvw)
-				=> e_ItemsAndTags<T>(lvw.e_ItemsAsIEnumerable());
+			public static IEnumerable<ListViewItemAndTag<T>> eItemsAndTags<T>(this ListView lvw)
+				=> eItemsAndTags<T>(lvw.eItemsAsIEnumerable());
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<ListViewItemAndTag<T>> e_SelectedItemsAndTags<T>(this ListView lvw)
-				=> e_ItemsAndTags<T>(lvw.e_SelectedItemsAsIEnumerable());
+			public static IEnumerable<ListViewItemAndTag<T>> eSelectedItemsAndTags<T>(this ListView lvw)
+				=> eItemsAndTags<T>(lvw.eSelectedItemsAsIEnumerable());
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<ListViewItemAndTag<T>> e_CheckedItemsAndTags<T>(this ListView lvw)
-				=> e_ItemsAndTags<T>(lvw.e_CheckedItemsAsIEnumerable());
+			public static IEnumerable<ListViewItemAndTag<T>> eCheckedItemsAndTags<T>(this ListView lvw)
+				=> eItemsAndTags<T>(lvw.eCheckedItemsAsIEnumerable());
 
 
 			#endregion
@@ -6027,66 +6037,66 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<T> e_ItemsAs<T>(this ListViewGroup lvg) where T : ListViewItem => lvg.Items.Cast<T>();
+			public static IEnumerable<T> eItemsAs<T>(this ListViewGroup lvg) where T : ListViewItem => lvg.Items.Cast<T>();
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<T> e_ItemsAs<T>(this ListView lvw) where T : ListViewItem => lvw.Items.Cast<T>();
+			public static IEnumerable<T> eItemsAs<T>(this ListView lvw) where T : ListViewItem => lvw.Items.Cast<T>();
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<T> e_SelectedItemsAs<T>(this ListView lvw) where T : ListViewItem => lvw.SelectedItems.Cast<T>();
+			public static IEnumerable<T> eSelectedItemsAs<T>(this ListView lvw) where T : ListViewItem => lvw.SelectedItems.Cast<T>();
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<T> e_SelectedItems<T>(this IEnumerable<T> rows) where T : ListViewItem => rows.Where(li => li.Selected);
+			public static IEnumerable<T> eSelectedItems<T>(this IEnumerable<T> rows) where T : ListViewItem => rows.Where(li => li.Selected);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<T> e_SelectedItemsAs<T>(this ListView.ListViewItemCollection rows) where T : ListViewItem => rows.Cast<T>().e_SelectedItems();
+			public static IEnumerable<T> eSelectedItemsAs<T>(this ListView.ListViewItemCollection rows) where T : ListViewItem => rows.Cast<T>().eSelectedItems();
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<ListViewItem> e_SelectedItems(this ListViewGroup g) => g.Items.e_SelectedItemsAs<ListViewItem>();
+			public static IEnumerable<ListViewItem> eSelectedItems(this ListViewGroup g) => g.Items.eSelectedItemsAs<ListViewItem>();
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<T> e_SelectedItemsAs<T>(this ListViewGroup g) where T : ListViewItem => g.Items.e_SelectedItemsAs<T>();
+			public static IEnumerable<T> eSelectedItemsAs<T>(this ListViewGroup g) where T : ListViewItem => g.Items.eSelectedItemsAs<T>();
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<T> e_CheckedItemsAs<T>(this ListView lvw) where T : ListViewItem => lvw.CheckedItems.Cast<T>();
+			public static IEnumerable<T> eCheckedItemsAs<T>(this ListView lvw) where T : ListViewItem => lvw.CheckedItems.Cast<T>();
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<T> e_CheckedItems<T>(this IEnumerable<T> rows) where T : ListViewItem => rows.Where(li => li.Checked);
+			public static IEnumerable<T> eCheckedItems<T>(this IEnumerable<T> rows) where T : ListViewItem => rows.Where(li => li.Checked);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<T> e_CheckedItemsAs<T>(this ListView.ListViewItemCollection rows) where T : ListViewItem => rows.Cast<T>().e_CheckedItems();
+			public static IEnumerable<T> eCheckedItemsAs<T>(this ListView.ListViewItemCollection rows) where T : ListViewItem => rows.Cast<T>().eCheckedItems();
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<ListViewItem> e_CheckedItems(this ListViewGroup g) => g.Items.e_CheckedItemsAs<ListViewItem>();
+			public static IEnumerable<ListViewItem> eCheckedItems(this ListViewGroup g) => g.Items.eCheckedItemsAs<ListViewItem>();
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<T> e_CheckedItemsAs<T>(this ListViewGroup g) where T : ListViewItem => g.Items.e_CheckedItemsAs<T>();
+			public static IEnumerable<T> eCheckedItemsAs<T>(this ListViewGroup g) where T : ListViewItem => g.Items.eCheckedItemsAs<T>();
 
 			#endregion
 
 			#endregion
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<ColumnHeader> e_ColumnsAsIEnumerable(this ListView lvw) => lvw.Columns.Cast<ColumnHeader>();
+			public static IEnumerable<ColumnHeader> eColumnsAsIEnumerable(this ListView lvw) => lvw.Columns.Cast<ColumnHeader>();
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static ListViewGroup? e_GroupsGetByKey(this ListView lvw, string? key)
-				=> lvw.e_GroupsAsIEnumerable().FirstOrDefault(grp => (grp.Name ?? "") == (key ?? ""));
+			public static ListViewGroup? eGroupsGetByKey(this ListView lvw, string? key)
+				=> lvw.eGroupsAsIEnumerable().FirstOrDefault(grp => (grp.Name ?? "") == (key ?? ""));
 
 
 			/// <summary>Предыдущий элемент (Index меньше на 1)</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static ListViewItem? e_Previous(this ListViewItem li)
+			public static ListViewItem? ePrevious(this ListViewItem li)
 				=> (li.Index <= 0)
 				? null
 				: li.ListView!.Items[li.Index - 1];
 
 			/// <summary>Предыдущий элемент в той же группе (Index меньше на 1)</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static ListViewItem? e_PreviousInGroup(this ListViewItem li)
+			public static ListViewItem? ePreviousInGroup(this ListViewItem li)
 			{
-				var liPrev = li.e_Previous();
+				var liPrev = li.ePrevious();
 				if (liPrev != null && object.ReferenceEquals(liPrev.Group, li.Group)) return liPrev;
 				return null;
 			}
@@ -6094,7 +6104,7 @@ End Function
 
 			/// <summary>Next элемент (Index +1)</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static ListViewItem? e_Next(this ListViewItem li)
+			public static ListViewItem? eNext(this ListViewItem li)
 				=> (li.Index >= (li.ListView!.Items.Count - 1))
 					? null
 					: li.ListView.Items[li.Index + 1];
@@ -6102,9 +6112,9 @@ End Function
 
 			/// <summary>Next элемент в той же группе (Index +1)</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static ListViewItem? e_NextInGroup(this ListViewItem li)
+			public static ListViewItem? eNextInGroup(this ListViewItem li)
 			{
-				var liNext = li.e_Next();
+				var liNext = li.eNext();
 				if (liNext != null && object.ReferenceEquals(liNext.Group, li.Group)) return liNext;
 				return null;
 			}
@@ -6113,7 +6123,7 @@ End Function
 
 			/// <summary>Counts distance from cursor to the nearest item in the list.</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static (ListViewItem? Item, Size? VectorToItemCenter, Double? Distance) e_GetNearestItem(this ListView lvw, Point pt)
+			public static (ListViewItem? Item, Size? VectorToItemCenter, Double? Distance) eGetNearestItem(this ListView lvw, Point pt)
 			{
 				if (lvw.Items.Count < 1) return (null, null, null);
 
@@ -6122,10 +6132,10 @@ End Function
 							.Select(item =>
 							{
 								Rectangle rcItem = item.GetBounds(ItemBoundsPortion.Entire);
-								var ptItemCenter = rcItem.e_GetCenter().e_RoundToInt();
+								var ptItemCenter = rcItem.eGetCenter().eRoundToInt();
 
-								var szDistace = pt.e_GetVectorTo(ptItemCenter);
-								var hyp = szDistace.e_GetHypotenuse();
+								var szDistace = pt.eGetVectorTo(ptItemCenter);
+								var hyp = szDistace.eGetHypotenuse();
 								var hypA = Math.Abs(hyp);
 								return (Item: item, VectorToItemCenter: szDistace, Distace: hyp, DistaceAbs: hypA, Center: ptItemCenter);
 							})
@@ -6138,14 +6148,14 @@ End Function
 
 			/// <summary>Counts distance from cursor to the nearest item in the list.</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_Activate(this ListViewItem li, bool deactivateOther = true)
+			public static void eActivate(this ListViewItem li, bool deactivateOther = true)
 			{
 				ListView? lvw = li.ListView as ListView;
 
-				lvw?.e_runOnLockedUpdate(delegate
+				lvw?.erunOnLockedUpdate(delegate
 				{
 					if (deactivateOther)
-						lvw?.e_ItemsAsIEnumerable().ToList().ForEach(li => li.Selected = false);
+						lvw?.eItemsAsIEnumerable().ToList().ForEach(li => li.Selected = false);
 
 					li.Selected = true;
 					li.Focused = true;
@@ -6180,14 +6190,14 @@ End Function
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_SetState(this ProgressBar pb, PBM_STATES state)
+			internal static void eSetState(this ProgressBar pb, PBM_STATES state)
 			{
 				const int PBM_SETSTATE = 0x400 + 16;
 				_ = uom.WinAPI.windows.SendMessage(pb.Handle, PBM_SETSTATE, (int)state, 0);
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_SetValues(
+			internal static void eSetValues(
 				this ProgressBar pb,
 				int iMin = 0,
 				int iMax = 100,
@@ -6219,7 +6229,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_InitDefault(this SaveFileDialog sfd, string defaultExt, string filter)
+			public static void eInitDefault(this SaveFileDialog sfd, string defaultExt, string filter)
 			{
 				sfd.ShowHelp = false;
 				sfd.AddExtension = true;
@@ -6235,7 +6245,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_InitDefault(this OpenFileDialog ofd, string defaultExt, string filter, bool Multiselect = false)
+			public static void eInitDefault(this OpenFileDialog ofd, string defaultExt, string filter, bool Multiselect = false)
 			{
 				ofd.ShowHelp = false;
 				ofd.ShowReadOnly = false;
@@ -6251,12 +6261,12 @@ End Function
 				ofd.Multiselect = Multiselect;
 
 				ofd.Filter = filter;
-				if (defaultExt.e_IsNOTNullOrWhiteSpace()) ofd.DefaultExt = defaultExt;
+				if (defaultExt.eIsNotNullOrWhiteSpace()) ofd.DefaultExt = defaultExt;
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string[] e_OpenLoadFilesDialog(
+			public static string[] eOpenLoadFilesDialog(
 				this Form owner,
 				string defaultExt = "",
 				string filter = C_DEFAULT_XML_EXPORT_FILTER,
@@ -6265,12 +6275,12 @@ End Function
 				string initialDirectory = "")
 			{
 				using OpenFileDialog ofd = new();
-				ofd.e_InitDefault(defaultExt, filter, multiselect);
+				ofd.eInitDefault(defaultExt, filter, multiselect);
 
 				ofd.Filter = filter;
 
-				if (initialFile.e_IsNOTNullOrWhiteSpace()) ofd.FileName = initialFile;
-				if (initialDirectory.e_IsNOTNullOrWhiteSpace()) ofd.InitialDirectory = initialDirectory;
+				if (initialFile.eIsNotNullOrWhiteSpace()) ofd.FileName = initialFile;
+				if (initialDirectory.eIsNotNullOrWhiteSpace()) ofd.InitialDirectory = initialDirectory;
 
 				return (ofd.ShowDialog(owner) != DialogResult.OK)
 					? Array.Empty<string>()
@@ -6279,13 +6289,13 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_OpenLoadFileDialog(
+			public static string eOpenLoadFileDialog(
 				this Form owner,
 				string defaultExt = "",
 				string filter = C_DEFAULT_XML_EXPORT_FILTER,
 				string initialFile = "",
 				string initialDirectory = "")
-				=> e_OpenLoadFilesDialog(owner,
+				=> eOpenLoadFilesDialog(owner,
 					defaultExt,
 					filter,
 					false,
@@ -6295,13 +6305,13 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_OpenLoadFileDialog(
+			public static string eOpenLoadFileDialog(
 				this Form owner,
 				string defaultExt = "",
 				string filter = C_DEFAULT_XML_EXPORT_FILTER,
 				string initialFile = "",
 				Environment.SpecialFolder initialDirectory = Environment.SpecialFolder.DesktopDirectory)
-				=> e_OpenLoadFileDialog(owner,
+				=> eOpenLoadFileDialog(owner,
 					defaultExt,
 					filter,
 					initialFile,
@@ -6321,7 +6331,7 @@ End Function
 
 					<DebuggerNonUserCode, DebuggerStepThrough>
 					<MethodImpl(MethodImplOptions.AggressiveInlining), Extension()>
-					Public Function e_OpenSaveFileDialog(ParentForm As Form,
+					Public Function eOpenSaveFileDialog(ParentForm As Form,
 															  Optional sDefaultFileName As String = vbNullString,
 															  Optional sDefaultExt As String = C_DEFAULT_XML_EXT,
 															  Optional sFilter As String = C_DEFAULT_XML_EXPORT_FILTER,
@@ -6329,9 +6339,9 @@ End Function
 															  Optional neInitialDirectory As Nullable(Of Environment.SpecialFolder) = Environment.SpecialFolder.DesktopDirectory) As String
 						Using SFD As New SaveFileDialog
 							With SFD
-								If (sDefaultFileName.e_IsNullOrWhiteSpace) Then
+								If (sDefaultFileName.eIsNullOrWhiteSpace) Then
 									sDefaultFileName = Now.ToFileName
-									If (sAutoFileNameSuffix.e_IsNOTNullOrWhiteSpace) Then sDefaultFileName = sAutoFileNameSuffix & " " & sDefaultFileName
+									If (sAutoFileNameSuffix.eIsNotNullOrWhiteSpace) Then sDefaultFileName = sAutoFileNameSuffix & " " & sDefaultFileName
 								End If
 								.FileName = sDefaultFileName
 
@@ -6389,7 +6399,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static ToolStripMenuItem? e_SearchMenuItemTree(this IEnumerable<ToolStripItem> emi, Func<ToolStripMenuItem, bool> predicate)
+			internal static ToolStripMenuItem? eSearchMenuItemTree(this IEnumerable<ToolStripItem> emi, Func<ToolStripMenuItem, bool> predicate)
 			{
 				foreach (ToolStripItem tsi in emi)
 				{
@@ -6402,7 +6412,7 @@ End Function
 								IEnumerable<ToolStripItem> childItems = mi.DropDownItems.Cast<ToolStripItem>();
 								if (childItems.Any())
 								{
-									ToolStripMenuItem? miChild = e_SearchMenuItemTree(childItems, predicate);
+									ToolStripMenuItem? miChild = eSearchMenuItemTree(childItems, predicate);
 									if (miChild != null) return miChild;
 								}
 								break;
@@ -6417,19 +6427,19 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static ToolStripMenuItem? e_SearchMenuItemTree(this ToolStripMenuItem mi, Func<ToolStripMenuItem, bool> predicate)
-				=> mi.DropDownItems.Cast<ToolStripItem>().e_SearchMenuItemTree(predicate);
+			internal static ToolStripMenuItem? eSearchMenuItemTree(this ToolStripMenuItem mi, Func<ToolStripMenuItem, bool> predicate)
+				=> mi.DropDownItems.Cast<ToolStripItem>().eSearchMenuItemTree(predicate);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static ToolStripMenuItem? e_SearchMenuItemTree(this ContextMenuStrip cm, Func<ToolStripMenuItem, bool> predicate)
-				=> cm.Items.Cast<ToolStripItem>().e_SearchMenuItemTree(predicate);
+			internal static ToolStripMenuItem? eSearchMenuItemTree(this ContextMenuStrip cm, Func<ToolStripMenuItem, bool> predicate)
+				=> cm.Items.Cast<ToolStripItem>().eSearchMenuItemTree(predicate);
 
 
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_Remove(this ToolStripMenuItem mi)
+			internal static void eRemove(this ToolStripMenuItem mi)
 			{
 				ToolStripItem? o = mi.OwnerItem;
 				if (o == null) return;
@@ -6459,7 +6469,7 @@ End Function
 
 			[Obsolete("Устаревший класс! использовать надо многопоточный поисковик многоплатформенный", true)]
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static FileInfo[] e_SearchFile(
+			internal static FileInfo[] eSearchFile(
 				this DirectoryInfo Dir,
 				string SearchPattern,
 				bool OnlyForFirstFile = true,
@@ -6493,7 +6503,7 @@ End Function
 				try
 				{
 					var aSubDirs = Dir.GetDirectories();
-					var aFoundFiles = aSubDirs.e_SearchFile(SearchPattern, OnlyForFirstFile, SkipNTFSJunctions, ErrorHandler);
+					var aFoundFiles = aSubDirs.eSearchFile(SearchPattern, OnlyForFirstFile, SkipNTFSJunctions, ErrorHandler);
 					if (aFoundFiles.Any())
 					{
 						lock (leFound)
@@ -6516,17 +6526,17 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_OpenExplorer(this FileSystemInfo FI, uom.AppTools.WindowsExplorerPathModes PathMode = uom.AppTools.C_DEFAULT_EXPLORER_MODE)
-				=> FI.FullName.e_OpenExplorer(PathMode);
+			internal static void eOpenExplorer(this FileSystemInfo FI, uom.AppTools.WindowsExplorerPathModes PathMode = uom.AppTools.C_DEFAULT_EXPLORER_MODE)
+				=> FI.FullName.eOpenExplorer(PathMode);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_OpenExplorer(this string sPath, uom.AppTools.WindowsExplorerPathModes PathMode = uom.AppTools.C_DEFAULT_EXPLORER_MODE)
+			internal static void eOpenExplorer(this string sPath, uom.AppTools.WindowsExplorerPathModes PathMode = uom.AppTools.C_DEFAULT_EXPLORER_MODE)
 				=> uom.AppTools.StartWinSysTool_Explorer(sPath, PathMode);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_OpenURLInBrowser(this string uri)
+			internal static void eOpenURLInBrowser(this string uri)
 			{
 				ProcessStartInfo psi = new()
 				{
@@ -6539,7 +6549,7 @@ End Function
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static (string? Description, FileVersionInfo? Version)
-				e_GetFileTitle(
+				eGetFileTitle(
 				this FileInfo fi,
 				string? DefaultTitle = null)
 			{
@@ -6554,41 +6564,41 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static DirectoryInfo e_ToDirectoryInfoOrDefaultDir(this string dir, Environment.SpecialFolder defaultDir = Environment.SpecialFolder.DesktopDirectory)
+			internal static DirectoryInfo eToDirectoryInfoOrDefaultDir(this string dir, Environment.SpecialFolder defaultDir = Environment.SpecialFolder.DesktopDirectory)
 			{
-				if (dir.e_IsNullOrWhiteSpace() || !Directory.Exists(dir)) dir = Environment.GetFolderPath(defaultDir);
+				if (dir.eIsNullOrWhiteSpace() || !Directory.Exists(dir)) dir = Environment.GetFolderPath(defaultDir);
 				return new(dir.Trim());
 			}
 
 
 			/// <summary>Determines whether a path to a file system object such as a file or folder is valid</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_Shell_IsExist(this string sPath) => uom.WinAPI.shell.PathFileExists(sPath);
+			internal static bool eShell_IsExist(this string sPath) => uom.WinAPI.shell.PathFileExists(sPath);
 
 
 			/// <summary>Use UOM.Win32.Shell.PathIsDirectory</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_Shell_IsDirectoryWin32(this string sPath) => uom.WinAPI.shell.PathIsDirectory(sPath);
+			internal static bool eShell_IsDirectoryWin32(this string sPath) => uom.WinAPI.shell.PathIsDirectory(sPath);
 
 
 			/// <summary>Использует Shell API PathRelativePathTo</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static FileAttributes e_ToNETFileAttributes(this WinAPI.io.EFileAttributes WinFileAttrs) => (FileAttributes)(int)WinFileAttrs;
+			internal static FileAttributes eToNETFileAttributes(this WinAPI.io.EFileAttributes WinFileAttrs) => (FileAttributes)(int)WinFileAttrs;
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_Shell_IsNetworkPath(this FileSystemInfo Path) => uom.WinAPI.shell.PathIsNetworkPath(Path.FullName);
+			internal static bool eShell_IsNetworkPath(this FileSystemInfo Path) => uom.WinAPI.shell.PathIsNetworkPath(Path.FullName);
 
 
 			/// <summary>Использует Shell API PathRelativePathTo</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_Shell_GetRelativeTo(this FileSystemInfo PathFrom, FileSystemInfo PathTo)
+			internal static string eShell_GetRelativeTo(this FileSystemInfo PathFrom, FileSystemInfo PathTo)
 				=> uom.WinAPI.shell.GetRelativePathTo(PathFrom.FullName, PathFrom.Attributes, PathTo.FullName, PathTo.Attributes);
 
 
 			[Obsolete("Use new multithread scanner", true)]
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static FileInfo[] e_SearchFile(
+			internal static FileInfo[] eSearchFile(
 				this DirectoryInfo[] aDirs,
 				string SearchPattern,
 				bool OnlyForFirstFile = true,
@@ -6601,13 +6611,13 @@ End Function
 				//var leFound = new List<FileInfo>();
 				//foreach (var rDir in aDirs)
 				//{
-				//    if (SkipNTFSJunctions && rDir.FullName.e_IsNTFS_SymLink_Win32())
+				//    if (SkipNTFSJunctions && rDir.FullName.eIsNTFS_SymLink_Win32())
 				//    {
 				//        // Skip
 				//    }
 				//    else
 				//    {
-				//        var aFoundFiles = rDir.e_SearchFile(SearchPattern, OnlyForFirstFile, SkipNTFSJunctions, ErrorHandler);
+				//        var aFoundFiles = rDir.eSearchFile(SearchPattern, OnlyForFirstFile, SkipNTFSJunctions, ErrorHandler);
 				//        if (aFoundFiles.Any())
 				//        {
 				//            lock (leFound)
@@ -6630,14 +6640,14 @@ End Function
 
 			/// <summary>WinAPI FILE_ATTRIBUTE_REPARSE_POINT</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsNTFS_SymLink_WinAPI(this string sPath)
+			internal static bool eIsNTFS_SymLink_WinAPI(this string sPath)
 				=> WinAPI.io.GetFileAttributes(sPath).HasFlag(WinAPI.io.EFileAttributes.FILE_ATTRIBUTE_REPARSE_POINT);
 
 
 			/// <summary>Получаем из реестра описание типа файла по расширению</summary>
 			/// <param name="FileExt">Расширение файла, например '.exe'</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_GetFileTypeDescription(this string FileExt)
+			internal static string eGetFileTypeDescription(this string FileExt)
 			{
 
 				throw new NotImplementedException();
@@ -6645,7 +6655,7 @@ End Function
 
 				//    const string CS_FRIENDLY_TYPE_NAME = "FriendlyTypeName";
 				//    string sResult = null;
-				//    bool bEmptyExt = FileExt.e_IsNullOrWhiteSpace();
+				//    bool bEmptyExt = FileExt.eIsNullOrWhiteSpace();
 
 				//    if (!bEmptyExt)
 				//    {
@@ -6658,7 +6668,7 @@ End Function
 				//                if (keyFileExt != null)
 				//                {
 				//                    string sTypeKeyName = constants.ToString(keyFileExt.GetValue(null, null));
-				//                    if (sTypeKeyName.e_IsNOTNullOrWhiteSpace())
+				//                    if (sTypeKeyName.eIsNotNullOrWhiteSpace())
 				//                    {
 				//                        using (var keyFileType = keyRoot.OpenSubKey(sTypeKeyName, false))
 				//                        {
@@ -6672,7 +6682,7 @@ End Function
 				//                                if (bHasFriendlyTypeName)
 				//                                {
 				//                                    string sFriendlyTypeName = constants.ToString(keyFileType.GetValue(CS_FRIENDLY_TYPE_NAME, null));
-				//                                    if (sFriendlyTypeName.e_IsNOTNullOrWhiteSpace())
+				//                                    if (sFriendlyTypeName.eIsNotNullOrWhiteSpace())
 				//                                    {
 				//                                        if (UOM.Win32.Resources.mResourcesAPI.HasResourceStringPrefix(sFriendlyTypeName))
 				//                                            sFriendlyTypeName = UOM.Win32.Resources.mResourcesAPI.ExtractResourceString(sFriendlyTypeName);
@@ -6680,9 +6690,9 @@ End Function
 				//                                    }
 				//                                }
 
-				//                                if (sTypeDescription.e_IsNullOrWhiteSpace())
+				//                                if (sTypeDescription.eIsNullOrWhiteSpace())
 				//                                    sTypeDescription = constants.ToString(keyFileType.GetValue(null, null));
-				//                                if (sTypeDescription.e_IsNOTNullOrWhiteSpace())
+				//                                if (sTypeDescription.eIsNotNullOrWhiteSpace())
 				//                                    sResult = sTypeDescription;
 				//                            }
 				//                        }
@@ -6705,7 +6715,7 @@ End Function
 			/// Convert local file path to full remote path: 'C:\Windows\explorer.exe' => '\\x.x.x.x\c$\Windows\explorer.exe'
 			/// If 'local' path is like \\x.x.x.x\apps\var\any.exe, the path does not changes
 			/// </summary>
-			public static FileInfo e_RemoteHostLocalPathToNetworkPath(this string localPath, string remoteHost)
+			public static FileInfo eRemoteHostLocalPathToNetworkPath(this string localPath, string remoteHost)
 			{
 				try
 				{
@@ -6716,7 +6726,7 @@ End Function
 
 					char cDisk = root.First();
 					string dirPath = fiApp.Directory!.FullName.Substring(3);       //'Windows'
-					dirPath = remoteHost.e_CreateWinSharePrefix() + @$"{cDisk}$\{dirPath}"; //'c$\Windows'
+					dirPath = remoteHost.eCreateWinSharePrefix() + @$"{cDisk}$\{dirPath}"; //'c$\Windows'
 					string fullRemoteFilePath = Path.Combine(dirPath, fiApp.Name);          //'c$\Windows\explorer.exe'
 					return new(fullRemoteFilePath);
 				}
@@ -6732,9 +6742,9 @@ End Function
 			/// If remote path is like \\x.x.x.x\apps\var\any.exe, the path does not changes!
 			/// If remote path host name or IP does not equal to 'remoteHost' arg, the path does not changes!
 			/// </summary>
-			public static FileInfo e_NetworkPathToRemoteHostLocalPath(this string remotePath, string remoteHost)
+			public static FileInfo eNetworkPathToRemoteHostLocalPath(this string remotePath, string remoteHost)
 			{
-				string netPrefix = remoteHost.e_CreateWinSharePrefix(); //'\\x.x.x.x/'
+				string netPrefix = remoteHost.eCreateWinSharePrefix(); //'\\x.x.x.x/'
 				if (!remotePath.ToLower().StartsWith(netPrefix.ToLower())) return new FileInfo(remotePath);// another remote host. do not modify path '\\y.y.y.y\aaaa\bbbb....'
 
 				//Path starts with '\\host\', sample: '\\x.x.x.x\c$\Windows\System32\Defrag.exe'
@@ -6767,7 +6777,7 @@ End Function
 			/// <summary>Method to retrieve all directories, recursively, within a store.</summary>
 			/// <param name="pattern"></param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static List<String> e_GetAllDirectories(this IsolatedStorageFile storeFile, string pattern = @"*", bool recursive = false)
+			internal static List<String> eGetAllDirectories(this IsolatedStorageFile storeFile, string pattern = @"*", bool recursive = false)
 			{
 				// Get the root of the search string.
 				string root = Path.GetDirectoryName(pattern) ?? "";
@@ -6783,7 +6793,7 @@ End Function
 					for (int i = 0, max = directoryList.Count; i < max; i++)
 					{
 						string directory = directoryList[i] + @"/";
-						List<String> more = storeFile.e_GetAllDirectories(root + directory + @"*");
+						List<String> more = storeFile.eGetAllDirectories(root + directory + @"*");
 
 						// For each subdirectory found, add in the base path.
 						for (int j = 0; j < more.Count; j++)
@@ -6803,7 +6813,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static List<String> e_GetAllFiles(this IsolatedStorageFile storeFile, string pattern = @"*", bool recursive = false)
+			internal static List<String> eGetAllFiles(this IsolatedStorageFile storeFile, string pattern = @"*", bool recursive = false)
 			{
 				// Get the root and file portions of the search string.
 				string fileString = Path.GetFileName(pattern);
@@ -6813,7 +6823,7 @@ End Function
 				{
 					// Loop through the subdirectories, collect matches,
 					// and make separators consistent.
-					foreach (string directory in storeFile.e_GetAllDirectories(@"*"))
+					foreach (string directory in storeFile.eGetAllDirectories(@"*"))
 					{
 						foreach (string file in storeFile.GetFileNames(directory + @"/" + fileString))
 						{
@@ -6834,14 +6844,14 @@ End Function
 		{
 
 
-			#region e_SendARP
+			#region eSendARP
 
 			[DllImport(uom.WinAPI.core.WINDLL_iphlpapi, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
 			private static extern int SendARP(uint DestIP, uint SrcIP, IntPtr pMacAddr, ref int PhyAddrLen);
 
 			[DebuggerHidden, DebuggerNonUserCode]
 			/// <summary>Запрашивает в ARP таблице MAC адрес удалённого хоста</summary>
-			public static PhysicalAddress e_SendARP(this IPAddress ip, IPAddress? sendViaInterface = null)
+			public static PhysicalAddress eSendARP(this IPAddress ip, IPAddress? sendViaInterface = null)
 			{
 				if (ip.Equals(IPAddress.None) || ip.Equals(IPAddress.Broadcast) || ip.Equals(IPAddress.Loopback))
 					throw new ArgumentNullException(nameof(ip));
@@ -6853,7 +6863,7 @@ End Function
 				try
 				{
 					// retrieve the remote MAC address
-					int iResult = SendARP(ip.e_ToUInt32(), sendViaInterface!.e_ToUInt32(), hMACBuffer, ref macLen);
+					int iResult = SendARP(ip.eToUInt32(), sendViaInterface!.eToUInt32(), hMACBuffer, ref macLen);
 					if (iResult != 0) throw new Win32Exception(iResult);
 					byte[] abMAC = new byte[macLen];
 					Marshal.Copy(hMACBuffer, abMAC, 0, macLen);
@@ -6864,10 +6874,10 @@ End Function
 
 
 			// Пытаемся определить NetBIOS имя хоста
-			public async static Task<(string? HostName, PhysicalAddress? MAC)> e_QueryAsync(this IPAddress IP, CancellationTokenSource? cancel)
+			public async static Task<(string? HostName, PhysicalAddress? MAC)> eQueryAsync(this IPAddress IP, CancellationTokenSource? cancel)
 			{
-				var tskResolveDNSNAme = Extensions_DebugAndErrors.e_tryCatchStartAsync(() => Dns.GetHostEntry(IP), cancel: cancel, onErrorShowUI: false);
-				var tskSendARP = Extensions_DebugAndErrors.e_tryCatchStartAsync(() => IP.e_SendARP(), cancel: cancel, onErrorShowUI: false);
+				var tskResolveDNSNAme = Extensions_DebugAndErrors.etryCatchStartAsync(() => Dns.GetHostEntry(IP), cancel: cancel, errorUI: false);
+				var tskSendARP = Extensions_DebugAndErrors.etryCatchStartAsync(() => IP.eSendARP(), cancel: cancel, errorUI: false);
 				try
 				{
 					if (cancel != null)
@@ -6875,7 +6885,7 @@ End Function
 #if NET
 						await Task.WhenAll(tskResolveDNSNAme, tskSendARP).WaitAsync(cancel.Token);
 #else
-						await Task.WhenAll(tskResolveDNSNAme, tskSendARP).e_WaitAsync(cancel);
+						await Task.WhenAll(tskResolveDNSNAme, tskSendARP).eWaitAsync(cancel);
 #endif
 
 						if (cancel.IsCancellationRequested) return (null, null);
@@ -6900,43 +6910,43 @@ End Function
 			#region ThrowLastWin32Exception
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_ThrowLastWin32Exception(this string? DescriptionOfErrorAction)
+			internal static void eThrowLastWin32Exception(this string? DescriptionOfErrorAction)
 				=> WinAPI.errors.ThrowLastWin23Error(DescriptionOfErrorAction);
 
 			/// <summary>Вызывает ошибку, только если условие истинно</summary>
 			/// <param name="b">Если условие верно - вызывается ошибка</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_ThrowLastWin32Exception_Assert(this bool b, string? DescriptionOfErrorAction = null)
+			internal static void eThrowLastWin32Exception_Assert(this bool b, string? DescriptionOfErrorAction = null)
 			{
-				if (b) e_ThrowLastWin32Exception(DescriptionOfErrorAction);
+				if (b) eThrowLastWin32Exception(DescriptionOfErrorAction);
 			}
 
 			/// <summary>Вызывает ошибку если условие НЕВЕРНО!</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_ThrowLastWin32Exception_AssertFalse(this bool b, [CallerArgumentExpression(nameof(b))] string? failedAction = null)
+			internal static void eThrowLastWin32Exception_AssertFalse(this bool b, [CallerArgumentExpression(nameof(b))] string? failedAction = null)
 			{
-				if (!b) e_ThrowLastWin32Exception(failedAction);
+				if (!b) eThrowLastWin32Exception(failedAction);
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_ThrowLastWin32Exception_AssertFalse(this bool b, WinAPI.errors.Win32Errors DoNotThrowErrorCode)
+			internal static void eThrowLastWin32Exception_AssertFalse(this bool b, WinAPI.errors.Win32Errors DoNotThrowErrorCode)
 			{
-				if (!b) DoNotThrowErrorCode.e_ThrowLastWin32Exception_IfNot();
+				if (!b) DoNotThrowErrorCode.eThrowLastWin32Exception_IfNot();
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_ThrowLastWin32Exception_IfNot(this WinAPI.errors.Win32Errors DoNotThrowErrorCode)
-				=> new Win32Exception().e_ThrowIfNot(DoNotThrowErrorCode);
+			internal static void eThrowLastWin32Exception_IfNot(this WinAPI.errors.Win32Errors DoNotThrowErrorCode)
+				=> new Win32Exception().eThrowIfNot(DoNotThrowErrorCode);
 
 
 			/// <summary>Вызывает ошибку если указатель пуст</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_ThrowLastWin32Exception_Assert_NUL(
+			internal static void eThrowLastWin32Exception_Assert_NUL(
 				this IntPtr H,
 				string? DescriptionOfErrorAction = null)
 			{
-				if (H.e_IsNotValid()) e_ThrowLastWin32Exception(DescriptionOfErrorAction);
+				if (H.eIsNotValid()) eThrowLastWin32Exception(DescriptionOfErrorAction);
 			}
 
 
@@ -6944,7 +6954,7 @@ End Function
 
 			#region Win32Exception Throw
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_Throw(this Win32Exception WEX)
+			internal static void eThrow(this Win32Exception WEX)
 			{
 				throw WEX;
 			}
@@ -6952,35 +6962,35 @@ End Function
 			/// <summary>Вызывает ошибку, если win32ErrorCode не равно 0 (ERROR_SUCCESS)</summary>
 			/// <param name="win32ErrorCode">Проверяемый код ошибки</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_ThrowIfError(this int win32ErrorCode)
+			internal static void eThrowIfError(this int win32ErrorCode)
 			{
-				var eResult = win32ErrorCode.e_ToWin32Error();
-				if (eResult != WinAPI.errors.Win32Errors.ERROR_SUCCESS) eResult.e_ToWin32Exception().e_Throw();
+				var eResult = win32ErrorCode.eToWin32Error();
+				if (eResult != WinAPI.errors.Win32Errors.ERROR_SUCCESS) eResult.eToWin32Exception().eThrow();
 			}
 
 			/// <summary>Вызывает ошибку, если win32ErrorCode не равно 0 (ERROR_SUCCESS)</summary>
 			/// <param name="win32ErrorCode">Проверяемый код ошибки</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_ThrowIfError(this WinAPI.errors.Win32Errors eResult)
+			internal static void eThrowIfError(this WinAPI.errors.Win32Errors eResult)
 			{
-				if (eResult != WinAPI.errors.Win32Errors.ERROR_SUCCESS) eResult.e_ToWin32Exception().e_Throw();
+				if (eResult != WinAPI.errors.Win32Errors.ERROR_SUCCESS) eResult.eToWin32Exception().eThrow();
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_ThrowIf(this Win32Exception WEX, WinAPI.errors.Win32Errors ThrowErrorCode)
+			internal static void eThrowIf(this Win32Exception WEX, WinAPI.errors.Win32Errors ThrowErrorCode)
 			{
-				if (WEX.e_ToWin32Error() == ThrowErrorCode) throw WEX;
+				if (WEX.eToWin32Error() == ThrowErrorCode) throw WEX;
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_ThrowIfNot(this Win32Exception WEX, WinAPI.errors.Win32Errors DoNotThrowErrorCode)
+			internal static void eThrowIfNot(this Win32Exception WEX, WinAPI.errors.Win32Errors DoNotThrowErrorCode)
 			{
-				if (WEX.e_ToWin32Error() != DoNotThrowErrorCode) throw WEX;
+				if (WEX.eToWin32Error() != DoNotThrowErrorCode) throw WEX;
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_ThrowIfNot(this WinAPI.errors.Win32Errors EX, WinAPI.errors.Win32Errors DoNotThrowErrorCode)
+			internal static void eThrowIfNot(this WinAPI.errors.Win32Errors EX, WinAPI.errors.Win32Errors DoNotThrowErrorCode)
 			{
 				if (EX == DoNotThrowErrorCode) return;
 				throw new Win32Exception((int)EX);
@@ -6992,34 +7002,34 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ToLocalizedMessage(this WinAPI.errors.Win32Errors err)
+			internal static string eToLocalizedMessage(this WinAPI.errors.Win32Errors err)
 				=> WinAPI.errors.GetErrorMessage(err);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static WinAPI.errors.Win32Errors e_ToWin32Error(this WinAPI.sync.WaitResults WR)
+			internal static WinAPI.errors.Win32Errors eToWin32Error(this WinAPI.sync.WaitResults WR)
 				=> (WinAPI.errors.Win32Errors)WR;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static WinAPI.errors.Win32Errors e_ToWin32Error(this int iError)
+			internal static WinAPI.errors.Win32Errors eToWin32Error(this int iError)
 				=> (WinAPI.errors.Win32Errors)iError;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static WinAPI.errors.Win32Errors e_ToWin32Error(this Win32Exception WEX)
+			internal static WinAPI.errors.Win32Errors eToWin32Error(this Win32Exception WEX)
 				=> (WinAPI.errors.Win32Errors)WEX.NativeErrorCode;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Win32Exception e_ToWin32Exception(this WinAPI.errors.Win32Errors eError)
+			internal static Win32Exception eToWin32Exception(this WinAPI.errors.Win32Errors eError)
 				=> new((int)eError);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Win32Exception e_ToWin32Exception(this int iError)
+			internal static Win32Exception eToWin32Exception(this int iError)
 				=> new(iError);
 
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static uom.WinAPI.errors.HResult e_ToHResult(this IntPtr i)
+			internal static uom.WinAPI.errors.HResult eToHResult(this IntPtr i)
 				=> (uom.WinAPI.errors.HResult)((UInt64)i.ToInt64());
 
 
@@ -7029,16 +7039,16 @@ End Function
 
 
 
-			#region e_LogError_FullErrorDump / e_LogError_DumpExceptionTree
+			#region eLogError_FullErrorDump / eLogError_DumpExceptionTree
 
 
 
 
 			// ''<summary>Фиксация ошибки в журнале и в DEBUG MODE вывод сообщения</summary>
-			//[MethodImpl(MethodImplOptions.AggressiveInlining)]			internal static string e_DumpTree(this Exception ex, [CallerMemberName] string caller = "")				=> ex.e_DumpExceptionTree(caller) + CS_CONSOLE_SEPARATOR;
+			//[MethodImpl(MethodImplOptions.AggressiveInlining)]			internal static string eDumpTree(this Exception ex, [CallerMemberName] string caller = "")				=> ex.eDumpExceptionTree(caller) + CS_CONSOLE_SEPARATOR;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_FullDump(this Exception? ex,
+			internal static string eFullDump(this Exception? ex,
 				[CallerMemberName] string callerName = "",
 				[CallerFilePath] string callerFile = "",
 				[CallerLineNumber] int callerLine = 0)
@@ -7069,89 +7079,89 @@ End Function
 
 
 			/*	   */
-			/// <summary>Вызывает Callback внутри Try/Catch и при ошибке автоматом вызывает ex.e_LogError(ShowModalMessageBox)</summary>
+			/// <summary>Вызывает Callback внутри Try/Catch и при ошибке автоматом вызывает ex.eLogError(ShowModalMessageBox)</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_runTryCatch(this Action a,
-						bool onErrorShowModalMessageBox = true,
-						string errorMessageBoxTitle = C_FAILED_TO_RUN,
+			internal static void erunTryCatch(this Action a,
+						bool errorUI = true,
+						string uiTitle = C_FAILED_TO_RUN,
 						MessageBoxIcon icon = MessageBoxIcon.Error,
 						MessageBoxButtons btn = MessageBoxButtons.OK,
-						bool supressAnyModalPopEvenInDEBUG = false)
+						bool debugErrorUI = false)
 			{
 				try { a.Invoke(); }
-				catch (Exception ex) { ex.e_LogError(onErrorShowModalMessageBox, errorMessageBoxTitle, icon, btn, supressAnyModalPopEvenInDEBUG); }
+				catch (Exception ex) { ex.eLogError(errorUI, uiTitle, icon, btn, debugErrorUI); }
 			}
 
 
-			/// <summary>Вызывает Callback внутри Try/Catch и при ошибке автоматом вызывает ex.e_LogError(ShowModalMessageBox)</summary>
+			/// <summary>Вызывает Callback внутри Try/Catch и при ошибке автоматом вызывает ex.eLogError(ShowModalMessageBox)</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_runTryCatch(this System.Windows.Forms.MethodInvoker a,
-						bool onErrorShowModalMessageBox = true,
-						string errorMessageBoxTitle = C_FAILED_TO_RUN,
+			internal static void erunTryCatch(this System.Windows.Forms.MethodInvoker a,
+						bool errorUI = true,
+						string uiTitle = C_FAILED_TO_RUN,
 						MessageBoxIcon icon = MessageBoxIcon.Error,
 						MessageBoxButtons btn = MessageBoxButtons.OK,
-						bool supressAnyModalPopEvenInDEBUG = false)
+						bool debugErrorUI = false)
 			{
 				try { a.Invoke(); }
-				catch (Exception ex) { ex.e_LogError(onErrorShowModalMessageBox, errorMessageBoxTitle, icon, btn, supressAnyModalPopEvenInDEBUG); }
+				catch (Exception ex) { ex.eLogError(errorUI, uiTitle, icon, btn, debugErrorUI); }
 			}
 
 
 
 			/// <summary>Фиксация ошибки в журнале, в DEBUG, вывод сообщения</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_LogError(this Exception ex,
-				bool showModalMessageBox,
-				string modalMessageBoxTitle = C_FAILED_TO_RUN,
+			internal static void eLogError(this Exception ex,
+				bool errorUI,
+				string uiTitle = C_FAILED_TO_RUN,
 				MessageBoxIcon icon = MessageBoxIcon.Error,
 				MessageBoxButtons btn = MessageBoxButtons.OK,
-				bool supressAnyModalPopEvenInDEBUG = false,
+				bool debugErrorUI = false,
 				[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0
 				)
 			{
 				try
 				{
-					string errorDump = ex.e_FullDump(callerName, callerFile, callerLine);
+					string errorDump = ex.eFullDump(callerName, callerFile, callerLine);
 
 					UInt16 eventID = 1001;
 					try
 					{
-						if (ex is Win32Exception wex) eventID = (UInt16)wex.ErrorCode.e_CheckRange(UInt16.MinValue, UInt16.MaxValue);
+						if (ex is Win32Exception wex) eventID = (UInt16)wex.ErrorCode.eCheckRange(UInt16.MinValue, UInt16.MaxValue);
 					}
 					catch { }
 
 					WinAPI.errors.ErrorLogWrite(errorDump, eventID: eventID);
 					string msg = ex.Message;
 #if DEBUG
-					$"{CS_CONSOLE_SEPARATOR}\n{errorDump}\n{CS_CONSOLE_SEPARATOR}".e_DebugWriteLine();
+					$"{CS_CONSOLE_SEPARATOR}\n{errorDump}\n{CS_CONSOLE_SEPARATOR}".eDebugWriteLine();
 
 					//Показываем расширенные данные в DEBUG режиме
 					msg += $"\n{CS_CONSOLE_SEPARATOR}\nUOM DEBUG-MODE DETAILED ERROR INFO:\n{errorDump}";
 #endif
 
-					if (showModalMessageBox) // Надо показать на экране модальное Сообщение об ошибке
+					if (errorUI) // Надо показать на экране модальное Сообщение об ошибке
 					{
-						MessageBox.Show(msg, modalMessageBoxTitle, btn, icon);
+						MessageBox.Show(msg, uiTitle, btn, icon);
 					}
 					else
 					{
 #if DEBUG
-						if (!supressAnyModalPopEvenInDEBUG)
+						if (debugErrorUI)
 						{
 							//В DEBUG режиме показываем модальное окно с ошибкой, если прямо не запрещено!
-							MessageBox.Show(msg, modalMessageBoxTitle, btn, icon);
+							MessageBox.Show(msg, uiTitle, btn, icon);
 						}
 #endif
 					}
 				}
 				catch (Exception ex2)
 				{
-					if (showModalMessageBox) MessageBox.Show(ex2.Message, "Error when journaling previous error!", MessageBoxButtons.OK, MessageBoxIcon.Error);
+					if (errorUI) MessageBox.Show(ex2.Message, "Error when journaling previous error!", MessageBoxButtons.OK, MessageBoxIcon.Error);
 				}
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_LogError_CONSOLE(this Exception ex,
+			internal static void eLogError_CONSOLE(this Exception ex,
 				bool fullDump = false,
 				[CallerMemberName] string callerName = "",
 				[CallerFilePath] string callerFile = "",
@@ -7162,7 +7172,7 @@ End Function
 
 				if (fullDump)
 				{
-					msg = C_CONSOLE_ERROR_HEADER + ex.e_FullDump(callerName, callerFile, callerLine);
+					msg = C_CONSOLE_ERROR_HEADER + ex.eFullDump(callerName, callerFile, callerLine);
 				}
 				Console.WriteLine($"{CS_CONSOLE_SEPARATOR}/n{msg}/n{CS_CONSOLE_SEPARATOR}");
 			}
@@ -7241,7 +7251,7 @@ End Function
 					StartWatchTimer();
 				}
 
-				private void UpdateFormTitle() => _frmError!.Text = "Ошибки: {0}".e_Format((object)_iTotalErrorsCount);
+				private void UpdateFormTitle() => _frmError!.Text = "Ошибки: {0}".eFormat((object)_iTotalErrorsCount);
 
 				//private FormClosingEventHandler _OnErrorFormClosing2233 = new(OnErrorFormClosing);
 
@@ -7296,7 +7306,7 @@ End Function
 
 					try
 					{
-						if (null != _frmError && !_frmError.Handle.e_IsValid()) return; // Негде показать. Таймер перезапускать не обязательно.
+						if (null != _frmError && !_frmError.Handle.eIsValid()) return; // Негде показать. Таймер перезапускать не обязательно.
 					}
 					catch { }
 
@@ -7327,7 +7337,7 @@ End Function
 								 try
 								 {
 #if DEBUG
-									 var sMSG = EX.e_LogError_FullErrorDump() + constants.vbCrLf;
+									 var sMSG = EX.eLogError_FullErrorDump() + constants.vbCrLf;
 #else
 									 var sMSG = EX.Message + constants.vbCrLf;
 #endif
@@ -7338,8 +7348,8 @@ End Function
 							 return sbAllErrors.ToString();
 						 });
 
-						string? sAllErrors = await PrepareAllErrorsInfoCallBack.e_RunAsync();
-						if (sAllErrors.e_IsNullOrWhiteSpace()) return;
+						string? sAllErrors = await PrepareAllErrorsInfoCallBack.eRunAsync();
+						if (sAllErrors.eIsNullOrWhiteSpace()) return;
 
 						// Показываем все ошибки, полученные из очереди.
 						_iTotalErrorsCount += iErrorsFound;
@@ -7382,7 +7392,7 @@ End Function
 				/// <summary>Выполняется в чужом потоке, помещает ошибку в очередь на показ</summary>
 				public void AddErrorToQueue(Exception EX)
 				{
-					try { EX.e_LogError(false, SupressAnyModalPopEvenInDEBUG: true); }// Пишем ошибку в журнал
+					try { EX.eLogError(false, SupressAnyModalPopEvenInDEBUG: true); }// Пишем ошибку в журнал
 					catch { }
 					lock (_qErrorsToShow) _qErrorsToShow.Enqueue(EX);
 				}
@@ -7392,7 +7402,7 @@ End Function
 
 				// Public Sub ShowError(EX As Exception)
 				// Try
-				// Call EX.e_LogError(False,,, True) 'Пишем ошибку в журнал
+				// Call EX.eLogError(False,,, True) 'Пишем ошибку в журнал
 
 				// If (_frmError Is Nothing) OrElse (Not _frmError.Handle.IsValid) Then Return 'Негде показать
 				// Catch : End Try
@@ -7419,7 +7429,7 @@ End Function
 
 				// Dim sMSG = EX.Message & vbCrLf
 				// #if DEBUG
-				// sMSG = EX.e_LogError_FullErrorDump & vbCrLf
+				// sMSG = EX.eLogError_FullErrorDump & vbCrLf
 				// #endif
 				// Call _ctlTextBox.AppendText(sMSG)
 
@@ -7454,9 +7464,9 @@ End Function
 
 			// Call FA.ShowError(EX)
 			// End Sub
-			// <DebuggerNonUserCode, DebuggerStepThrough>  Friend Sub e_LogError_NONMODAL(ByVal EX As System.Exception, frmErrorWindowParent As Form)
+			// <DebuggerNonUserCode, DebuggerStepThrough>  Friend Sub eLogError_NONMODAL(ByVal EX As System.Exception, frmErrorWindowParent As Form)
 			// Try
-			// Call frmErrorWindowParent.e_RunInUIThread(Sub() ShowError_CORE(EX, frmErrorWindowParent))
+			// Call frmErrorWindowParent.eRunInUIThread(Sub() ShowError_CORE(EX, frmErrorWindowParent))
 
 			// Catch ex2 As Exception
 			// Неудалось показать ошибку в окне!
@@ -7466,7 +7476,7 @@ End Function
 
 			/// <summary>Выполняется в вызывающем потоке</summary>
 			[ MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_LogError_NONMODAL(this Exception EX, Form frmErrorWindowParent)
+			internal static void eLogError_NONMODAL(this Exception EX, Form frmErrorWindowParent)
 			{
 				try
 				{
@@ -7488,7 +7498,7 @@ End Function
 							};
 
 							// Временно переходим в поток этой формы
-							frmErrorWindowParent.e_RunInUIThread(() => CreateNewAttachment(frmErrorWindowParent));
+							frmErrorWindowParent.eRunInUIThread(() => CreateNewAttachment(frmErrorWindowParent));
 						}
 						else
 						{
@@ -7512,13 +7522,13 @@ End Function
 		{
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_CloseWin32Handle(this IntPtr H) => !H.e_IsValid() || WinAPI.core.CloseHandle(H);
+			internal static bool eCloseWin32Handle(this IntPtr H) => !H.eIsValid() || WinAPI.core.CloseHandle(H);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Microsoft.Win32.SafeHandles.SafeFileHandle e_ToSafeFileHandle(this IntPtr hFile, bool ownsHandle = true, bool CheckNullHandleAndThrowCreateFileError = true)
+			internal static Microsoft.Win32.SafeHandles.SafeFileHandle eToSafeFileHandle(this IntPtr hFile, bool ownsHandle = true, bool CheckNullHandleAndThrowCreateFileError = true)
 			{
-				if (CheckNullHandleAndThrowCreateFileError && !hFile.e_IsValid()) "CreateFile".e_ThrowLastWin32Exception();
+				if (CheckNullHandleAndThrowCreateFileError && !hFile.eIsValid()) "CreateFile".eThrowLastWin32Exception();
 				return new SafeFileHandle(hFile, ownsHandle);
 			}
 
@@ -7545,7 +7555,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static HandleRef e_CreateHandleReff(this Control Ctl)
+			internal static HandleRef eCreateHandleReff(this Control Ctl)
 				=> new(
 					Ctl ?? throw new ArgumentNullException(nameof(Ctl)),
 					Ctl.Handle);
@@ -7554,26 +7564,26 @@ End Function
 			/// <summary>Reads the string from the memory block.</summary>
 			/// <param name="iLenght">The length of the string to read, in characters.</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string? e_PtrToString(
+			public static string? ePtrToString(
 				this IntPtr Ptr,
 				int iLenght = -1,
-				uom.constants.E_STRING_TYPES stringType = uom.constants.E_STRING_TYPES.Uni)
+				uom.constants.CHAR_MODE stringType = uom.constants.CHAR_MODE.Uni)
 			{
-				if (iLenght == 0 || !Ptr.e_IsValid()) return null;
+				if (iLenght == 0 || !Ptr.eIsValid()) return null;
 
 				string? S = (iLenght < 0)
 					? stringType switch
 					{
-						uom.constants.E_STRING_TYPES.Auto => Marshal.PtrToStringAuto(Ptr),
-						uom.constants.E_STRING_TYPES.Uni => Marshal.PtrToStringUni(Ptr),
-						uom.constants.E_STRING_TYPES.Ansi => Marshal.PtrToStringAnsi(Ptr),
+						uom.constants.CHAR_MODE.Auto => Marshal.PtrToStringAuto(Ptr),
+						uom.constants.CHAR_MODE.Uni => Marshal.PtrToStringUni(Ptr),
+						uom.constants.CHAR_MODE.Ansi => Marshal.PtrToStringAnsi(Ptr),
 						_ => throw new ArgumentOutOfRangeException(stringType.ToString())
 					}
 					: stringType switch
 					{
-						uom.constants.E_STRING_TYPES.Auto => Marshal.PtrToStringAuto(Ptr, iLenght),
-						uom.constants.E_STRING_TYPES.Uni => Marshal.PtrToStringUni(Ptr, iLenght),
-						uom.constants.E_STRING_TYPES.Ansi => Marshal.PtrToStringAnsi(Ptr, iLenght),
+						uom.constants.CHAR_MODE.Auto => Marshal.PtrToStringAuto(Ptr, iLenght),
+						uom.constants.CHAR_MODE.Uni => Marshal.PtrToStringUni(Ptr, iLenght),
+						uom.constants.CHAR_MODE.Ansi => Marshal.PtrToStringAnsi(Ptr, iLenght),
 						_ => throw new ArgumentOutOfRangeException(stringType.ToString())
 					};
 				return S;
@@ -7621,7 +7631,7 @@ End Function
 		internal static class Extensions_COM
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T? e_CreateCOMInstance<T>(this string ProgID) => (T?)Activator.CreateInstance(Type.GetTypeFromProgID(ProgID)!);
+			internal static T? eCreateCOMInstance<T>(this string ProgID) => (T?)Activator.CreateInstance(Type.GetTypeFromProgID(ProgID)!);
 
 
 		}
@@ -7635,18 +7645,18 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static uom.WinAPI.memory.WinApiMemory e_StructureToMemoryBlock<T>(this T rStructure) where T : struct
+			internal static uom.WinAPI.memory.WinApiMemory eStructureToMemoryBlock<T>(this T rStructure) where T : struct
 			{
 				int iStructSize = Marshal.SizeOf(rStructure);
 				var rMem = new uom.WinAPI.memory.WinApiMemory(iStructSize);
-				rStructure.e_StructureToPtr(rMem.DangerousGetHandle()); // Записываем в буфер всю структуру
+				rStructure.eStructureToPtr(rMem.DangerousGetHandle()); // Записываем в буфер всю структуру
 				return rMem;
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] e_StructureToBytes<T>(this T rStructure) where T : struct
-			{ using var rMem = rStructure.e_StructureToMemoryBlock(); return rMem.ToBytes(); }
+			internal static byte[] eStructureToBytes<T>(this T rStructure) where T : struct
+			{ using var rMem = rStructure.eStructureToMemoryBlock(); return rMem.ToBytes(); }
 
 
 
@@ -7654,7 +7664,7 @@ End Function
 			/// <param name="abData">Исходный массив</param>
 			/// <param name="iCount">Количество структур для чтения</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T[] e_ToStructuresSequentially<T>(this byte[] abData, int iCount, int iOffset = 0) where T : struct
+			internal static T[] eToStructuresSequentially<T>(this byte[] abData, int iCount, int iOffset = 0) where T : struct
 			{
 				// Размер одного элемента структуры
 				int iSize1 = Marshal.SizeOf(typeof(T));
@@ -7666,7 +7676,7 @@ End Function
 				var lFound = new List<T>();
 				for (int I = 1, loopTo = iCount; I <= loopTo; I++)
 				{
-					var rStruct = abData.e_ToStructure<T>(iOffset);
+					var rStruct = abData.eToStructure<T>(iOffset);
 					iOffset += iSize1;
 					lFound.Add(rStruct);
 				}
@@ -7680,7 +7690,7 @@ End Function
 			/// <param name="iOffset">Смещение в массиве, с которого начинаем читать</param>
 			/// <returns></returns>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T e_ToStructure<T>(this byte[] abData, int iOffset = 0) where T : struct
+			internal static T eToStructure<T>(this byte[] abData, int iOffset = 0) where T : struct
 			{
 				int iStructLen = Marshal.SizeOf(typeof(T));
 				byte[] abArrayToCast;// = Array.Empty<byte>();
@@ -7700,7 +7710,7 @@ End Function
 				}
 
 				using var LMB = new uom.WinAPI.memory.WinApiMemory(abArrayToCast);
-				return LMB.DangerousGetHandle().e_ToStructure<T>();
+				return LMB.DangerousGetHandle().eToStructure<T>();
 			}
 
 		}
@@ -7722,32 +7732,32 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_SerializeBinary(this object SerializableObject, string FileName)
+			internal static void eSerializeBinary(this object SerializableObject, string FileName)
 			{
-				using FileStream SM = FileName.e_ToFileInfo()!.OpenWrite();
-				SerializableObject.e_SerializeBinary(SM);
+				using FileStream SM = FileName.eToFileInfo()!.OpenWrite();
+				SerializableObject.eSerializeBinary(SM);
 				SM.Flush();
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_SerializeBinary(this object SerializableObject, Stream SM)
+			internal static void eSerializeBinary(this object SerializableObject, Stream SM)
 			{
-				byte[] abData = SerializableObject.e_SerializeBinary();
+				byte[] abData = SerializableObject.eSerializeBinary();
 				SM.Write(abData, 0, abData.Length);
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] e_SerializeBinary(this object SerializableObject)
+			internal static byte[] eSerializeBinary(this object SerializableObject)
 			{
 				using MemoryStream ms = new();
 #pragma warning disable SYSLIB0011 // Type or member is obsolete
 				(new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter()).Serialize(ms, SerializableObject);
 #pragma warning restore SYSLIB0011 // Type or member is obsolete
-				return ms.e_ReadAllBytes();
+				return ms.eReadAllBytes();
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T? e_DeSerializeBinary<T>(this Stream SM, T? defaultValue = default, bool ThrowExceptionOnError = false)
+			internal static T? eDeSerializeBinary<T>(this Stream SM, T? defaultValue = default, bool ThrowExceptionOnError = false)
 			{
 				try
 				{
@@ -7764,18 +7774,18 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T? e_DeSerializeBinary<T>(this byte[] SerializedData, T? defaultValue = default, bool ThrowExceptionOnError = false)
+			internal static T? eDeSerializeBinary<T>(this byte[] SerializedData, T? defaultValue = default, bool ThrowExceptionOnError = false)
 			{
 				using MemoryStream ms = new(SerializedData);
-				return ms.e_DeSerializeBinary(defaultValue, ThrowExceptionOnError);
+				return ms.eDeSerializeBinary(defaultValue, ThrowExceptionOnError);
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T? e_DeSerializeBinary<T>(this FileInfo File, T? defaultValue = default, bool ThrowExceptionOnError = false)
+			internal static T? eDeSerializeBinary<T>(this FileInfo File, T? defaultValue = default, bool ThrowExceptionOnError = false)
 			{
 				using FileStream fs = File.OpenRead();
-				return fs.e_DeSerializeBinary(defaultValue, ThrowExceptionOnError);
+				return fs.eDeSerializeBinary(defaultValue, ThrowExceptionOnError);
 			}
 
 			#endregion
@@ -7785,7 +7795,7 @@ End Function
 
 			/// <summary>Клонирует объект системным методом CLONE, возвращая объект такого-же типа, что и исходный</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static Icon e_CloneViaGDICopyIcon(this Icon rSource)
+			public static Icon eCloneViaGDICopyIcon(this Icon rSource)
 			{
 				throw new NotImplementedException();
 
@@ -7805,7 +7815,7 @@ End Function
 
 			/// <summary>Клонирует Image через GDI+.DrawImage</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static Bitmap e_CloneViaDrawImage(this System.Drawing.Image imgSrc)
+			public static Bitmap eCloneViaDrawImage(this System.Drawing.Image imgSrc)
 			{
 				Bitmap bmNew = new(imgSrc.Width, imgSrc.Height);
 				using Graphics g = Graphics.FromImage(bmNew);
@@ -7816,7 +7826,7 @@ End Function
 
 			/// <summary>Клонирует объект системным методом CLONE, возвращая объект такого-же типа, что и исходный</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static Icon e_CloneViaMemStream(this Icon rSource)
+			public static Icon eCloneViaMemStream(this Icon rSource)
 			{
 				using MemoryStream ms = new();
 				rSource.Save(ms);
@@ -7827,7 +7837,7 @@ End Function
 
 			/// <summary>Клонирует объект системным методом CLONE, возвращая объект такого-же типа, что и исходный</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static Bitmap e_CloneViaMemStream(this Bitmap rSource)
+			public static Bitmap eCloneViaMemStream(this Bitmap rSource)
 			{
 				using MemoryStream ms = new();
 				rSource.Save(ms, System.Drawing.Imaging.ImageFormat.MemoryBmp);
@@ -7846,11 +7856,11 @@ End Function
 
 			/// <summary>User name without domain</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_GetShortName(this WindowsIdentity U) => U.User?.LookupAccount().User!;
+			internal static string eGetShortName(this WindowsIdentity U) => U.User?.LookupAccount().User!;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_GetPrivilegeDescriptionValue(this WinAPI.security.PRIVELEGE_NAMES P)
-				=> P.e_GetDescriptionValue()!;
+			internal static string eGetPrivilegeDescriptionValue(this WinAPI.security.PRIVELEGE_NAMES P)
+				=> P.eGetDescriptionValue()!;
 
 
 #pragma warning disable SYSLIB0003 // Type or member is obsolete
@@ -7861,19 +7871,19 @@ End Function
 #pragma warning restore SYSLIB0003 // Type or member is obsolete
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static SecurityIdentifier e_ToSID(this string SIDString) => new(SIDString);
+			internal static SecurityIdentifier eToSID(this string SIDString) => new(SIDString);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static SecurityIdentifier e_ToSID(this NTAccount AC) => (SecurityIdentifier)AC.Translate(typeof(SecurityIdentifier));
+			internal static SecurityIdentifier eToSID(this NTAccount AC) => (SecurityIdentifier)AC.Translate(typeof(SecurityIdentifier));
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static SecurityIdentifier e_ToSID(this IdentityReference IR) => (SecurityIdentifier)IR.Translate(typeof(SecurityIdentifier));
+			internal static SecurityIdentifier eToSID(this IdentityReference IR) => (SecurityIdentifier)IR.Translate(typeof(SecurityIdentifier));
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static NTAccount e_ToNTAccount(this IdentityReference IR) => (NTAccount)IR.Translate(typeof(NTAccount));
+			internal static NTAccount eToNTAccount(this IdentityReference IR) => (NTAccount)IR.Translate(typeof(NTAccount));
 
 
 
@@ -7881,7 +7891,7 @@ End Function
 			/// For accounts local To another machine Or In a non-domain setup you would need To PInvoke the Function LookupAccountSid specifying the specific machine name On which the look up needs To be performed.
 			/// </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static NTAccount e_ToNTAccount(this SecurityIdentifier SID) => (NTAccount)SID.Translate(typeof(NTAccount));
+			internal static NTAccount eToNTAccount(this SecurityIdentifier SID) => (NTAccount)SID.Translate(typeof(NTAccount));
 
 
 			internal enum SID_NAME_USE : int
@@ -7931,17 +7941,17 @@ End Function
 				// Allocate space
 				StringBuilder cbUser = new(iUserNameLength + 1);  // Need space for terminating chr(0)?
 				StringBuilder cbDomain = new(iDomainLength + 1);
-				LookupAccountSid(systemName, abSID, cbUser, ref iUserNameLength, cbDomain, ref iDomainLength, ref eUse).e_ThrowLastWin32Exception_AssertFalse("LookupAccountSid");
+				LookupAccountSid(systemName, abSID, cbUser, ref iUserNameLength, cbDomain, ref iDomainLength, ref eUse).eThrowLastWin32Exception_AssertFalse("LookupAccountSid");
 				var nta = new NTAccount(cbUser.ToString(), cbDomain.ToString());
 				return (cbUser.ToString(), cbDomain.ToString(), nta);
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static SecurityIdentifier e_UserNameToSID(this string UserName)
+			internal static SecurityIdentifier eUserNameToSID(this string UserName)
 			{
 				// The easy way, with .NET 2.0 and up, is this:
 				var rNTAcc = new NTAccount(UserName);
-				return rNTAcc.e_ToSID();
+				return rNTAcc.eToSID();
 
 
 				// The hard way, which works when that won't, and works on .NET 1.1 also:
@@ -7998,7 +8008,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_AdjustProcessPrivilegeAndCloseToken(this WinAPI.security.PRIVELEGE_NAMES p)
+			internal static void eAdjustProcessPrivilegeAndCloseToken(this WinAPI.security.PRIVELEGE_NAMES p)
 				=> uom.WinAPI.security.AdjustProcessPrivilegeAndCloseToken(p);
 
 		}
@@ -8015,29 +8025,29 @@ End Function
 
 			/// <summary>используется Shell API StrFormatByteSize64</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_FormatByteSize_Win32(this UInt64 FileLenght)
+			internal static string eFormatByteSize_Win32(this UInt64 FileLenght)
 			{
 				StringBuilder SB = new(120);
 				var ptrResult = uom.WinAPI.shell.StrFormatByteSize64(FileLenght, SB, (uint)SB.Capacity);
-				if (!ptrResult.e_IsValid()) WinAPI.errors.ThrowLastWin23Error("StrFormatByteSize64");
+				if (!ptrResult.eIsValid()) WinAPI.errors.ThrowLastWin23Error("StrFormatByteSize64");
 				return SB.ToString();
 			}
 
-			/// <inheritdoc cref="e_FormatByteSize_Win32" />
+			/// <inheritdoc cref="eFormatByteSize_Win32" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_FormatByteSize_Win32(this Int64 FileLenght) => ((UInt64)FileLenght).e_FormatByteSize_Win32();
+			public static string eFormatByteSize_Win32(this Int64 FileLenght) => ((UInt64)FileLenght).eFormatByteSize_Win32();
 
-			/// <inheritdoc cref="e_FormatByteSize_Win32" />
+			/// <inheritdoc cref="eFormatByteSize_Win32" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_FormatByteSize_Win32(this Int32 iFileLenght) => ((UInt64)iFileLenght).e_FormatByteSize_Win32();
+			public static string eFormatByteSize_Win32(this Int32 iFileLenght) => ((UInt64)iFileLenght).eFormatByteSize_Win32();
 
-			/// <inheritdoc cref="e_FormatByteSize_Win32" />
+			/// <inheritdoc cref="eFormatByteSize_Win32" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_FormatByteSize_Win32(this UInt32 iFileLenght) => ((UInt64)iFileLenght).e_FormatByteSize_Win32();
+			public static string eFormatByteSize_Win32(this UInt32 iFileLenght) => ((UInt64)iFileLenght).eFormatByteSize_Win32();
 
-			/// <inheritdoc cref="e_FormatByteSize_Win32" />
+			/// <inheritdoc cref="eFormatByteSize_Win32" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_FormatByteSize_Win32(this FileInfo FI) => FI.Length.e_FormatByteSize_Win32();
+			public static string eFormatByteSize_Win32(this FileInfo FI) => FI.Length.eFormatByteSize_Win32();
 
 
 
@@ -8045,35 +8055,35 @@ End Function
 			/// <summary>используется Shell API StrFormatByteSizeEx 
 			/// to be running on at least Vista SP1 or Server 2008</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_FormatByteSize_Win32Ex(this UInt64 FileLenght, WinAPI.shell.SFBS_FLAGS flags = WinAPI.shell.SFBS_FLAGS.SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS)
+			internal static string eFormatByteSize_Win32Ex(this UInt64 FileLenght, WinAPI.shell.SFBS_FLAGS flags = WinAPI.shell.SFBS_FLAGS.SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS)
 			{
 				StringBuilder SB = new(120);
 				var ptrResult = uom.WinAPI.shell.StrFormatByteSizeEx(FileLenght, flags, SB, (uint)SB.Capacity);
-				//if (!ptrResult.e_IsValid()) WinAPI.errors.ThrowLastWin23Error($"StrFormatByteSizeEx ({FileLenght})");
+				//if (!ptrResult.eIsValid()) WinAPI.errors.ThrowLastWin23Error($"StrFormatByteSizeEx ({FileLenght})");
 				string s = SB.ToString();
-				if (s.e_IsNullOrWhiteSpace()) WinAPI.errors.ThrowLastWin23Error($"StrFormatByteSizeEx ({FileLenght})");
+				if (s.eIsNullOrWhiteSpace()) WinAPI.errors.ThrowLastWin23Error($"StrFormatByteSizeEx ({FileLenght})");
 				return s;
 			}
 
-			/// <inheritdoc cref="e_FormatByteSize_Win32Ex" />
+			/// <inheritdoc cref="eFormatByteSize_Win32Ex" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_FormatByteSize_Win32Ex(this Int64 FileLenght, WinAPI.shell.SFBS_FLAGS flags = WinAPI.shell.SFBS_FLAGS.SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS)
-				=> ((UInt64)FileLenght).e_FormatByteSize_Win32Ex(flags);
+			public static string eFormatByteSize_Win32Ex(this Int64 FileLenght, WinAPI.shell.SFBS_FLAGS flags = WinAPI.shell.SFBS_FLAGS.SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS)
+				=> ((UInt64)FileLenght).eFormatByteSize_Win32Ex(flags);
 
-			/// <inheritdoc cref="e_FormatByteSize_Win32Ex" />
+			/// <inheritdoc cref="eFormatByteSize_Win32Ex" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_FormatByteSize_Win32Ex(this Int32 iFileLenght, WinAPI.shell.SFBS_FLAGS flags = WinAPI.shell.SFBS_FLAGS.SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS)
-				=> ((UInt64)iFileLenght).e_FormatByteSize_Win32Ex(flags);
+			public static string eFormatByteSize_Win32Ex(this Int32 iFileLenght, WinAPI.shell.SFBS_FLAGS flags = WinAPI.shell.SFBS_FLAGS.SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS)
+				=> ((UInt64)iFileLenght).eFormatByteSize_Win32Ex(flags);
 
-			/// <inheritdoc cref="e_FormatByteSize_Win32Ex" />
+			/// <inheritdoc cref="eFormatByteSize_Win32Ex" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_FormatByteSize_Win32Ex(this UInt32 iFileLenght, WinAPI.shell.SFBS_FLAGS flags = WinAPI.shell.SFBS_FLAGS.SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS)
-				=> ((UInt64)iFileLenght).e_FormatByteSize_Win32Ex(flags);
+			public static string eFormatByteSize_Win32Ex(this UInt32 iFileLenght, WinAPI.shell.SFBS_FLAGS flags = WinAPI.shell.SFBS_FLAGS.SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS)
+				=> ((UInt64)iFileLenght).eFormatByteSize_Win32Ex(flags);
 
-			/// <inheritdoc cref="e_FormatByteSize_Win32Ex" />
+			/// <inheritdoc cref="eFormatByteSize_Win32Ex" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_FormatByteSize_Win32Ex(this FileInfo FI, WinAPI.shell.SFBS_FLAGS flags = WinAPI.shell.SFBS_FLAGS.SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS)
-				=> FI.Length.e_FormatByteSize_Win32Ex(flags);
+			public static string eFormatByteSize_Win32Ex(this FileInfo FI, WinAPI.shell.SFBS_FLAGS flags = WinAPI.shell.SFBS_FLAGS.SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS)
+				=> FI.Length.eFormatByteSize_Win32Ex(flags);
 
 
 
@@ -8085,23 +8095,23 @@ End Function
 
 			/// <summary>Использует Shell API StrFromTimeInterval</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_ToShellTimeString(this uint milliseconds, int Digits = 3)
+			public static string eToShellTimeString(this uint milliseconds, int Digits = 3)
 				=> uom.WinAPI.shell.StrFromTimeInterval(milliseconds, Digits);
 
 
 			/// <summary>Использует Shell API StrFromTimeInterval</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_ToShellTimeString(this TimeSpan TS, int Digits = 3)
+			public static string eToShellTimeString(this TimeSpan TS, int Digits = 3)
 			{
 				uint ms = (uint)Math.Round(TS.TotalSeconds * 1000d);
-				return ms.e_ToShellTimeString(Digits);
+				return ms.eToShellTimeString(Digits);
 			}
 
 
 			///// <summary>Использует Shell API StrFromTimeInterval</summary>
 			//[Obsolete("TickTimer64 is obsolete! use System.Diagnostics.Stopwatch !")]
 			//[ MethodImpl(MethodImplOptions.AggressiveInlining)]
-			//public static string e_ToShellTimeString(this UOM.TickTimer64 TT, int Digits = 3)
+			//public static string eToShellTimeString(this UOM.TickTimer64 TT, int Digits = 3)
 			//{
 			//    long lMS = TT.MeasuredMilliseconts;
 			//    int iMilliseconds = (int)lMS;
@@ -8118,7 +8128,7 @@ End Function
 		{
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static WinAPI.windows.WindowMessages e_ToWindowMessages(this int windowMwssageCode)
+			internal static WinAPI.windows.WindowMessages eToWindowMessages(this int windowMwssageCode)
 				=> (WinAPI.windows.WindowMessages)windowMwssageCode;
 
 		}
@@ -8130,7 +8140,7 @@ End Function
 
 			/// <summary>Расчёт точки вывода текста относительно заданной точки</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static (PointF TextPos, SizeF MeasuredTextSize) e_MeasureStringLocation(
+			internal static (PointF TextPos, SizeF MeasuredTextSize) eMeasureStringLocation(
 				this Graphics g,
 				string Text,
 				Font Font,
@@ -8163,27 +8173,27 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Icon e_Create_For(this Icon rIcon, System.Drawing.Size TargetSize) => new(rIcon, TargetSize);
+			internal static Icon eCreate_For(this Icon rIcon, System.Drawing.Size TargetSize) => new(rIcon, TargetSize);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Icon e_Create_For(this Icon rIcon, int iTargetSize) => rIcon.e_Create_For(new System.Drawing.Size(iTargetSize, iTargetSize));
+			internal static Icon eCreate_For(this Icon rIcon, int iTargetSize) => rIcon.eCreate_For(new System.Drawing.Size(iTargetSize, iTargetSize));
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Icon e_Create_Small(this Icon rIcon) => rIcon.e_Create_For(System.Windows.Forms.SystemInformation.SmallIconSize);
+			internal static Icon eCreate_Small(this Icon rIcon) => rIcon.eCreate_For(System.Windows.Forms.SystemInformation.SmallIconSize);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Icon e_Create_Large(this Icon rIcon) => rIcon.e_Create_For(System.Windows.Forms.SystemInformation.IconSize);
+			internal static Icon eCreate_Large(this Icon rIcon) => rIcon.eCreate_For(System.Windows.Forms.SystemInformation.IconSize);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_DrawRectangle(this Graphics g, Pen P, RectangleF RCF) => g.DrawRectangle(P, RCF.Left, RCF.Top, RCF.Width, RCF.Height);
+			internal static void eDrawRectangle(this Graphics g, Pen P, RectangleF RCF) => g.DrawRectangle(P, RCF.Left, RCF.Top, RCF.Width, RCF.Height);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_DrawRoundedRectangle(
+			internal static void eDrawRoundedRectangle(
 				this Graphics g,
 				Rectangle rc,
 				int radius,
@@ -8207,7 +8217,7 @@ End Function
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_DrawRoundedRectangle(
+			internal static void eDrawRoundedRectangle(
 				this Graphics g,
 				RectangleF rc,
 				float radius,
@@ -8238,7 +8248,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static System.Drawing.StringFormat e_ToDrawingStringFormat(
+			internal static System.Drawing.StringFormat eToDrawingStringFormat(
 				this System.Drawing.ContentAlignment CA,
 				StringFormatFlags FormatFlags = 0)
 			{
@@ -8321,7 +8331,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static System.Drawing.StringFormat e_ToDrawingStringFormat(
+			internal static System.Drawing.StringFormat eToDrawingStringFormat(
 				this HorizontalAlignment A,
 				StringAlignment LineAlignment = StringAlignment.Center,
 				StringFormatFlags FormatFlags = 0)
@@ -8340,7 +8350,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static System.Windows.Forms.TextFormatFlags e_ToTextFormatFlags(this System.Drawing.StringFormat SF)
+			internal static System.Windows.Forms.TextFormatFlags eToTextFormatFlags(this System.Drawing.StringFormat SF)
 			{
 				TextFormatFlags FF = 0;
 				switch (SF.Alignment)
@@ -8360,7 +8370,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static System.Drawing.StringAlignment e_ToDrawingStringAlignment(this System.Windows.Forms.HorizontalAlignment Align)
+			internal static System.Drawing.StringAlignment eToDrawingStringAlignment(this System.Windows.Forms.HorizontalAlignment Align)
 				=> Align switch
 				{
 					HorizontalAlignment.Center => StringAlignment.Center,
@@ -8373,7 +8383,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_DrawShadow(this GraphicsPath gp, int intensity, int radius, Bitmap dest)
+			internal static void eDrawShadow(this GraphicsPath gp, int intensity, int radius, Bitmap dest)
 			{
 				using Graphics g = Graphics.FromImage(dest);
 				g.Clear(Color.Transparent);
@@ -8394,9 +8404,9 @@ End Function
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_DrawPathShadow(this Graphics g, GraphicsPath gp, int radius, int intensity = 100)
+			internal static void eDrawPathShadow(this Graphics g, GraphicsPath gp, int radius, int intensity = 100)
 			{
-				intensity = intensity.e_CheckRange(1, 100);
+				intensity = intensity.eCheckRange(1, 100);
 				double alpha = 0;
 				double astep = 0;
 				double astepstep = (double)intensity / radius / (radius / 2D);
@@ -8414,14 +8424,14 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_GetExtensionForRawFormat(this Bitmap IMG)
-				=> IMG.RawFormat.e_GetExtension();
+			internal static string eGetExtensionForRawFormat(this Bitmap IMG)
+				=> IMG.RawFormat.eGetExtension();
 
 
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_GetExtension(this System.Drawing.Imaging.ImageFormat fmt)
+			internal static string eGetExtension(this System.Drawing.Imaging.ImageFormat fmt)
 			{
 				string sExt;
 				if (fmt.Equals(System.Drawing.Imaging.ImageFormat.Jpeg)) sExt = "jpg";
@@ -8444,7 +8454,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Icon e_CreateIcon(this Image IMG, System.Drawing.Size IconSize)
+			internal static Icon eCreateIcon(this Image IMG, System.Drawing.Size IconSize)
 			{
 				var bmSmall = (Bitmap)IMG.GetThumbnailImage(IconSize.Width, IconSize.Height, default, default);
 				return Icon.FromHandle(bmSmall.GetHicon());
@@ -8458,14 +8468,14 @@ End Function
 
 #if NETFRAMEWORK
 			[ MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string? e_ExtractAssociatedIcon(
+			internal static string? eExtractAssociatedIcon(
 				this FileInfo App,
 				ImageList IML,
-				bool TryLoadFileAsImage = false) => App!.FullName!.e_ExtractAssociatedIcon(IML, TryLoadFileAsImage);
+				bool TryLoadFileAsImage = false) => App!.FullName!.eExtractAssociatedIcon(IML, TryLoadFileAsImage);
 
 
 			[ MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string? e_ExtractAssociatedIcon(this string sPath, ImageList IML, bool TryLoadFileAsImage = false)
+			internal static string? eExtractAssociatedIcon(this string sPath, ImageList IML, bool TryLoadFileAsImage = false)
 			{
 				lock (IML)
 				{
@@ -8479,7 +8489,7 @@ End Function
 						{
 							var BM = new Bitmap(sPath);
 							// Image loaeded OK! Creating Icon
-							var rFileIcon = BM.e_CreateIcon(IML.ImageSize);
+							var rFileIcon = BM.eCreateIcon(IML.ImageSize);
 							if (rFileIcon != null)
 							{
 								var FileIcon_16 = new Icon(rFileIcon, IML.ImageSize);
@@ -8516,13 +8526,13 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static System.Drawing.Icon? e_ExtractAssociatedIcon(this string file)
+			internal static System.Drawing.Icon? eExtractAssociatedIcon(this string file)
 				=> System.Drawing.Icon.ExtractAssociatedIcon(file);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static System.Drawing.Icon? e_ExtractAssociatedIcon(this FileSystemInfo FI)
-				=> FI.FullName.e_ExtractAssociatedIcon();
+			internal static System.Drawing.Icon? eExtractAssociatedIcon(this FileSystemInfo FI)
+				=> FI.FullName.eExtractAssociatedIcon();
 
 
 
@@ -8541,17 +8551,17 @@ End Function
 			/// Уменьшает большие картинки
 			/// </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Bitmap e_GetThumbnailBitmap(this System.Drawing.Icon rIcon, System.Drawing.Size szCanvas)
-				=> rIcon.ToBitmap().e_GetThumbnailBitmap(szCanvas, System.Windows.Forms.SystemInformation.IconSize, true);
+			internal static Bitmap eGetThumbnailBitmap(this System.Drawing.Icon rIcon, System.Drawing.Size szCanvas)
+				=> rIcon.ToBitmap().eGetThumbnailBitmap(szCanvas, System.Windows.Forms.SystemInformation.IconSize, true);
 
 			/// <summary>Создаёт прозрачный холст с заданными размерами, и рисует заданное изображение.
 			/// Уменьшает большие картинки
 			/// </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Bitmap e_GetThumbnailBitmap(this Icon rIcon, ImageList rImageList)
+			internal static Bitmap eGetThumbnailBitmap(this Icon rIcon, ImageList rImageList)
 			{
 				if (null == rImageList) throw new ArgumentNullException(nameof(rImageList));
-				return rIcon.e_GetThumbnailBitmap(rImageList.ImageSize);
+				return rIcon.eGetThumbnailBitmap(rImageList.ImageSize);
 			}
 
 
@@ -8560,8 +8570,8 @@ End Function
 			/// <param name="CanvasSize">Выходной размер получаемого изображения</param>
 			/// <param name="DrawImageSize">Размер рисуемого изображения на холсте. Если не указан, автоматически маленькие как есть, а большие уменьшались</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Bitmap e_GetThumbnailBitmap(this Icon rIcon, System.Drawing.Size CanvasSize, System.Drawing.Size? DrawImageSize = default, bool UpScaleSmallImgaes = false)
-				=> e_GetThumbnailBitmap_CORE(rIcon.Size,
+			internal static Bitmap eGetThumbnailBitmap(this Icon rIcon, System.Drawing.Size CanvasSize, System.Drawing.Size? DrawImageSize = default, bool UpScaleSmallImgaes = false)
+				=> eGetThumbnailBitmap_CORE(rIcon.Size,
 					(G, RC) => G.DrawIcon(rIcon, RC),
 					CanvasSize, DrawImageSize, UpScaleSmallImgaes);
 
@@ -8569,8 +8579,8 @@ End Function
 			/// <param name="CanvasSize">Выходной размер получаемого изображения</param>
 			/// <param name="DrawImageSize">Размер рисуемого изображения на холсте. Если не указан, автоматически маленькие как есть, а большие уменьшались</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Bitmap e_GetThumbnailBitmap(this Image rBitmap, System.Drawing.Size CanvasSize, System.Drawing.Size? DrawImageSize = default, bool UpScaleSmallImgaes = false)
-				=> e_GetThumbnailBitmap_CORE(rBitmap.Size,
+			internal static Bitmap eGetThumbnailBitmap(this Image rBitmap, System.Drawing.Size CanvasSize, System.Drawing.Size? DrawImageSize = default, bool UpScaleSmallImgaes = false)
+				=> eGetThumbnailBitmap_CORE(rBitmap.Size,
 					(G, RC) => G.DrawImage(rBitmap, RC),
 					CanvasSize, DrawImageSize, UpScaleSmallImgaes);
 
@@ -8578,39 +8588,39 @@ End Function
 			/// Уменьшает большие картинки</summary>
 			/// <param name="CanvasSize">Размер холста</param>
 			/// <param name="DrawImageSize">Размер рисуемого изображения на холсте. Если не указан, автоматически маленькие как есть, а большие уменьшались</param>
-			private static Bitmap e_GetThumbnailBitmap_CORE(
+			private static Bitmap eGetThumbnailBitmap_CORE(
 				System.Drawing.Size ImageSize,
 				Action<Graphics, System.Drawing.Rectangle> DrawImageProc,
 				System.Drawing.Size CanvasSize,
 				System.Drawing.Size? DrawImageSize = null,
 				bool UpScaleSmallImgaes = false)
 			{
-				var szfCanvas = CanvasSize.e_ToSizeF();
+				var szfCanvas = CanvasSize.eToSizeF();
 				Bitmap bmCanvas = new(CanvasSize.Width, CanvasSize.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
 				using Graphics g = Graphics.FromImage(bmCanvas);
 				g.PageUnit = GraphicsUnit.Pixel;
 				g.Clear(Color.Transparent);
 				// Call G.DrawRectangle(Pens.Blue, rcFileBitmap)
 
-				var szfDraw = (DrawImageSize ?? ImageSize).e_ToSizeF();
+				var szfDraw = (DrawImageSize ?? ImageSize).eToSizeF();
 				if (szfDraw.Width > szfCanvas.Width || szfDraw.Height > szfCanvas.Height)
 				{
 					// Выводимое изображение превышает размеры холста, надо вписать
-					szfDraw = szfDraw.e_ВписатьВ(szfCanvas).TargetSize;
+					szfDraw = szfDraw.eВписатьВ(szfCanvas).TargetSize;
 				}
 				else if (UpScaleSmallImgaes)
 				{
 					// Мелкое изображание надо увеличить ?
-					var szfUpscaleTo = (DrawImageSize ?? CanvasSize).e_ToSizeF();
+					var szfUpscaleTo = (DrawImageSize ?? CanvasSize).eToSizeF();
 					if (ImageSize.Width < szfUpscaleTo.Width && ImageSize.Height > szfUpscaleTo.Height)
 					{
 						// Мелкое изображание надо увеличить!
-						szfDraw = szfDraw.e_ВписатьВ(szfUpscaleTo).TargetSize;
+						szfDraw = szfDraw.eВписатьВ(szfUpscaleTo).TargetSize;
 					}
 				}
 
-				var ptfCenter = szfCanvas.e_ToRectangleF().e_GetCenter();
-				var rcDraw = szfDraw.e_ToRectangleF().e_CenterTo(ptfCenter).e_ToRectangle();
+				var ptfCenter = szfCanvas.eToRectangleF().eGetCenter();
+				var rcDraw = szfDraw.eToRectangleF().eCenterTo(ptfCenter).eToRectangle();
 				DrawImageProc.Invoke(g, rcDraw);
 				return bmCanvas;
 
@@ -8618,9 +8628,9 @@ End Function
 
 
 				#region OLD
-				// Dim szfCanvas = szCanvas. e_ToSizeF
+				// Dim szfCanvas = szCanvas. eToSizeF
 				// Dim bmCanvas = New Bitmap(szCanvas.Width, szCanvas.Height, Imaging.PixelFormat.Format32bppArgb)
-				// Dim ptfCanvasCanter = szfCanvas. e_ToRectangle. e_GetCenter
+				// Dim ptfCanvasCanter = szfCanvas. eToRectangle. eGetCenter
 				// Using G = Graphics.FromImage(bmCanvas)
 				// G.PageUnit = GraphicsUnit.Pixel
 				// Call G.Clear(Color.Transparent)
@@ -8630,23 +8640,23 @@ End Function
 				// Указан размер изображения на эскизе (сам размер эскиза задан другими размерами!) Всегда масштабируем
 				// Dim szImageToDraw = TargetImageSize.Value
 
-				// Dim rcfImageToDraw = szImageToDraw. e_ToRectangle. e_ToRectangleF. e_CenterTo(ptfCanvasCanter)
+				// Dim rcfImageToDraw = szImageToDraw. eToRectangle. eToRectangleF. eCenterTo(ptfCanvasCanter)
 				// Call G.DrawImage(imgImageToDraw, rcfImageToDraw)
 
 				// Else
 				// Принудательный размер не указан Маленькие рисуем как есть, большие уменьшаем
-				// Dim szfImageToDraw = imgImageToDraw.Size. e_ToSizeF
+				// Dim szfImageToDraw = imgImageToDraw.Size. eToSizeF
 
 				// If (Not ScaleSmallImgaes) AndAlso ((szfImageToDraw.Width <= szCanvas.Width) AndAlso (szfImageToDraw.Height <= szCanvas.Height)) Then
 				// Изображание не превышает размеров холста
-				// Dim rcfDrawTo = szfImageToDraw. e_ToRectangle. e_CenterTo(ptfCanvasCanter)
+				// Dim rcfDrawTo = szfImageToDraw. eToRectangle. eCenterTo(ptfCanvasCanter)
 				// Call G.DrawImage(imgImageToDraw, rcfDrawTo)
 
 				// Else
 				// Изображение больше холста - вписываем с сохранением пропорций
-				// Dim fScaled = imgImageToDraw.Size. e_ToSizeF. e_ВписатьВ(szfCanvas)
-				// Dim rcfScaled = fScaled.TargetSize. e_ToRectangle
-				// rcfScaled = rcfScaled. e_CenterTo(ptfCanvasCanter)
+				// Dim fScaled = imgImageToDraw.Size. eToSizeF. eВписатьВ(szfCanvas)
+				// Dim rcfScaled = fScaled.TargetSize. eToRectangle
+				// rcfScaled = rcfScaled. eCenterTo(ptfCanvasCanter)
 				// Call G.DrawImage(imgImageToDraw, rcfScaled)
 				// End If
 				// End If
@@ -8666,7 +8676,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static StringAlignment e_GetAlignment(this ContentAlignment ca)
+			public static StringAlignment eGetAlignment(this ContentAlignment ca)
 				=> ca switch
 				{
 					var ca2
@@ -8685,7 +8695,7 @@ End Function
 				};
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static StringAlignment e_GetLineAlignment(this ContentAlignment ca)
+			public static StringAlignment eGetLineAlignment(this ContentAlignment ca)
 				=> ca switch
 				{
 					var ca2
@@ -8705,7 +8715,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static TextFormatFlags e_ToTextFormatFlags(this ContentAlignment ca)
+			public static TextFormatFlags eToTextFormatFlags(this ContentAlignment ca)
 			=> ca switch
 			{
 				ContentAlignment.TopLeft => TextFormatFlags.Left | TextFormatFlags.Top,
@@ -8723,12 +8733,12 @@ End Function
 			};
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static StringFormat e_ToStringFormat(this ContentAlignment ca)
+			public static StringFormat eToStringFormat(this ContentAlignment ca)
 			{
 				var sf = new StringFormat()
 				{
-					Alignment = ca.e_GetAlignment(),
-					LineAlignment = ca.e_GetLineAlignment()
+					Alignment = ca.eGetAlignment(),
+					LineAlignment = ca.eGetLineAlignment()
 				};
 				return sf;
 			}
@@ -8746,7 +8756,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_DrawTextEx(
+			public static void eDrawTextEx(
 			this Graphics g,
 			string text,
 			Font font,
@@ -8755,11 +8765,11 @@ End Function
 			ContentAlignment textAlign)
 			{
 				using Brush brText = new SolidBrush(textcolor);
-				g.e_DrawTextEx(text, font, brText, rect, textAlign);
+				g.eDrawTextEx(text, font, brText, rect, textAlign);
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_DrawTextEx(
+			public static void eDrawTextEx(
 				this Graphics g,
 				string text,
 				Font font,
@@ -8767,7 +8777,7 @@ End Function
 				Rectangle rect,
 				ContentAlignment textAlign)
 			{
-				using var sf = textAlign.e_ToStringFormat();
+				using var sf = textAlign.eToStringFormat();
 				g.DrawString(text, font, textbrush, rect, sf);
 			}
 
@@ -8795,7 +8805,7 @@ End Function
 
 			internal enum PaperOrientations : int { Portrait, Landscape, Square }
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static PaperOrientations e_GetOrientation(this System.Drawing.Size szScreen)
+			internal static PaperOrientations eGetOrientation(this System.Drawing.Size szScreen)
 				=> (szScreen.Width == szScreen.Height)
 				? PaperOrientations.Square
 				: (szScreen.Width > szScreen.Height)
@@ -8804,15 +8814,15 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_OrientationIsLandscape(this System.Drawing.Size szScreen)
+			internal static bool eOrientationIsLandscape(this System.Drawing.Size szScreen)
 			{
-				return szScreen.e_GetOrientation() == PaperOrientations.Landscape;
+				return szScreen.eGetOrientation() == PaperOrientations.Landscape;
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_OrientationIsPortrait(this System.Drawing.Size szScreen)
+			internal static bool eOrientationIsPortrait(this System.Drawing.Size szScreen)
 			{
-				return szScreen.e_GetOrientation() == PaperOrientations.Portrait;
+				return szScreen.eGetOrientation() == PaperOrientations.Portrait;
 			}
 
 
@@ -8822,7 +8832,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static SizeF e_Inches_ToPixels(this Graphics g, SizeF SizeInInches)
+			internal static SizeF eInches_ToPixels(this Graphics g, SizeF SizeInInches)
 				=> new(
 					SizeInInches.Width * g.DpiX,
 					SizeInInches.Height * g.DpiY
@@ -8830,65 +8840,65 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static SizeF e_MM_ToPixels(this Graphics g, SizeF SizeInMM)
+			internal static SizeF eMM_ToPixels(this Graphics g, SizeF SizeInMM)
 				=> new(
-					SizeInMM.Width.e_MMToInches() * g.DpiX,
-					SizeInMM.Height.e_MMToInches() * g.DpiY
+					SizeInMM.Width.eMMToInches() * g.DpiX,
+					SizeInMM.Height.eMMToInches() * g.DpiY
 					);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static SizeF e_InchesToCM(this SizeF valueInInches)
+			internal static SizeF eInchesToCM(this SizeF valueInInches)
 				=> new(
-					valueInInches.Width.e_InchesToCM(),
-					valueInInches.Height.e_InchesToCM());
+					valueInInches.Width.eInchesToCM(),
+					valueInInches.Height.eInchesToCM());
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static RectangleF e_InchesToCM(this RectangleF valueInInches)
+			internal static RectangleF eInchesToCM(this RectangleF valueInInches)
 				=> new(
-					valueInInches.Left.e_InchesToCM(),
-					valueInInches.Top.e_InchesToCM(),
-					valueInInches.Width.e_InchesToCM(),
-					valueInInches.Height.e_InchesToCM()
+					valueInInches.Left.eInchesToCM(),
+					valueInInches.Top.eInchesToCM(),
+					valueInInches.Width.eInchesToCM(),
+					valueInInches.Height.eInchesToCM()
 					);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static RectangleF e_CMToInches(this RectangleF CM)
+			internal static RectangleF eCMToInches(this RectangleF CM)
 				=> new(
-					CM.Left.e_CMToInches(),
-					CM.Top.e_CMToInches(),
-					CM.Width.e_CMToInches(),
-					CM.Height.e_CMToInches()
+					CM.Left.eCMToInches(),
+					CM.Top.eCMToInches(),
+					CM.Width.eCMToInches(),
+					CM.Height.eCMToInches()
 					);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static System.Drawing.SizeF e_Pixels_To_Inches(this Size pixels, System.Drawing.Point dpi)
+			internal static System.Drawing.SizeF ePixels_To_Inches(this Size pixels, System.Drawing.Point dpi)
 				=> new(
 					(float)pixels.Width / (float)dpi.X,
 					(float)pixels.Height / (float)dpi.Y);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static System.Drawing.Point e_Inches_To_Pixels(this PointF Inches, System.Drawing.Point DPI)
+			internal static System.Drawing.Point eInches_To_Pixels(this PointF Inches, System.Drawing.Point DPI)
 				=> new(
 					(int)(Inches.X * DPI.X),
 					(int)(Inches.Y * DPI.Y));
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static System.Drawing.Size e_Inches_To_Pixels(this SizeF Inches, System.Drawing.Point DPI)
+			internal static System.Drawing.Size eInches_To_Pixels(this SizeF Inches, System.Drawing.Point DPI)
 				=> new(
 					(int)(Inches.Width * DPI.X),
 					(int)(Inches.Height * DPI.Y));
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Rectangle e_Inches_To_Pixels(this System.Drawing.RectangleF rcfДюймы, System.Drawing.Point DPI)
+			internal static Rectangle eInches_To_Pixels(this System.Drawing.RectangleF rcfДюймы, System.Drawing.Point DPI)
 				=> new(
-					rcfДюймы.Location.e_Inches_To_Pixels(DPI),
-					rcfДюймы.Size.e_Inches_To_Pixels(DPI));
+					rcfДюймы.Location.eInches_To_Pixels(DPI),
+					rcfДюймы.Size.eInches_To_Pixels(DPI));
 
 			#endregion
 
@@ -8904,13 +8914,13 @@ End Function
 			/// <param name="target">Целевой размер, В КОТОРЫЙ надо вписать</param>
 			/// <returns>Zoom = коэффициент масштабирования</returns>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static (System.Drawing.Size TargetSize, float Zoom) e_ВписатьВ(this System.Drawing.Size source, System.Drawing.Size target
+			internal static (System.Drawing.Size TargetSize, float Zoom) eВписатьВ(this System.Drawing.Size source, System.Drawing.Size target
 				)
 			{
 				//float sngZoom = 0f;
 				var SourceF = new SizeF(source.Width, source.Height);
 				var LimitF = new SizeF(target.Width, target.Height);
-				var (TargetSize, Zoom) = SourceF.e_ВписатьВ(LimitF);
+				var (TargetSize, Zoom) = SourceF.eВписатьВ(LimitF);
 				return (TargetSize.ToSize(), Zoom);
 			}
 
@@ -8919,7 +8929,7 @@ End Function
 			/// <param name="target">Целевой размер, В КОТОРЫЙ надо вписать</param>
 			/// <returns>Zoom = коэффициент масштабирования</returns>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static (System.Drawing.SizeF TargetSize, float Zoom) e_ВписатьВ(this SizeF source, SizeF target)
+			internal static (System.Drawing.SizeF TargetSize, float Zoom) eВписатьВ(this SizeF source, SizeF target)
 			{
 				float zoom, w, h;
 
@@ -8976,7 +8986,7 @@ End Function
 
 			/// <summary>Размер = текущему разрешению экрана? Наверное будет гнать в многомониторной системе</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsLikeScreen(this System.Drawing.Size szTarget)
+			internal static bool eIsLikeScreen(this System.Drawing.Size szTarget)
 			{
 				throw new NotImplementedException();
 
@@ -8986,7 +8996,7 @@ End Function
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsFullHD(this System.Drawing.Size szTarget)
+			internal static bool eIsFullHD(this System.Drawing.Size szTarget)
 			{
 				var szFullHD = new Size(1920, 1080);
 				return (szTarget == szFullHD);
@@ -9000,38 +9010,38 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static SizeF e_Multiply(this SizeF Source, float Zoom) => new(Source.Width * Zoom, Source.Height * Zoom);
+			internal static SizeF eMultiply(this SizeF Source, float Zoom) => new(Source.Width * Zoom, Source.Height * Zoom);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static PointF e_Multiply(this PointF Source, float Zoom) => new(Source.X * Zoom, Source.Y * Zoom);
+			internal static PointF eMultiply(this PointF Source, float Zoom) => new(Source.X * Zoom, Source.Y * Zoom);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static System.Drawing.Point e_ToPoint(this PointF Source) => new((int)Source.X, (int)Source.Y);
+			internal static System.Drawing.Point eToPoint(this PointF Source) => new((int)Source.X, (int)Source.Y);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static PointF e_ToPoint(this SizeF Source) => new(Source.Width, Source.Height);
+			internal static PointF eToPoint(this SizeF Source) => new(Source.Width, Source.Height);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Point e_ToPoint(this Size Source) => new(Source.Width, Source.Height);
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static PointF e_ToPointF(this Size Source) => new(Source.Width, Source.Height);
+			internal static Point eToPoint(this Size Source) => new(Source.Width, Source.Height);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static SizeF e_ToSize(this PointF Source) => new(Source.X, Source.Y);
+			internal static PointF eToPointF(this Size Source) => new(Source.Width, Source.Height);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static SizeF e_ToSizeF(this Size Source) => new(Source.Width, Source.Height);
+			internal static SizeF eToSize(this PointF Source) => new(Source.X, Source.Y);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static RectangleF e_ToRectangleF(this System.Drawing.SizeF Source, PointF? newLocation = null)
+			internal static SizeF eToSizeF(this Size Source) => new(Source.Width, Source.Height);
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static RectangleF eToRectangleF(this System.Drawing.SizeF Source, PointF? newLocation = null)
 				=> new(
 					newLocation.HasValue
 						? newLocation.Value
@@ -9040,7 +9050,7 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Rectangle e_ToRectangle(this System.Drawing.Size Source, Point? newLocation = null)
+			internal static Rectangle eToRectangle(this System.Drawing.Size Source, Point? newLocation = null)
 				=> new(
 					  newLocation.HasValue
 						? newLocation.Value
@@ -9049,13 +9059,13 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static RectangleF e_ToRectangleF(this Rectangle RC) => new(RC.Left, RC.Top, RC.Width, RC.Height);
+			internal static RectangleF eToRectangleF(this Rectangle RC) => new(RC.Left, RC.Top, RC.Width, RC.Height);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Rectangle e_ToRectangle(this RectangleF RCF)
+			internal static Rectangle eToRectangle(this RectangleF RCF)
 			{
-				RCF = RCF.e_Round(0);
+				RCF = RCF.eRound(0);
 				return new(
 					(int)RCF.Left,
 					(int)RCF.Top,
@@ -9072,13 +9082,13 @@ End Function
 
 			/// <summary>Округляет, используя Round(Precission)</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static RectangleF e_Round(this RectangleF RCF, int Precission)
+			internal static RectangleF eRound(this RectangleF RCF, int Precission)
 			{
 				float X, Y, W, H;
-				X = RCF.Left.e_Round(Precission);
-				Y = RCF.Top.e_Round(Precission);
-				W = RCF.Width.e_Round(Precission);
-				H = RCF.Height.e_Round(Precission);
+				X = RCF.Left.eRound(Precission);
+				Y = RCF.Top.eRound(Precission);
+				W = RCF.Width.eRound(Precission);
+				H = RCF.Height.eRound(Precission);
 				var RC = new RectangleF(X, Y, W, H);
 				return RC;
 			}
@@ -9131,9 +9141,9 @@ End Function
 			/// <param name="AngleRad">Угол в радианах</param>
 			/// <param name="sngRadius">Радиус</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static PointF e_RotateAround(this PointF ptfCenter, float AngleRad, float sngRadius)
+			internal static PointF eRotateAround(this PointF ptfCenter, float AngleRad, float sngRadius)
 			{
-				var ptfOffset = AngleRad.e_RotateAround(sngRadius);
+				var ptfOffset = AngleRad.eRotateAround(sngRadius);
 				return new PointF(ptfCenter.X + ptfOffset.X, ptfCenter.Y + ptfOffset.Y);
 			}
 
@@ -9142,9 +9152,9 @@ End Function
 			/// <param name="AngleRad">Угол в радианах</param>
 			/// <param name="Radius">Радиус X,Y</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static System.Drawing.PointF e_RotateAround(this PointF ptfCenter, float AngleRad, System.Drawing.SizeF Radius)
+			internal static System.Drawing.PointF eRotateAround(this PointF ptfCenter, float AngleRad, System.Drawing.SizeF Radius)
 			{
-				var ptfOffset = AngleRad.e_RotateAround(Radius);
+				var ptfOffset = AngleRad.eRotateAround(Radius);
 				return new PointF(ptfCenter.X + ptfOffset.X, ptfCenter.Y + ptfOffset.Y);
 			}
 
@@ -9152,7 +9162,7 @@ End Function
 			/// <param name="AngleRad">Угол в радианах</param>
 			/// <param name="Radius">Радиус X,Y</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static System.Drawing.PointF e_RotateAround(this float AngleRad, System.Drawing.SizeF Radius)
+			internal static System.Drawing.PointF eRotateAround(this float AngleRad, System.Drawing.SizeF Radius)
 			{
 				return new PointF((float)(Math.Cos(AngleRad) * Radius.Width), (float)(Math.Sin(AngleRad) * Radius.Height));
 			}
@@ -9161,9 +9171,9 @@ End Function
 			/// <param name="AngleRad">Угол в радианах</param>
 			/// <param name="sngRadius">Радиус</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static PointF e_RotateAround(this float AngleRad, float sngRadius)
+			internal static PointF eRotateAround(this float AngleRad, float sngRadius)
 			{
-				return AngleRad.e_RotateAround(new SizeF(sngRadius, sngRadius));
+				return AngleRad.eRotateAround(new SizeF(sngRadius, sngRadius));
 			}
 
 
@@ -9173,36 +9183,36 @@ End Function
 
 			/// <summary>Делит каждое значение на заданное</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static RectangleF e_DivideTo(this Rectangle RC, float Делитель) => new(RC.Left / Делитель, RC.Top / Делитель, RC.Width / Делитель, RC.Height / Делитель);
+			internal static RectangleF eDivideTo(this Rectangle RC, float Делитель) => new(RC.Left / Делитель, RC.Top / Делитель, RC.Width / Делитель, RC.Height / Делитель);
 
 
 			/// <summary>Делит каждое значение на заданное</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static RectangleF e_MultipleTo(this RectangleF RC, float Множитель) => new(RC.Left * Множитель, RC.Top * Множитель, RC.Width * Множитель, RC.Height * Множитель);
+			internal static RectangleF eMultipleTo(this RectangleF RC, float Множитель) => new(RC.Left * Множитель, RC.Top * Множитель, RC.Width * Множитель, RC.Height * Множитель);
 
 
 			/// <summary>Находит центр прямоугольника</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static PointF e_GetCenter(this RectangleF RC) => new(RC.Left + (RC.Width / 2), RC.Top + (RC.Height / 2));
+			internal static PointF eGetCenter(this RectangleF RC) => new(RC.Left + (RC.Width / 2), RC.Top + (RC.Height / 2));
 
-			internal static PointF e_Round(this PointF pt, int digits = 0) => new(
+			internal static PointF eRound(this PointF pt, int digits = 0) => new(
 				(float)Math.Round(pt.X, digits),
 				(float)Math.Round(pt.Y, digits));
 
-			internal static Point e_RoundToInt(this PointF pt)
+			internal static Point eRoundToInt(this PointF pt)
 			{
-				pt = pt.e_Round(0);
+				pt = pt.eRound(0);
 				return new((int)pt.X, (int)pt.Y);
 			}
 
-			internal static Size e_GetVectorTo(this Point source, Point target)
+			internal static Size eGetVectorTo(this Point source, Point target)
 			{
 				int dx = source.X - target.X;
 				int dy = source.Y - target.Y;
 				return new(dx, dy);
 			}
 
-			internal static double e_GetHypotenuse(this Size vector)
+			internal static double eGetHypotenuse(this Size vector)
 			{
 				var dx = Math.Pow((double)vector.Width, 2d);
 				var dy = Math.Pow((double)vector.Height, 2d);
@@ -9212,22 +9222,22 @@ End Function
 
 			/// <summary>Находит центр прямоугольника</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static PointF e_GetCenter(this Rectangle RC) => RC.e_ToRectangleF().e_GetCenter();
+			internal static PointF eGetCenter(this Rectangle RC) => RC.eToRectangleF().eGetCenter();
 
 
 			/// <summary>Центрирует Короткую линию по более длинной</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static float e_CenterTo(this float ShortLineWidth, float LongLineWidth) => (LongLineWidth - ShortLineWidth) / 2f;
+			internal static float eCenterTo(this float ShortLineWidth, float LongLineWidth) => (LongLineWidth - ShortLineWidth) / 2f;
 
 
 			/// <summary>Центрирует Короткую линию по более длинной</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static int e_CenterTo(this int ShortLineWidth, int LongLineWidth) => (int)Math.Round((LongLineWidth - ShortLineWidth) / 2f);
+			internal static int eCenterTo(this int ShortLineWidth, int LongLineWidth) => (int)Math.Round((LongLineWidth - ShortLineWidth) / 2f);
 
 
 			/// <summary>Центрирует прямоугольник относительно заданной точки</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static RectangleF e_CenterTo(this RectangleF RC, PointF ptCenter)
+			internal static RectangleF eCenterTo(this RectangleF RC, PointF ptCenter)
 				=> new(
 					ptCenter.X - RC.Width / 2,
 					ptCenter.Y - RC.Height / 2,
@@ -9238,7 +9248,7 @@ End Function
 
 			/// <summary>Центрирует прямоугольник относительно заданной точки</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Rectangle e_CenterTo(this Rectangle RC, Point ptCenter)
+			internal static Rectangle eCenterTo(this Rectangle RC, Point ptCenter)
 				=> new(
 					ptCenter.X - RC.Width / 2,
 					ptCenter.Y - RC.Height / 2,
@@ -9250,7 +9260,7 @@ End Function
 
 			/// <summary>Центрирует прямоугольник относительно заданной точки</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Rectangle e_AlignTo(this Rectangle src, Rectangle trg, ContentAlignment alignment, Point? offset = null)
+			internal static Rectangle eAlignTo(this Rectangle src, Rectangle trg, ContentAlignment alignment, Point? offset = null)
 			{
 				Point ptLocation = src.Location;
 
@@ -9274,7 +9284,7 @@ End Function
 						case ContentAlignment.MiddleCenter:
 						case ContentAlignment.MiddleRight:
 							{
-								Rectangle rcCentered = src.e_CenterTo(trg.e_GetCenter().e_ToPoint());
+								Rectangle rcCentered = src.eCenterTo(trg.eGetCenter().eToPoint());
 								ptLocation.Y = rcCentered.Y;
 								break;
 							}
@@ -9314,7 +9324,7 @@ End Function
 						case ContentAlignment.MiddleCenter:
 						case ContentAlignment.BottomCenter:
 							{
-								Rectangle rcCentered = src.e_CenterTo(trg.e_GetCenter().e_ToPoint());
+								Rectangle rcCentered = src.eCenterTo(trg.eGetCenter().eToPoint());
 								ptLocation.X = rcCentered.X;
 								break;
 							}
@@ -9337,7 +9347,7 @@ End Function
 
 			/// <summary>Центрирует прямоугольник относительно заданной точки</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static RectangleF e_AlignTo(this RectangleF src, RectangleF trg, ContentAlignment alignment, Point? offset = null)
+			internal static RectangleF eAlignTo(this RectangleF src, RectangleF trg, ContentAlignment alignment, Point? offset = null)
 			{
 				PointF ptLocation = src.Location;
 
@@ -9361,7 +9371,7 @@ End Function
 						case ContentAlignment.MiddleCenter:
 						case ContentAlignment.MiddleRight:
 							{
-								RectangleF rcCentered = src.e_CenterTo(trg.e_GetCenter());
+								RectangleF rcCentered = src.eCenterTo(trg.eGetCenter());
 								ptLocation.Y = rcCentered.Y;
 								break;
 							}
@@ -9401,7 +9411,7 @@ End Function
 						case ContentAlignment.MiddleCenter:
 						case ContentAlignment.BottomCenter:
 							{
-								RectangleF rcCentered = src.e_CenterTo(trg.e_GetCenter());
+								RectangleF rcCentered = src.eCenterTo(trg.eGetCenter());
 								ptLocation.X = rcCentered.X;
 								break;
 							}
@@ -9435,7 +9445,7 @@ End Function
 
 			/// <summary>Точка внутри?</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsInRect(this System.Drawing.Rectangle RC, System.Drawing.Point PT)
+			internal static bool eIsInRect(this System.Drawing.Rectangle RC, System.Drawing.Point PT)
 			{
 				if (PT.X < RC.Left) return false;
 				if (PT.X > RC.Right) return false;
@@ -9446,7 +9456,7 @@ End Function
 
 			/// <summary>Сделать, чтобы точка не выходила за пределы</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static System.Drawing.RectangleF e_EnsureInRect(this System.Drawing.RectangleF src, System.Drawing.RectangleF trg)
+			internal static System.Drawing.RectangleF eEnsureInRect(this System.Drawing.RectangleF src, System.Drawing.RectangleF trg)
 			{
 				if (src.Left > trg.Right) src.X = trg.Right;
 				if (src.Top > trg.Bottom) src.Y = trg.Bottom;
@@ -9460,9 +9470,9 @@ End Function
 
 
 
-			/// <inheritdoc cref="e_EnsureInRect"/>
+			/// <inheritdoc cref="eEnsureInRect"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static System.Drawing.Rectangle e_EnsureInRect(this System.Drawing.Rectangle src, System.Drawing.Rectangle trg)
+			internal static System.Drawing.Rectangle eEnsureInRect(this System.Drawing.Rectangle src, System.Drawing.Rectangle trg)
 			{
 				if (src.Left > trg.Right) src.X = trg.Right;
 				if (src.Top > trg.Bottom) src.Y = trg.Bottom;
@@ -9475,7 +9485,7 @@ End Function
 
 			/// <summary>Normalizing rectangle</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static System.Drawing.Rectangle e_Normalize(this System.Drawing.Rectangle src)
+			internal static System.Drawing.Rectangle eNormalize(this System.Drawing.Rectangle src)
 			{
 				int l = new int[] { src.Left, src.Right }.Min();
 				int r = new int[] { src.Left, src.Right }.Max();
@@ -9486,7 +9496,7 @@ End Function
 
 			/// <summary>Normalizing rectangle</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static System.Drawing.RectangleF e_Normalize(this System.Drawing.RectangleF src)
+			internal static System.Drawing.RectangleF eNormalize(this System.Drawing.RectangleF src)
 			{
 				float l = new float[] { src.Left, src.Right }.Min();
 				float r = new float[] { src.Left, src.Right }.Max();
@@ -9510,77 +9520,76 @@ End Function
 		{
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Image e_ToGrayscale(this Bitmap src) => ToolStripRenderer.CreateDisabledImage(src);
+			internal static Image eToGrayscaled_ToolStripRenderer(this Bitmap src) => ToolStripRenderer.CreateDisabledImage(src);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Bitmap e_MakeGrayscale_Matrix(this Bitmap original)
+			internal static Bitmap eToGrayscaled_Matrix(this Bitmap original)
 			{
 				// create a blank bitmap the same size as original
 				Bitmap newBitmap = new(original.Width, original.Height, PixelFormat.Format16bppGrayScale);
 
+				// create the grayscale ColorMatrix
+				ColorMatrix cm = new(
+					   [
+								   [0.30f, 0.30f, 0.30f, 0f, 0f],
+								   [0.59f, 0.59f, 0.59f, 0f, 0f],
+								   [0.11f, 0.11f, 0.11f, 0f, 0f],
+								   [0.00f, 0.00f, 0.00f, 1f, 0f],
+								   [0.00f, 0.00f, 0.00f, 0f, 1f]
+								   ]
+								   );
+
+				// create some image attributes
+				using ImageAttributes attributes = new();
+				// set the color matrix attribute
+				attributes.SetColorMatrix(cm);
+
 				// get a graphics object from the new image
-				using (Graphics g = Graphics.FromImage(newBitmap))
-				{
-					// create some image attributes
-					using (ImageAttributes attributes = new())
-					{
-						// create the grayscale ColorMatrix
-						ColorMatrix colorMatrix = new(
-							   new float[][] {
-								   new float[] { 0.3f, 0.3f, 0.3f, 0f, 0f },
-								   new float[] { 0.59f, 0.59f, 0.59f, 0f, 0f },
-								   new float[] { 0.11f, 0.11f, 0.11f, 0f, 0f },
-								   new float[] { 0f, 0f, 0f, 1f, 0f },
-								   new float[] { 0f, 0f, 0f, 0f, 1f } });
+				using Graphics g = Graphics.FromImage(newBitmap);
+				// draw the original image on the new image using the grayscale color matrix
+				g.DrawImage(
+					 original,
+					 new Rectangle(0, 0, original.Width, original.Height),
+					 0, 0, original.Width, original.Height,
+					  GraphicsUnit.Pixel,
+						 attributes);
 
-						// set the color matrix attribute
-						attributes.SetColorMatrix(colorMatrix);
-
-						// draw the original image on the new image using the grayscale color matrix
-						g.DrawImage(
-							 original,
-							 new Rectangle(0, 0, original.Width, original.Height),
-							 0, 0, original.Width, original.Height,
-							  GraphicsUnit.Pixel,
-								 attributes);
-						// dispose the Graphics object
-					}
-				}
 				return newBitmap;
 			}
 
 
 		}
 
-		internal static class Extensions_Localization
+
+		internal static class Extensions_UILocalization
 		{
 			internal const string LOCALIZED_RES_NAME_TEMPLATE_L_UI = "L_UI_{0}";
 			internal const string LOCALIZED_RES_NAME_TEMPLATE_L_ENUM = "L_ENUM_{0}";
 
 
-
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string? e_GetLocalizedText(this string? resName, System.Resources.ResourceManager rm, string fullResNameTemplate = LOCALIZED_RES_NAME_TEMPLATE_L_UI)
+			internal static string? eGetLocalizedText(this string? resName, System.Resources.ResourceManager? rm = null, string resNameTemplate = LOCALIZED_RES_NAME_TEMPLATE_L_UI)
 			{
-				if (resName.e_IsNullOrWhiteSpace()) return null;
-				resName = fullResNameTemplate.e_Format(resName!);
+				if (resName.eIsNullOrWhiteSpace()) return null;
+				resName = resNameTemplate.eFormat(resName!);
+
+				rm ??= uom.AppInfo.LocalizedStringsManager.Value;
+
 				string? resStringValue = rm.GetString(resName);
-				if (resStringValue.e_IsNOTNullOrWhiteSpace()) return resStringValue;
+
+				if (resStringValue.eIsNotNullOrWhiteSpace()) return resStringValue;
 
 				return null;
 			}
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string? e_GetLocalizedText(this string? resName, string fullResNameTemplate = LOCALIZED_RES_NAME_TEMPLATE_L_UI)
-				=> resName.e_GetLocalizedText(uom.AppInfo.LocalizedStringsManager.Value, fullResNameTemplate);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static string? e_GetLocalizedTextByPropertyName(this Component c, string propertyName = "Name")
+			private static string? eGetLocalizedTextByPropertyName(this Component c, string propertyName = "Name")
 			{
-				string? componentName = c.e_GetPropertyValueAs<string>(propertyName, null, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-				if (componentName.e_IsNOTNullOrWhiteSpace())
-					return componentName.e_GetLocalizedText();
+				string? componentName = c.eGetPropertyValueAs<string>(propertyName, null, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+				if (componentName.eIsNotNullOrWhiteSpace())
+					return componentName.eGetLocalizedText();
 
 				return null;
 			}
@@ -9589,10 +9598,10 @@ End Function
 			#region Menus
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_LocalizeUITree(this MenuStrip mnuRoot)
+			internal static void eLocalizeUITree(this MenuStrip mnuRoot)
 			{
 				ToolStripItem[] actl = [.. mnuRoot.Items.Cast<ToolStripItem>()];
-				actl.e_LocalizeUI(true);
+				actl.eLocalizeUI(true);
 			}
 
 
@@ -9600,18 +9609,18 @@ End Function
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_LocalizeUI(this Component c, bool recurse = true)
+			internal static void eLocalizeUI(this Component c, bool recurse = true)
 			{
 
 				switch (c)
 				{
 					case ColumnHeader col:
 						{
-							var s = col.e_GetLocalizedTextByPropertyName();
+							var s = col.eGetLocalizedTextByPropertyName();
 							if (s != null) col.Text = s;
 							else
 							{
-								s = col.Text.e_GetLocalizedText();
+								s = col.Text.eGetLocalizedText();
 								if (s != null) col.Text = s;
 							}
 							break;
@@ -9619,7 +9628,7 @@ End Function
 
 					case MenuStrip mnu:
 						{
-							mnu.Items.Cast<ToolStripItem>().e_LocalizeUI(recurse);
+							mnu.Items.Cast<ToolStripItem>().eLocalizeUI(recurse);
 							break;
 						}
 
@@ -9634,18 +9643,18 @@ End Function
 								case ToolStripLabel:
 								case ToolStripMenuItem:
 									{
-										var s = tsi.Name.e_GetLocalizedText();
+										var s = tsi.Name.eGetLocalizedText();
 										if (s != null) tsi.Text = s;
 										else
 										{
-											s = tsi.Text.e_GetLocalizedText();
+											s = tsi.Text.eGetLocalizedText();
 											if (s != null) tsi.Text = s;
 										}
 
 										if (recurse && tsi is ToolStripMenuItem mnu)
 										{
 											//ToolStripItem[] actl = [.. mnu.DropDownItems.Cast<ToolStripItem>()];
-											mnu.DropDownItems.Cast<ToolStripItem>().e_LocalizeUI(recurse);
+											mnu.DropDownItems.Cast<ToolStripItem>().eLocalizeUI(recurse);
 										}
 										break;
 									}
@@ -9656,49 +9665,37 @@ End Function
 
 					case Control ctl:
 						{
-							var s = ctl.e_GetLocalizedTextByPropertyName();
+							var s = ctl.eGetLocalizedTextByPropertyName();
 							if (s != null) ctl.Text = s;
 							else
 							{
-								s = ctl.Text.e_GetLocalizedText();
+								s = ctl.Text.eGetLocalizedText();
 								if (s != null) ctl.Text = s;
 							}
 							break;
 						}
 
 					default:
-						throw new NotImplementedException($"Localization of '{c.GetType()}' is not supported!");
+						throw new NotImplementedException($"Localization of Component '{c.GetType()}' is not supported!");
 				}
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_LocalizeUI(this IEnumerable<Component> cmpList, bool recurse = true)
-				=> cmpList.e_ForEach(ctl => ctl.e_LocalizeUI(recurse));
-
-
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_Localize<T>(this T value, System.Resources.ResourceManager rm) where T : Enum
-			{
-				string enumResSuffix = $"{value.GetType().Name}.{value}";
-				string? localizedString = enumResSuffix.e_GetLocalizedText(rm, LOCALIZED_RES_NAME_TEMPLATE_L_ENUM);
-				if (localizedString.e_IsNOTNullOrWhiteSpace()) return localizedString!;
-				return value.ToString().e_InsertSpacesBeforeUpperCaseChars();
-			}
+			internal static void eLocalizeUI(this IEnumerable<Component> cmpList, bool recurse = true)
+				=> cmpList.eForEach(ctl => ctl.eLocalizeUI(recurse));
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_Localize<T>(this T value) where T : Enum
+			internal static string eLocalize(this Enum value, System.Resources.ResourceManager? rm = null)
 			{
-				string enumResSuffix = $"{value.GetType().Name}.{value}";
-				string? localizedString = enumResSuffix.e_GetLocalizedText(LOCALIZED_RES_NAME_TEMPLATE_L_ENUM);
-				if (localizedString.e_IsNOTNullOrWhiteSpace()) return localizedString!;
-				return value.ToString().e_InsertSpacesBeforeUpperCaseChars();
+				string enumResSuffix = value.eGetFullName(false);
+				string? localizedString = enumResSuffix.eGetLocalizedText(rm, LOCALIZED_RES_NAME_TEMPLATE_L_ENUM);
+				if (localizedString.eIsNotNullOrWhiteSpace()) return localizedString!;
+				return value.ToString().eInsertSpacesBeforeUpperCaseChars();
 			}
+
 
 		}
-
 	}
 
 
@@ -9858,7 +9855,7 @@ End Function
 				[DebuggerNonUserCode, DebuggerStepThrough]
 				public Win32LibHandle(IntPtr hLib, bool ownsHandle = true, string? sLibFileName = null) : base(ownsHandle)
 				{
-					if (hLib.e_IsNotValid()) throw new ArgumentNullException(nameof(hLib));
+					if (hLib.eIsNotValid()) throw new ArgumentNullException(nameof(hLib));
 					SetHandle(hLib);
 					LibFile = sLibFileName;
 					if (IsInvalid) errors.ThrowLastWin23Error();
@@ -9893,7 +9890,7 @@ End Function
 				{
 					// check first to see if the module is already mapped into this process.
 					var hModule = GetModuleHandle(LibFileName);
-					if (hModule.e_IsValid()) return new Win32LibHandle(hModule, false, LibFileName);
+					if (hModule.eIsValid()) return new Win32LibHandle(hModule, false, LibFileName);
 
 					// need to load module into this process.
 					return new Win32LibHandle(LibFileName, LLF, NotUnloadLibOnDispose);
@@ -9917,7 +9914,7 @@ End Function
 					var hModule = GetModuleHandle(ModuleName);
 
 					// need to load module into this process.
-					if (!hModule.e_IsValid())
+					if (!hModule.eIsValid())
 					{
 						hModule = LoadLibrary(ModuleName);
 						bNeedFreeLib = !NotUnloadLibOnDispose;
@@ -9926,10 +9923,10 @@ End Function
 					try
 					{
 						// if the module is mapped, check procedure address to verify it's exported.
-						if (hModule.e_IsValid())
+						if (hModule.eIsValid())
 						{
 							var lpProc = GetProcAddress(hModule, ProcName);
-							return lpProc.e_IsValid();
+							return lpProc.eIsValid();
 						}
 					}
 					finally
@@ -10355,7 +10352,7 @@ End Function
 				ERROR_SYSTEM_TRACE = 150,
 				/// <summary>The number of specified semaphore events for DosMuxSemWait is not correct.</summary>
 				ERROR_INVALID_EVENT_COUNT = 151,
-				/// <summary>DosMuxSemWait did not e_runute; too many semaphores are already set.</summary>
+				/// <summary>DosMuxSemWait did not erunute; too many semaphores are already set.</summary>
 				ERROR_TOO_MANY_MUXWAITERS = 152,
 				/// <summary>The DosMuxSemWait list is not correct.</summary>
 				ERROR_INVALID_LIST_FORMAT = 153,
@@ -10635,7 +10632,7 @@ End Function
 				ERROR_CANNOT_DETECT_PROCESS_ABORT = 1081,
 				/// <summary>No recovery program has been configured for this service.</summary>
 				ERROR_NO_RECOVERY_PROGRAM = 1082,
-				/// <summary>The e_runutable program that this service is configured to run in does not implement the service.</summary>
+				/// <summary>The erunutable program that this service is configured to run in does not implement the service.</summary>
 				ERROR_SERVICE_NOT_IN_EXE = 1083,
 				/// <summary>This service cannot be started in Safe Mode.</summary>
 				ERROR_NOT_SAFEBOOT_SERVICE = 1084,
@@ -10916,7 +10913,7 @@ End Function
 				ERROR_SYNC_FOREGROUND_REFRESH_REQUIRED = 1274,
 				/// <summary>This driver has been blocked from loading.</summary>
 				ERROR_DRIVER_BLOCKED = 1275,
-				/// <summary>A dynamic link library (DLL) referenced a module that was neither a DLL nor the process's e_runutable image.</summary>
+				/// <summary>A dynamic link library (DLL) referenced a module that was neither a DLL nor the process's erunutable image.</summary>
 				ERROR_INVALID_IMPORT_OF_NON_DLL = 1276,
 				/// <summary>Windows cannot open this program since it has been disabled.</summary>
 				ERROR_ACCESS_DISABLED_WEBBLADE = 1277,
@@ -10936,7 +10933,7 @@ End Function
 				ERROR_DEBUGGER_INACTIVE = 1284,
 				/// <summary>An attempt to delay-load a .dll or get a function address in a delay-loaded .dll failed.</summary>
 				ERROR_DELAY_LOAD_FAILED = 1285,
-				/// <summary>%1 is a 16-bit System.Windows.Forms.Application. You do not have permissions to e_runute 16-bit applications. Check your permissions with your system administrator.</summary>
+				/// <summary>%1 is a 16-bit System.Windows.Forms.Application. You do not have permissions to erunute 16-bit applications. Check your permissions with your system administrator.</summary>
 				ERROR_VDM_DISALLOWED = 1286,
 
 
@@ -11336,9 +11333,9 @@ End Function
 				ERROR_INSTALL_TRANSFORM_FAILURE = 1624,
 				/// <summary>This installation is forbidden by system policy. = Contact your system administrator.</summary>
 				ERROR_INSTALL_PACKAGE_REJECTED = 1625,
-				/// <summary>Function could not be e_runuted.</summary>
+				/// <summary>Function could not be erunuted.</summary>
 				ERROR_FUNCTION_NOT_CALLED = 1626,
-				/// <summary>Function failed during e_runution.</summary>
+				/// <summary>Function failed during erunution.</summary>
 				ERROR_FUNCTION_FAILED = 1627,
 				/// <summary>Invalid or unknown table specified.</summary>
 				ERROR_INVALID_TABLE = 1628,
@@ -11436,7 +11433,7 @@ End Function
 				RPC_S_NO_CALL_ACTIVE = 1725,
 				///<summary> The remote procedure call failed.</summary> 
 				RPC_S_CALL_FAILED = 1726,
-				///<summary> The remote procedure call failed and did not e_runute.</summary> 
+				///<summary> The remote procedure call failed and did not erunute.</summary> 
 				RPC_S_CALL_FAILED_DNE = 1727,
 				///<summary> A remote procedure call (RPC) protocol error occurred.</summary> 
 				RPC_S_PROTOCOL_ERROR = 1728,
@@ -13662,7 +13659,7 @@ End Function
 				WSAEMFILE = 10024,
 				///<summary> A non-blocking socket operation could not be completed immediately.</summary>
 				WSAEWOULDBLOCK = 10035,
-				///<summary> A blocking operation is currently e_runuting.</summary>
+				///<summary> A blocking operation is currently erunuting.</summary>
 				WSAEINPROGRESS = 10036,
 				///<summary> An operation was attempted on a non-blocking socket that already had an operation in progress.</summary>
 				WSAEALREADY = 10037,
@@ -13853,7 +13850,7 @@ End Function
 				ERROR_SXS_VERSION_CONFLICT = 14008,
 				///<summary> The type requested activation context section does not match the query API used.</summary>
 				ERROR_SXS_WRONG_SECTION_TYPE = 14009,
-				///<summary> Lack of system resources has required isolated activation to be disabled for the current thread of e_runution.</summary>
+				///<summary> Lack of system resources has required isolated activation to be disabled for the current thread of erunution.</summary>
 				ERROR_SXS_THREAD_QUERIES_DISABLED = 14010,
 				///<summary> An attempt to set the process default activation context failed because the process default activation context was already set.</summary>
 				ERROR_SXS_PROCESS_DEFAULT_ALREADY_SET = 14011,
@@ -14239,7 +14236,7 @@ End Function
 
 				public Win32ExceptionEx(Win32Errors err, string? ErrorAction = null) : this(
 					(int)err,
-					($"[{(int)err} - {err}]: {GetErrorMessage(err)}" + (ErrorAction.e_IsNullOrWhiteSpace() ? String.Empty : ($"\nError source: {ErrorAction}"))).Trim()
+					($"[{(int)err} - {err}]: {GetErrorMessage(err)}" + (ErrorAction.eIsNullOrWhiteSpace() ? String.Empty : ($"\nError source: {ErrorAction}"))).Trim()
 					)
 				{ }
 
@@ -14334,7 +14331,7 @@ End Function
 
 					if (strLen > 0 && sb != null)
 					{
-						string err = sb!.ToString().e_RemoveAtEnd(constants.vbCrLf);
+						string err = sb!.ToString().eTrimEnd(constants.vbCrLf);
 						return (err, true);
 					}
 					//Can't read error message!
@@ -17616,7 +17613,7 @@ End Function
 
 				//<summary>
 
-				//  Server e_runution failed
+				//  Server erunution failed
 
 				//</summary> CO_E_SERVER_EXEC_FAILURE         _HRESULT_TYPEDEF_(= 0x80080005L)
 
@@ -18657,7 +18654,7 @@ End Function
 
 				//<summary>
 
-				//  The callee (server [not server application]) is not available and disappeared; all connections are invalid. The call may have e_runuted.
+				//  The callee (server [not server application]) is not available and disappeared; all connections are invalid. The call may have erunuted.
 
 				//</summary> RPC_E_SERVER_DIED                _HRESULT_TYPEDEF_(= 0x80010007L)
 
@@ -18756,7 +18753,7 @@ End Function
 
 				//<summary>
 
-				//  The callee (server [not server application]) is not available and disappeared; all connections are invalid. The call did not e_runute.
+				//  The callee (server [not server application]) is not available and disappeared; all connections are invalid. The call did not erunute.
 
 				//</summary> RPC_E_SERVER_DIED_DNE            _HRESULT_TYPEDEF_(= 0x80010012L)
 
@@ -24297,7 +24294,7 @@ End Function
 
 				//<summary>
 
-				//  The COM+ Catalog Server threw an exception during e_runution
+				//  The COM+ Catalog Server threw an exception during erunution
 
 				//</summary> COMADMIN_E_CAT_SERVERFAULT       _HRESULT_TYPEDEF_(= 0x80110486L)
 
@@ -24639,7 +24636,7 @@ End Function
 			internal static void ErrorLogWrite(string message, EventLogEntryType et = EventLogEntryType.Error, UInt16 eventID = 1001, string NT_LOG_NAME = "UOM")
 			{
 				StringBuilder sb = new(4096);
-				sb.AppendLine($"{DateTime.Now.e_ToFileName()} | {message}");
+				sb.AppendLine($"{DateTime.Now.eToFileName()} | {message}");
 #if DEBUG
 				sb.AppendLine("mode: DEBUG");
 #else
@@ -24650,13 +24647,13 @@ End Function
 
 				sb.AppendLine($"Product Name: {Application.ProductName} (Version: {Application.ProductVersion})");
 				sb.AppendLine($"ExecutablePath: {Application.ExecutablePath}");
-				sb.AppendLine(uom.AppInfo.Assembly.e_DumpObjectToString(excludeMembers: ["EscapedCodeBase", "CustomAttributes", "DefinedTypes", "ExportedTypes", "IsCollectible", "Modules", "ReflectionOnly", "SecurityRuleSet"]));
-				//sb.AppendLine($"FileVersionInfo: {uom.AppInfo.AssemblyFileVersionInfo.e_DumpObjectToString()}");
+				sb.AppendLine(uom.AppInfo.Assembly.eDumpObjectToString(excludeMembers: ["EscapedCodeBase", "CustomAttributes", "DefinedTypes", "ExportedTypes", "IsCollectible", "Modules", "ReflectionOnly", "SecurityRuleSet"]));
+				//sb.AppendLine($"FileVersionInfo: {uom.AppInfo.AssemblyFileVersionInfo.eDumpObjectToString()}");
 
 				string[] exl = ["DefaultThreadCurrentCulture", "DefaultThreadCurrentUICulture", "IetfLanguageTag", "InvariantCulture", "NumberFormat", "OptionalCalendars", "UseUserOverride", "IsReadOnly", "CultureTypes", "DateTimeFormat", "EnglishName", "IsNeutralCulture", "InstalledUICulture", "DisplayName"];
-				//sb.AppendLine($"CurrentCulture: {System.Globalization.CultureInfo.CurrentCulture.e_DumpObjectToString(excludeMembers: exl)}");
-				sb.AppendLine($"CurrentThread.CurrentUICulture: {Thread.CurrentThread.CurrentUICulture.e_DumpObjectToString(excludeMembers: exl)}");
-				sb.AppendLine(typeof(System.Environment).e_DumpStaticMembers("ExitCode", "NewLine", "StackTrace"));
+				//sb.AppendLine($"CurrentCulture: {System.Globalization.CultureInfo.CurrentCulture.eDumpObjectToString(excludeMembers: exl)}");
+				sb.AppendLine($"CurrentThread.CurrentUICulture: {Thread.CurrentThread.CurrentUICulture.eDumpObjectToString(excludeMembers: exl)}");
+				sb.AppendLine(typeof(System.Environment).eDumpStaticMembers("ExitCode", "NewLine", "StackTrace"));
 
 				message = sb.ToString();
 
@@ -24668,7 +24665,7 @@ End Function
 						//Trying Write To Standart Application Event Log...
 						static void WriteToApplicationLog(string msg, EventLogEntryType et, UInt16 eventID)
 						{
-							Extensions_DebugAndErrors.e_tryCatch(delegate
+							Extensions_DebugAndErrors.etryCatch(delegate
 							{
 								const string src = "Application";
 								using EventLog elApplication = new(src);
@@ -24687,7 +24684,7 @@ End Function
 								EventLog.CreateEventSource(src, NT_LOG_NAME);
 								using System.Diagnostics.Eventing.Reader.EventLogConfiguration elcUOM = new(NT_LOG_NAME);
 								elcUOM.LogMode = System.Diagnostics.Eventing.Reader.EventLogMode.Circular;
-								elcUOM.MaximumSizeInBytes = (long)10u.e_MBToBytes();
+								elcUOM.MaximumSizeInBytes = (long)10u.eMBToBytes();
 								elcUOM.SaveChanges();
 							}
 							using EventLog elUOM = new(NT_LOG_NAME);
@@ -24715,20 +24712,20 @@ End Function
 					{
 						lock (_eaFileLogLockObject.Value)
 						{
-							var fiErrorLog = uom.AppTools.GetFileIn_AppData("_Errors.log", false).e_ToFileInfo();
+							var fiErrorLog = uom.AppTools.GetFileIn_AppData("_Errors.log", false).eToFileInfo();
 							if (fiErrorLog != null)
 							{
-								if (fiErrorLog.Exists && fiErrorLog.Length >= (long)MAX_ERR_LOG_SIZE_MB.e_MBToBytes())
+								if (fiErrorLog.Exists && fiErrorLog.Length >= (long)MAX_ERR_LOG_SIZE_MB.eMBToBytes())
 								{
 									try
 									{
-										fiErrorLog.e_MoveToArhive(MAX_ARHIVE_FILES_COUNT);
+										fiErrorLog.eMoveToArhive(MAX_ARHIVE_FILES_COUNT);
 									}
 									catch { }
 								}
 
 								using var sw = fiErrorLog.AppendText();
-								sw.WriteLine('*'.e_Repeat());
+								sw.WriteLine('*'.eRepeat());
 								sw.WriteLine(message);
 								sw.Flush();
 							}
@@ -24740,7 +24737,7 @@ End Function
 				Task tskWriteNTLog = new(WriteNTLog, TaskCreationOptions.LongRunning);
 				Task tskWriteFileLog = new(WriteFileLog, TaskCreationOptions.LongRunning);
 				Task[] allTasks = [tskWriteNTLog, tskWriteFileLog];
-				allTasks.e_ForEach(t => t.Start());
+				allTasks.eForEach(t => t.Start());
 				Task.WaitAll(allTasks);
 			}
 
@@ -24751,12 +24748,12 @@ End Function
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static void ThrowWin23Error(Win32Errors ErrorCode, string? DescriptionOfErrorAction = null)
-				=> new Win32Exception((int)ErrorCode, DescriptionOfErrorAction).e_Throw();
+				=> new Win32Exception((int)ErrorCode, DescriptionOfErrorAction).eThrow();
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static void ThrowLastWin23Error(string? DescriptionOfErrorAction = null)
-				=> new Win32Exception(DescriptionOfErrorAction).e_Throw();
+				=> new Win32Exception(DescriptionOfErrorAction).eThrow();
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -24768,8 +24765,8 @@ End Function
 			public static void ThrowLastWin23ErrorAssert(Win32Errors IgnoreErrorCode = Win32Errors.ERROR_SUCCESS)
 			{
 				Win32ExceptionEx WEX = LastWin23Error();
-				if (WEX.NativeErrorCode != IgnoreErrorCode) WEX.e_Throw();
-				$"ThrowLastWin23ErrorAssert skip: {WEX.Message}\n\t{WEX.StackTrace}".e_DebugWriteLine();
+				if (WEX.NativeErrorCode != IgnoreErrorCode) WEX.eThrow();
+				$"ThrowLastWin23ErrorAssert skip: {WEX.Message}\n\t{WEX.StackTrace}".eDebugWriteLine();
 			}
 
 			public static void trycatchWin32(Func<int> operation)
@@ -24783,12 +24780,12 @@ End Function
 			{
 				int result = operation.Invoke();
 				if (result == (int)Win32Errors.ERROR_SUCCESS) return;
-				throw new Win32Exception(result, messageTemplate.e_Format(messageArgs));
+				throw new Win32Exception(result, messageTemplate.eFormat(messageArgs));
 			}
 
 			public static void trycatchWin32(Func<bool> operation) { if (!operation.Invoke()) ThrowLastWin23Error(); }
 
-			public static void trycatchWin32(Func<bool> operation, string messageTemplate, params object[] messageArgs) { if (!operation.Invoke()) ThrowLastWin23Error(messageTemplate.e_Format(messageArgs)); }
+			public static void trycatchWin32(Func<bool> operation, string messageTemplate, params object[] messageArgs) { if (!operation.Invoke()) ThrowLastWin23Error(messageTemplate.eFormat(messageArgs)); }
 
 		}
 
@@ -24878,9 +24875,9 @@ End Function
 			{
 				var rStruct = new T();
 				structInitializer?.Invoke(ref rStruct);                // Вызываем метод инициализации новой структуры - заполение полей, указание размеров и т.д., что требует конкретная API
-				using var mem = rStruct.e_StructureToMemoryBlock(); // Создаём буффер в памяти размером со структуру и копируем содержимое структуры в новый буфер																	
+				using var mem = rStruct.eStructureToMemoryBlock(); // Создаём буффер в памяти размером со структуру и копируем содержимое структуры в новый буфер																	
 				body.Invoke(mem.DangerousGetHandle());          // Главный вызов API, с указателем на буфер в памяти																														
-				return mem.DangerousGetHandle().e_ToStructure<T>();           // Преобразование буфера обратно в структуру
+				return mem.DangerousGetHandle().eToStructure<T>();           // Преобразование буфера обратно в структуру
 			}
 
 			#endregion
@@ -25168,7 +25165,7 @@ End Function
 				}
 
 				[DebuggerNonUserCode, DebuggerStepThrough]
-				public byte[] ToBytes() => DangerousGetHandle().e_PtrToBytes(Lenght);
+				public byte[] ToBytes() => DangerousGetHandle().ePtrToBytes(Lenght);
 
 
 				public short[] ToShorts()
@@ -25246,7 +25243,7 @@ End Function
 						for (int i = 1; i <= iStringCount; i++)
 						{
 							//TODO: NEED Refactor!
-							string sValue = Marshal.PtrToStringAuto(ptr, stringSizeBytes)?.e_NString() ?? string.Empty;
+							string sValue = Marshal.PtrToStringAuto(ptr, stringSizeBytes)?.eNString() ?? string.Empty;
 
 							lResult.Add(sValue);
 							ptr += sringSizeChars;
@@ -25255,7 +25252,7 @@ End Function
 					return lResult.ToArray();
 				}
 
-				public string DumpHex() => DangerousGetHandle().e_DumpHexToString(Lenght);
+				public string DumpHex() => DangerousGetHandle().eDumpHexToString(Lenght);
 
 				public override string ToString() => DumpHex();
 
@@ -25322,7 +25319,7 @@ End Function
 					protected override bool ReleaseHandle()
 					{
 						var hMem = DangerousGetHandle();
-						if (hMem.e_IsValid())
+						if (hMem.eIsValid())
 						{
 							hMem = _OwnerMemory!.DangerousGetHandle();
 							var bUnlock = (_OwnerMemory.IsLocal) ? LocalUnlock(hMem) : GlobalUnlock(hMem);
@@ -26228,7 +26225,7 @@ End Function
 
 				public void Uninstall()
 				{
-					if (_hhook.e_IsValid()) UnhookWindowsHookEx(_hhook);
+					if (_hhook.eIsValid()) UnhookWindowsHookEx(_hhook);
 					_hhook = IntPtr.Zero;
 				}
 
@@ -26535,10 +26532,10 @@ End Function
 				BY_HANDLE_FILE_INFORMATION BHFI = new();
 
 				GetFileInformationByHandle(hFile, ref BHFI)
-					.e_ThrowLastWin32Exception_AssertFalse();
+					.eThrowLastWin32Exception_AssertFalse();
 
 
-				//if (!bResult) "GetFileInformationByHandle".e_ThrowLastWin32Exception();
+				//if (!bResult) "GetFileInformationByHandle".eThrowLastWin32Exception();
 				return BHFI;
 			}
 
@@ -26946,7 +26943,7 @@ End Function
 
 						var flags = useAsync ? io.NativeFileFlags.Overlapped : (io.NativeFileFlags)0;
 						var handle = CreateFileHandle(FullPath, ToNative(access), share, IntPtr.Zero, mode, flags, IntPtr.Zero);
-						handle.e_IsValid().e_ThrowLastWin32Exception_AssertFalse("CreateFileHandle");
+						handle.eIsValid().eThrowLastWin32Exception_AssertFalse("CreateFileHandle");
 						return new FileStream(handle, access, bufferSize, useAsync);
 					}
 
@@ -27115,7 +27112,7 @@ End Function
 					/// </exception>
 					public static bool StreamExists(string File, string streamName)
 					{
-						if (File.e_IsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(File));
+						if (File.eIsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(File));
 						ValidateStreamName(streamName);
 						string path = BuildStreamPath(File, streamName);
 						return -1 != SafeGetFileAttributes(path);
@@ -27391,8 +27388,8 @@ End Function
 
 							// Unicode chars are 2 bytes:
 							int iChars = (int)Math.Round(StreamNameSize / 2d);
-							var sTempName = hMem.DangerousGetHandle().e_PtrToString(iChars);
-							if (sTempName.e_IsNullOrWhiteSpace()) return null;
+							var sTempName = hMem.DangerousGetHandle().ePtrToString(iChars);
+							if (sTempName.eIsNullOrWhiteSpace()) return null;
 
 							// Name is of the format ":NAME:$DATA\0"
 							int separatorIndex = sTempName!.IndexOf(STREAM_SEPARATOR, 1);
@@ -27479,12 +27476,12 @@ End Function
 
 					private static int SafeGetFileAttributes(string name)
 					{
-						if (name.e_IsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(name));
+						if (name.eIsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(name));
 						var result = GetFileAttributes(name);
 						if (-1 == (int)result)
 						{
 							var WEX = new errors.Win32ExceptionEx("GetFileAttributes");
-							WEX.e_ThrowIfNot(errors.Win32Errors.ERROR_FILE_NOT_FOUND);
+							WEX.eThrowIfNot(errors.Win32Errors.ERROR_FILE_NOT_FOUND);
 						}
 
 						return (int)result;
@@ -27492,12 +27489,12 @@ End Function
 
 					private static bool SafeDeleteFile(string name)
 					{
-						if (name.e_IsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(name));
+						if (name.eIsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(name));
 						bool result = DeleteFile(name);
 						if (!result)
 						{
 							var WEX = new errors.Win32ExceptionEx("DeleteFile");
-							WEX.e_ThrowIfNot(errors.Win32Errors.ERROR_FILE_NOT_FOUND);
+							WEX.eThrowIfNot(errors.Win32Errors.ERROR_FILE_NOT_FOUND);
 						}
 						return result;
 					}
@@ -27650,7 +27647,7 @@ End Function
 					public static string BuildStreamPath(string filePath, string streamName)
 					{
 						string Result = filePath;
-						if (filePath.e_IsNOTNullOrWhiteSpace())
+						if (filePath.eIsNotNullOrWhiteSpace())
 						{
 							if (Result.Length == 1) Result = @".\\" + Result;
 							Result += STREAM_SEPARATOR + streamName + FULL_STREAM_PATH_SUFFIX;
@@ -27693,7 +27690,7 @@ End Function
 
 					public static NTFSStreamInfo[] GetStreams(string sFullPath)
 					{
-						if (sFullPath.e_IsNullOrWhiteSpace()) throw new ArgumentNullException("sFullPath");
+						if (sFullPath.eIsNullOrWhiteSpace()) throw new ArgumentNullException("sFullPath");
 						var lResult = new List<NTFSStreamInfo>();
 
 #pragma warning disable SYSLIB0003 // Type or member is obsolete
@@ -27731,7 +27728,7 @@ End Function
 										{
 											string sStreamName = STREAM_ID.ReadStreamName(hFile, ref lpContext, ref bFinished)!;
 											// Add the stream info to the result:
-											if (sStreamName.e_IsNOTNullOrWhiteSpace())
+											if (sStreamName.eIsNotNullOrWhiteSpace())
 											{
 												var R = new NTFSStreamInfo(sFullPath, STREAM_ID, sStreamName);
 												lResult.Add(R);
@@ -27741,7 +27738,7 @@ End Function
 											if (!bFinished) // Надо пропустить кусок содержимого потока
 											{
 												int bytesSeekedLow = 0; int bytesSeekedHigh = 0;
-												var V64 = STREAM_ID.Size.e_ToInt64();
+												var V64 = STREAM_ID.Size.eToInt64();
 												bRead = NTFSStreamInfo.BackupSeek(hFile, V64.LoDWord, V64.HiDWord, ref bytesSeekedLow, ref bytesSeekedHigh, ref lpContext);
 												if (!bRead)
 													bFinished = true;
@@ -27822,11 +27819,11 @@ End Function
 							// Узнаём размер буфера
 							int cbBuffer = 0;
 							var hFind = HardLinksEnumeration.FindFirstFileName(sFilePath, 0, ref cbBuffer, null);
-							if (hFind.e_IsValid()) throw new Exception("Unexpected Error!"); // ЭТО НЕ должно окончиться удачно, т.к. передали нулевой буфер
+							if (hFind.eIsValid()) throw new Exception("Unexpected Error!"); // ЭТО НЕ должно окончиться удачно, т.к. передали нулевой буфер
 							errors.ThrowLastWin23ErrorAssert(errors.Win32Errors.ERROR_MORE_DATA);
 							StringBuilder sbBuffer = new(cbBuffer + 10);
 							hFind = HardLinksEnumeration.FindFirstFileName(sFilePath, 0, ref cbBuffer, sbBuffer); // А щас всё должно было получиться.
-							if (hFind.e_IsNotValid()) errors.ThrowLastWin23Error();
+							if (hFind.eIsNotValid()) errors.ThrowLastWin23Error();
 							var HLE = new HardLinksEnumeration(hFind);
 							return (HLE, sbBuffer.ToString());
 						}
@@ -27872,7 +27869,7 @@ End Function
 						protected override bool ReleaseHandle()
 						{
 							bool bResult = false;
-							if (handle.e_IsValid())
+							if (handle.eIsValid())
 								bResult = FindClose(handle);
 							if (bResult)
 								SetHandle(IntPtr.Zero);
@@ -27905,7 +27902,7 @@ End Function
 							IntPtr.Zero,
 							FileMode.Open,
 							NativeFileFlags.FILE_FLAG_BACKUP_SEMANTICS,
-							IntPtr.Zero).e_ToSafeFileHandle();
+							IntPtr.Zero).eToSafeFileHandle();
 
 						var lResult = new List<string>();
 						int iLinks = GetFileHardLinksCount(hFile.DangerousGetHandle());
@@ -27914,7 +27911,7 @@ End Function
 							var (hFind, FirstFile) = HardLinksEnumeration.FindFirstFile(sFile);
 							string sFoundName = FirstFile;
 							using var HLE = hFind;
-							while (sFoundName.e_IsNOTNullOrWhiteSpace())
+							while (sFoundName.eIsNotNullOrWhiteSpace())
 							{
 								lResult.Add(sFoundName);
 								sFoundName = HLE.FindNextFileName()!;
@@ -28194,7 +28191,7 @@ End Function
 							NativeFileFlags.FILE_FLAG_BACKUP_SEMANTICS | NativeFileFlags.FILE_FLAG_OPEN_REPARSE_POINT,
 							IntPtr.Zero);
 						var WEX = new errors.Win32ExceptionEx();
-						WEX.e_ThrowIfNot(0);
+						WEX.eThrowIfNot(0);
 						return reparsePointHandle;
 					}
 
@@ -28225,7 +28222,7 @@ End Function
 					{
 						get
 						{
-							if (Target.e_IsNullOrWhiteSpace()) return "";
+							if (Target.eIsNullOrWhiteSpace()) return "";
 
 							var sAbsolute = Target;
 
@@ -28306,7 +28303,7 @@ End Function
 							default:
 								{
 #if DEBUG
-									//var AAA = outBuffer.PathBuffer.e_DumpHex()
+									//var AAA = outBuffer.PathBuffer.eDumpHex()
 									//Dim uiTag = TagTrim(Me.TagValue)
 									//Dim sFlags = Me.TagValue.ExtEnum_SplitToFlagsAsStrings
 
@@ -28353,8 +28350,8 @@ End Function
 
 					private static REPARSE_GUID_DATA_BUFFER GetReparseData(string path)
 					{
-						Debug.Assert(path.e_IsNOTNullOrWhiteSpace() && path.Length > 2 && Convert.ToString(path[1]) == ":" && Convert.ToString(path[2]) == @"\");
-						security.PRIVELEGE_NAMES.SeBackupPrivilege.e_AdjustProcessPrivilegeAndCloseToken();
+						Debug.Assert(path.eIsNotNullOrWhiteSpace() && path.Length > 2 && Convert.ToString(path[1]) == ":" && Convert.ToString(path[2]) == @"\");
+						security.PRIVELEGE_NAMES.SeBackupPrivilege.eAdjustProcessPrivilegeAndCloseToken();
 
 						// Open the file and get its handle
 						using var hFile = CreateFileAsSafeFileHandle(path,
@@ -28364,7 +28361,7 @@ End Function
 							FileMode.Open,
 							NativeFileFlags.FILE_FLAG_OPEN_REPARSE_POINT | NativeFileFlags.FILE_FLAG_BACKUP_SEMANTICS,
 							IntPtr.Zero);
-						(!hFile.IsInvalid).e_ThrowLastWin32Exception_AssertFalse("CreateFile");
+						(!hFile.IsInvalid).eThrowLastWin32Exception_AssertFalse("CreateFile");
 						var outBuffer = new REPARSE_GUID_DATA_BUFFER();
 						int outBufferSize = Marshal.SizeOf(typeof(REPARSE_GUID_DATA_BUFFER));
 						var bytesReturned = 0;
@@ -28377,7 +28374,7 @@ End Function
 							outBufferSize,
 							ref bytesReturned,
 							IntPtr.Zero);
-						bSuccess.e_ThrowLastWin32Exception_AssertFalse("DeviceIoControl");
+						bSuccess.eThrowLastWin32Exception_AssertFalse("DeviceIoControl");
 						return outBuffer;
 					}
 					#endregion
@@ -28463,7 +28460,7 @@ End Function
 											ref bytesReturned,
 											IntPtr.Zero);
 
-										result.e_ThrowLastWin32Exception_AssertFalse("DeviceIoControl");
+										result.eThrowLastWin32Exception_AssertFalse("DeviceIoControl");
 									}
 									finally { hReparsePoint.Close(); }
 									break;
@@ -28473,7 +28470,7 @@ End Function
 								{
 									var SFF = bTargetIsDirectory ? SYM_LINK_FLAG.SYMBOLIC_LINK_FLAG_DIRECTORY : SYM_LINK_FLAG.SYMBOLIC_LINK_FLAG_FILE;
 									bool bResult = CreateSymbolicLink(LocationPath, TargetPath, SFF);
-									bResult.e_ThrowLastWin32Exception_AssertFalse("CreateSymbolicLink");
+									bResult.eThrowLastWin32Exception_AssertFalse("CreateSymbolicLink");
 									break;
 								}
 
@@ -28797,7 +28794,7 @@ End Function
 			public static LUID LookupPrivilegeValue(string pn, string? systemName = null)
 			{
 				LUID Luid = new();
-				LookupPrivilegeValue(systemName, pn, ref Luid).e_ThrowLastWin32Exception_AssertFalse("LookupPrivilegeValue");
+				LookupPrivilegeValue(systemName, pn, ref Luid).eThrowLastWin32Exception_AssertFalse("LookupPrivilegeValue");
 				return Luid;
 			}
 
@@ -28841,7 +28838,7 @@ End Function
 					Marshal.SizeOf(tokenPrivileges),
 					IntPtr.Zero,
 					IntPtr.Zero)
-					.e_ThrowLastWin32Exception_AssertFalse("AdjustTokenPrivileges");
+					.eThrowLastWin32Exception_AssertFalse("AdjustTokenPrivileges");
 
 				return processToken;
 			}
@@ -29095,11 +29092,11 @@ End Function
 			internal static Microsoft.Win32.SafeHandles.SafeFileHandle DuplicateToken(Microsoft.Win32.SafeHandles.SafeFileHandle ExistingTokenHandle, SECURITY_IMPERSONATION_LEVEL ImpersonationLevel)
 			{
 				//var hToken2 = IntPtr.Zero;
-				//WinAPI.security.DuplicateToken(hToken, WinAPI.security.SECURITY_IMPERSONATION_LEVEL.SecurityIdentification, ref hToken2).e_ThrowLastWin32Exception_AssertFalse();
+				//WinAPI.security.DuplicateToken(hToken, WinAPI.security.SECURITY_IMPERSONATION_LEVEL.SecurityIdentification, ref hToken2).eThrowLastWin32Exception_AssertFalse();
 				//hTokenToCheck = new(hToken2, true);
 
 				Microsoft.Win32.SafeHandles.SafeFileHandle hToken2 = new(IntPtr.Zero, true);
-				DuplicateToken(ExistingTokenHandle, SECURITY_IMPERSONATION_LEVEL.SecurityIdentification, ref hToken2).e_ThrowLastWin32Exception_AssertFalse();
+				DuplicateToken(ExistingTokenHandle, SECURITY_IMPERSONATION_LEVEL.SecurityIdentification, ref hToken2).eThrowLastWin32Exception_AssertFalse();
 				return hToken2;
 			}
 
@@ -29131,7 +29128,7 @@ End Function
 			internal static TOKEN_ELEVATION_TYPE GetTokenInformation_Elevation(Microsoft.Win32.SafeHandles.SafeFileHandle hToken)
 			{
 				Int32 iElevationType = 0; int cbSize = sizeof(Int32);
-				GetTokenInformation_Int32(hToken, TOKEN_INFORMATION_CLASS.TokenElevationType, ref iElevationType, cbSize, ref cbSize).e_ThrowLastWin32Exception_AssertFalse();
+				GetTokenInformation_Int32(hToken, TOKEN_INFORMATION_CLASS.TokenElevationType, ref iElevationType, cbSize, ref cbSize).eThrowLastWin32Exception_AssertFalse();
 				var eElevationType = (WinAPI.security.TOKEN_ELEVATION_TYPE)iElevationType;// Marshal the TOKEN_ELEVATION_TYPE enum from native to .NET.
 				return eElevationType;
 			}
@@ -31016,7 +31013,7 @@ End Function
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool SHFO_Delete(IntPtr hWndOwner, IEnumerable<string> ItemsToDelete, FILEOP_FLAGS Options = FILEOP_FLAGS.FOF_ALLOWUNDO, string? title = null)
 			{
-				string sFilesToDelete = ItemsToDelete.e_ToAPIMultiStringZ();
+				string sFilesToDelete = ItemsToDelete.eToAPIMultiStringZ();
 				SHFILEOPSTRUCT fo = new()
 				{
 					hwnd = hWndOwner,
@@ -31045,8 +31042,8 @@ End Function
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool SHFO_Move(IntPtr hWndOwner, IEnumerable<string> sources, IEnumerable<string> targets, FILEOP_FLAGS opt = FILEOP_FLAGS.FOF_ALLOWUNDO, string? title = null)
 			{
-				var sFrom = sources.e_ToAPIMultiStringZ();
-				var sTo = targets.e_ToAPIMultiStringZ();
+				var sFrom = sources.eToAPIMultiStringZ();
+				var sTo = targets.eToAPIMultiStringZ();
 
 				SHFILEOPSTRUCT fo = new()
 				{
@@ -31065,7 +31062,7 @@ End Function
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool SHFO_Copy(IntPtr hWndOwner, string[] sources, string targetFolder, string? title = null)
 			{
-				string sFrom = sources.e_ToAPIMultiStringZ();
+				string sFrom = sources.eToAPIMultiStringZ();
 				var opt = FILEOP_FLAGS.FOF_ALLOWUNDO;
 				SHFILEOPSTRUCT fo = new()
 				{
@@ -31084,8 +31081,8 @@ End Function
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool SHFO_Copy(IntPtr HwndOwner, string[] sources, string[] targets, string? title = null)
 			{
-				string sFrom = sources.e_ToAPIMultiStringZ();
-				string sTo = targets.e_ToAPIMultiStringZ();
+				string sFrom = sources.eToAPIMultiStringZ();
+				string sTo = targets.eToAPIMultiStringZ();
 				var opt = FILEOP_FLAGS.FOF_ALLOWUNDO | FILEOP_FLAGS.FOF_MULTIDESTFILES;
 
 				SHFILEOPSTRUCT fo = new()
@@ -31356,7 +31353,7 @@ End Function
 			internal static String PathCompactPathEx(string PathIn, uint NeedCahrCount)
 			{
 				var SB = new StringBuilder((int)NeedCahrCount * 2);
-				PathCompactPathEx(SB, PathIn, NeedCahrCount, 0).e_ThrowLastWin32Exception_AssertFalse();
+				PathCompactPathEx(SB, PathIn, NeedCahrCount, 0).eThrowLastWin32Exception_AssertFalse();
 				return SB.ToString();
 			}
 			#endregion
@@ -31380,7 +31377,7 @@ End Function
 			internal static String? PathFindNextComponent_(string lpszPath)
 			{
 				IntPtr ptrStr = PathFindNextComponent(lpszPath);
-				return ptrStr.e_IsValid()
+				return ptrStr.eIsValid()
 					? Marshal.PtrToStringUni(ptrStr)
 					: string.Empty;
 			}
@@ -31407,7 +31404,7 @@ End Function
 			internal static String? PathGetArgs_(string lpszPath)
 			{
 				IntPtr ptrStr = PathGetArgs(lpszPath);
-				return ptrStr.e_IsValid()
+				return ptrStr.eIsValid()
 				   ? Marshal.PtrToStringUni(ptrStr)
 				   : string.Empty;
 			}
@@ -31451,8 +31448,8 @@ End Function
 			[Obsolete("This function is deprecated. We recommend the use of the PathCchRemoveFileSpec function in its place.")]
 			internal static string PathRemoveFile(string Path)
 			{
-				var SB = Path.e_toStringBuilder();
-				PathRemoveFileSpec(SB).e_ThrowLastWin32Exception_AssertFalse();
+				var SB = Path.eToStringBuilder();
+				PathRemoveFileSpec(SB).eThrowLastWin32Exception_AssertFalse();
 				return SB.ToString();
 			}
 
@@ -31517,7 +31514,7 @@ End Function
 			internal static string GetRelativePathTo(string PathFrom, FileAttributes dwAttrFrom, string PathTo, FileAttributes dwAttrTo)
 			{
 				StringBuilder SB = new(WinAPI.io.MAX_PATH + 100);
-				PathRelativePathTo(SB, PathFrom, dwAttrFrom, PathTo, dwAttrTo).e_ThrowLastWin32Exception_AssertFalse();
+				PathRelativePathTo(SB, PathFrom, dwAttrFrom, PathTo, dwAttrTo).eThrowLastWin32Exception_AssertFalse();
 				return SB.ToString();
 			}
 

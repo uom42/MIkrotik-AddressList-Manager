@@ -31,8 +31,8 @@ global using System.Xml.Linq;
 global using System.Numerics;
 
 using System.Net.Http;
-using System.Net.NetworkInformation;
 using System.Net.Http.Headers;
+using System.Net.NetworkInformation;
 
 
 
@@ -133,7 +133,7 @@ See All # Constants: https://docs.microsoft.com/ru-ru/dotnet/csharp/language-ref
 /// <summary>
 /// Return Human-Readable bytes order (Sample: 192.168.1.1 => [192,168,1,1])
 /// <c>!!! Don't use for any arifmetic calculations! Use only for Saving/Restoring IP !!!</c>
-/// To Math calculations with IP use <see cref="e_ToUInt32CalculableOrder"/> instead!!!
+/// To Math calculations with IP use <see cref="eToUInt32CalculableOrder"/> instead!!!
 /// <example>
 /// For example:
 /// <code>
@@ -1208,7 +1208,7 @@ public static class Faker
 /*
 	IAsyncResult rAsincRslt = psInstance.BeginInvoke();
 	void waitAsyncFinished() { while (rAsincRslt.IsCompleted == false) Thread.Sleep(500); }
-	await ((Action)waitAsyncFinished).e_StartAndWaitAsync(true);
+	await ((Action)waitAsyncFinished).eStartAndWaitAsync(true);
 	PSDataCollection<PSObject> psResult = psInstance.EndInvoke(rAsincRslt);
 
 	**** AWAIT with IAsyncResult 
@@ -1230,7 +1230,7 @@ private static async Task<int> Sampe1()
 	{
 		Thread.Sleep(1000);
 		return 5;
-	})).e_RunAsync();
+	})).eRunAsync();
 	return results;
 }
 
@@ -1679,7 +1679,7 @@ namespace uom
 		//    return UOM.Globalization_.mGlobalization.PhoneParse(sPhone, CNT);
 		//}
 
-		public enum E_STRING_TYPES : int
+		public enum CHAR_MODE : int
 		{
 			Auto = 0,
 			Uni,
@@ -1734,7 +1734,7 @@ namespace uom
 
 		#endregion
 
-		public override string ToString() => $"{UWord} ({Bytes.e_ToStringHex(true)})";
+		public override string ToString() => $"{UWord} ({Bytes.eToStringHex(true)})";
 
 		#region Conversions
 
@@ -1818,7 +1818,7 @@ namespace uom
 #endif
 
 		#endregion
-		public override string ToString() => (UDWord.ToString() + " / " + Bytes.e_ToStringHex(true));
+		public override string ToString() => (UDWord.ToString() + " / " + Bytes.eToStringHex(true));
 
 		#region Conversions
 		public static implicit operator uint(_Int32 L) => L.UDWord;
@@ -1891,7 +1891,7 @@ namespace uom
 		}
 		#endregion
 
-		public override string ToString() => UQWord.ToString() + " / " + Bytes.e_ToStringHex(true);
+		public override string ToString() => UQWord.ToString() + " / " + Bytes.eToStringHex(true);
 
 		#region Conversions
 		public static implicit operator ulong(_Int64 L) => L.UQWord;
@@ -1952,7 +1952,10 @@ namespace uom
 		public static string? Copyright => Assembly.GetCustomAttribute<AssemblyCopyrightAttribute>()?.Copyright;
 		public static string? Product => Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyProductAttribute>()?.Product;
 		public static string? Trademark => Assembly.GetCustomAttribute<AssemblyTrademarkAttribute>()?.Trademark;
-		public static string? Version => Assembly.GetCustomAttribute<AssemblyVersionAttribute>()?.Version;
+
+		public static string? @AssemblyVersionAttribute => Assembly.GetCustomAttribute<AssemblyVersionAttribute>()?.Version;
+		public static AssemblyName @AssemblyName => Assembly.GetName();
+		public static Version? @AssemblyVersion => AssemblyName.Version;
 
 
 #if !ANDROID
@@ -1961,13 +1964,13 @@ namespace uom
 		public static string? Comments => AssemblyFileVersionInfo?.Comments;
 
 
-		public static string FormatFormTitle(string title) => $"{title} ({uom.AppInfo.FileVersion})" + (uom.AppInfo.IsProcessElevated() ? " [Admin]" : string.Empty);
+		public static string FormatFormTitle(string title) => $"{title} ({uom.AppInfo.AssemblyFileVersionAttribute})" + (uom.AppInfo.IsProcessElevated() ? " [Admin]" : string.Empty);
 
 
 		public static FileInfo File => new(Assembly.Location);
 		public static FileVersionInfo AssemblyFileVersionInfo => FileVersionInfo.GetVersionInfo(Assembly.Location);
 #endif
-		public static string? FileVersion => Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version;
+		public static string? @AssemblyFileVersionAttribute => Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version;
 
 
 		////public static string? FileVersion() => FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
@@ -2004,13 +2007,17 @@ namespace uom
 
 
 
-		public static string? TitleHeader => Title + ((FileVersion == null) ? "" : " v" + FileVersion);
+		public static string? TitleHeader => Title + ((@AssemblyFileVersionAttribute == null)
+			? ""
+			: " v" + @AssemblyFileVersionAttribute);
 
-		public static bool CurrentUICultureIsRuTree => CultureInfo.CurrentUICulture.e_IsRussianTree();
+		public static bool CurrentUICultureIsRuTree => CultureInfo.CurrentUICulture.eIsRussianTree();
 
 
 
 #if NET && !WINDOWS
+
+
 		/*
 	. AppendLine( $ "Имя: {AppInfo.Current.Name} ")
    .AppendLine( $ "Пакет: {AppInfo.Current.PackageName} ")
@@ -2033,6 +2040,18 @@ namespace uom
 #endif
 
 
+#if NET
+
+		/// <summary>
+		/// In Net & Core we need to RegisterEncodingProvider to use encodigs like Win-1251 or other
+		/// </summary>
+		internal static void RegisterEncodingProvider()
+		{
+			System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+
+		}
+
+#endif
 
 		#region Resources
 
@@ -2040,18 +2059,26 @@ namespace uom
 		internal static string AssemblyEntryPointNamespace = Assembly.EntryPoint?.DeclaringType?.Namespace!;
 
 		internal static string? LocalizedStringsManager_Namespace = AssemblyEntryPointNamespace;
-		internal static string LocalizedStringsManager_ResourcesPath = "Localization.Strings";
+		internal static string LocalizedStringsManager_ResourcesPath = "Localization.LStrings";
 
 		internal static Lazy<System.Resources.ResourceManager> LocalizedStringsManager => new(() => new System.Resources.ResourceManager(
 				 $"{LocalizedStringsManager_Namespace}.{LocalizedStringsManager_ResourcesPath}",
 				   Assembly));
 
 
-
-		/// <param name="resourcePath"><c>"Localization.Strings"</c> or something like</param>
+		/*
+		/// <param name="resourcePath"><c>"Localization.LStrings"</c> or something like</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static System.Resources.ResourceManager CreateResourceManagerFromAssemblyEntryPoint(string resourcePath)
-			=> new($"{Assembly.EntryPoint!.DeclaringType!.Namespace}.{resourcePath}", Assembly);
+		=> new($"{Assembly.EntryPoint!.DeclaringType!.Namespace}.{resourcePath}", Assembly);
+		 */
+
+
+		/// <param name="resourcePath"><c>"Localization.LStrings"</c> or something like</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static System.Resources.ResourceManager CreateResourceManager(Type resourceType)
+			=> new(resourceType);
+		//=> new($"{resourceType.FullName}", Assembly);
 
 
 
@@ -2087,7 +2114,7 @@ namespace uom
 		{
 			e ??= Encoding.Unicode;
 			string body = uom.AppInfo.LoadResourceFileAsString(fileNameEndsWith, e);
-			writeTo.e_WriteAllText(body, e);
+			writeTo.eWriteAllText(body, e);
 		}
 
 
@@ -2112,173 +2139,6 @@ namespace uom
 #endif
 
 		#endregion
-	}
-
-	internal static class NetInfo
-	{
-
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool IsInDomain()
-		{
-			try
-			{
-				//_ = System.DirectoryServices.ActiveDirectory.Domain.GetComputerDomain();
-				return System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().DomainName.e_IsNOTNullOrWhiteSpace();
-			}
-			catch { return false; }
-		}
-
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<UnicastIPAddressInformation> GelLocalIPList(OperationalStatus os = OperationalStatus.Up)
-		{
-
-			var ual = System.Net.NetworkInformation.NetworkInterface
-				.GetAllNetworkInterfaces()
-				.Where(nic => nic.OperationalStatus == os)
-				.SelectMany(nic => nic.GetIPProperties().UnicastAddresses)
-				.Where(ip => (ip.Address != null && ip.IPv4Mask != null));
-
-			foreach (var ip in ual)
-				yield return ip;
-		}
-
-
-
-
-		#region GetRemoteMAC
-
-		/*
-
-		/// <summary>Запрашивает в ARP таблице адрес удалённого хоста</summary>
-		/// 		''' <param name="RemoteIP">IP удалённого хоста</param>
-		/// 		''' <param name="TryPing">Предварительно пинговать хост (чтобы он появился в таблице ARP)</param>
-		/// 		''' <param name="PingTimeOut">Тайм-аут пинга</param>
-		public static MACAddress GetRemoteMAC(IPAddress RemoteIP, bool TryPing, int PingTimeOut = 3000)
-		{
-
-
-			if (RemoteIP.Equals(IPAddress.None) || RemoteIP.Equals(IPAddress.Broadcast))
-			{
-				throw new ArgumentNullException("RemoteIP");
-			}
-
-			else if (RemoteIP.Equals(IPAddress.Loopback))
-			{
-				// Попытка узнать МАК для адреса 127.0.0.1
-				string sLocalHostDNS = Dns.GetHostName();
-				IPAddress[] argResolvedIP = null;
-				MACAddress[] aMACS = GetRemoteMAC(sLocalHostDNS, false, 3000, ResolvedIP: ref argResolvedIP, false);
-				if (aMACS.Length > 0)
-				{
-					return aMACS[0];
-				}
-				else
-				{
-					string sERR = string.Format("MAC Resolve for {0} FAILED!", sLocalHostDNS);
-					throw new Exception(sERR);
-				}
-			}
-
-
-			int iPhyAddrLen = 6;
-			var hMACBuffer = Marshal.AllocHGlobal(iPhyAddrLen);
-			try
-			{
-				// retrieve the remote MAC address
-		uint iIP = (uint)RemoteIP.Address;
-		uint iIPAny = (uint)IPAddress.Any.Address;
-		int iResult = SendARP(iIP, iIPAny, hMACBuffer, ref iPhyAddrLen);
-				if (iResult != 0)
-				{
-					var WEX = new Win32Exception(iResult);
-					throw WEX;
-				}
-
-	byte[] abMAC = new byte[] { 0, 0, 0, 0, 0, 0 };
-	Marshal.Copy(hMACBuffer, abMAC, 0, 6);
-				var MAC = new MACAddress(abMAC);
-				return MAC;
-			}
-			finally
-			{
-	Marshal.FreeHGlobal(hMACBuffer);
-	}
-		}
-
-
-
-		/// <summary>Запрашивает в ARP таблице MAC адрес удалённого хоста</summary>
-		/// 		''' <param name="RemoteIP">IP удалённого хоста</param>
-		public static PhysicalAddress GetRemoteMAC(IPAddress RemoteIP)
-		{
-
-			if (RemoteIP.Equals(IPAddress.None) || RemoteIP.Equals(IPAddress.Broadcast) || RemoteIP.Equals(IPAddress.Loopback))
-
-			{
-
-				throw new ArgumentNullException("RemoteIP");
-			}
-
-			int iPhyAddrLen = 6;
-			var hMACBuffer = Marshal.AllocHGlobal(iPhyAddrLen);
-			try
-			{
-
-		uint iIP = (uint)RemoteIP.Address;
-		uint iIPAny = (uint)IPAddress.Any.Address;
-
-		int iResult = SendARP(iIP, iIPAny, hMACBuffer, ref iPhyAddrLen);
-				if (iResult != 0)
-				{
-					var WEX = new Win32Exception(iResult);
-					throw WEX;
-				}
-
-	byte[] abMAC = new byte[] { 0, 0, 0, 0, 0, 0 };
-	Marshal.Copy(hMACBuffer, abMAC, 0, 6);
-				return new PhysicalAddress(abMAC);
-	}
-			finally
-			{
-	Marshal.FreeHGlobal(hMACBuffer);
-	}
-		}
-
-
-
-	/// <summary>Возвращает несколько адресов, которые удалось выяснить</summary>
-	/// 		''' <param name="RemoteIPOrDNSMane">IP или DNS имя удаленного хоста</param>
-	/// 		''' <param name="TryPing">Предварительно пинговать хост ()</param>
-	/// 		''' <param name="PingTimeOut">Тайм-аут пинга</param>
-	/// 		''' <param name="CanThrowError">Генерировать исключение если, произошла ошибка с одним из адресов</param>
-	public static MACAddress[] GetRemoteMAC(string RemoteIPOrDNSMane, bool TryPing, int PingTimeOut = 3000, [Optional, DefaultParameterValue(null)] ref IPAddress[] ResolvedIP, bool CanThrowError = false)
-	{
-
-	var aHE = Dns.GetHostEntry(RemoteIPOrDNSMane);
-	ResolvedIP = aHE.AddressList;
-	var aMACs = new List<MACAddress>();
-	foreach (IPAddress IP in ResolvedIP)
-	{
-	try
-	{
-	   var MAC = GetRemoteMAC(IP, TryPing, PingTimeOut);
-	   aMACs.Add(MAC);
-	}
-	catch
-	{
-	   if (CanThrowError)
-		   throw;
-	}
-	}
-	return aMACs.ToArray();
-	}
-
-		 */
-
-		#endregion
-
 	}
 
 
@@ -2384,6 +2244,9 @@ namespace uom
 		{
 			public T CloneT();
 
+#if NET
+			object ICloneable.Clone() => CloneT()!;
+#endif
 		}
 
 
@@ -2396,6 +2259,32 @@ namespace uom
 
 
 		internal interface IFilterableOfString : IFilterableOf<string> { }
+
+
+		/*
+internal interface INotifyPropertyChangedEx : INotifyPropertyChanged
+{
+
+[MethodImpl(MethodImplOptions.NoInlining)]
+protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+{
+	var pea = new PropertyChangedEventArgs(propertyName ?? throw new ArgumentNullException(nameof(propertyName)));
+
+	INotifyPropertyChanged npc = this;
+	//this.PropertyChanged
+	var dd = npc.PropertyChanged;
+	dd?.Invoke(this, pea);
+}
+
+
+[MethodImpl(MethodImplOptions.NoInlining)]
+protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? propertyName = null)
+{
+	this.OnPropertyChanged(propertyName);
+	return newValue;
+}
+}
+		 */
 
 	}
 
@@ -2633,7 +2522,7 @@ namespace uom
 				while (rList.Any())
 				{
 					IDisposable rObjectToKill = rList.Pop();
-					rObjectToKill.e_DisposeAndSetNothing();
+					rObjectToKill.eDisposeAndSetNothing();
 				}
 			}
 
@@ -2811,7 +2700,7 @@ namespace uom
 				}
 
 				/// <summary> IDisposable</summary>
-				private void Destroy() => MTSyncObject?.e_DisposeAndSetNothing();
+				private void Destroy() => MTSyncObject?.eDisposeAndSetNothing();
 			}
 
 			//[DefaultProperty("IsSet")]
@@ -3004,9 +2893,181 @@ namespace uom
 	namespace Network
 	{
 
-		internal static class Tools
+
+		internal static class Helpers
 		{
 
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool IsInDomain()
+			{
+				try
+				{
+					//_ = System.DirectoryServices.ActiveDirectory.Domain.GetComputerDomain();
+					return System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().DomainName.eIsNotNullOrWhiteSpace();
+				}
+				catch { return false; }
+			}
+
+
+			/// <summary>Gets IP of installed network adapters</summary>
+			/// <param name="os">Adapter operational status filter</param>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			private static IEnumerable<UnicastIPAddressInformation> GelLocalIP(OperationalStatus os = OperationalStatus.Up)
+			{
+
+				var ual = System.Net.NetworkInformation.NetworkInterface
+					.GetAllNetworkInterfaces()
+					.Where(nic => nic.OperationalStatus == os)
+					.SelectMany(nic => nic.GetIPProperties().UnicastAddresses)
+					.Where(ip => ip.Address != null);
+
+				foreach (var ip in ual)
+					yield return ip;
+			}
+
+			/// <summary>Gets IP of installed network adapters</summary>
+			/// <param name="os">Adapter operational status filter</param>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static IEnumerable<UnicastIPAddressInformation> GelLocalIP4(OperationalStatus os = OperationalStatus.Up)
+			{
+				var a = GelLocalIP(os)
+					.Where(ua => ua.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && ua.IPv4Mask != null);
+
+				return a;
+			}
+
+
+			#region GetRemoteMAC
+
+			/*
+
+			/// <summary>Запрашивает в ARP таблице адрес удалённого хоста</summary>
+			/// 		''' <param name="RemoteIP">IP удалённого хоста</param>
+			/// 		''' <param name="TryPing">Предварительно пинговать хост (чтобы он появился в таблице ARP)</param>
+			/// 		''' <param name="PingTimeOut">Тайм-аут пинга</param>
+			public static MACAddress GetRemoteMAC(IPAddress RemoteIP, bool TryPing, int PingTimeOut = 3000)
+			{
+
+
+				if (RemoteIP.Equals(IPAddress.None) || RemoteIP.Equals(IPAddress.Broadcast))
+				{
+					throw new ArgumentNullException("RemoteIP");
+				}
+
+				else if (RemoteIP.Equals(IPAddress.Loopback))
+				{
+					// Попытка узнать МАК для адреса 127.0.0.1
+					string sLocalHostDNS = Dns.GetHostName();
+					IPAddress[] argResolvedIP = null;
+					MACAddress[] aMACS = GetRemoteMAC(sLocalHostDNS, false, 3000, ResolvedIP: ref argResolvedIP, false);
+					if (aMACS.Length > 0)
+					{
+						return aMACS[0];
+					}
+					else
+					{
+						string sERR = string.Format("MAC Resolve for {0} FAILED!", sLocalHostDNS);
+						throw new Exception(sERR);
+					}
+				}
+
+
+				int iPhyAddrLen = 6;
+				var hMACBuffer = Marshal.AllocHGlobal(iPhyAddrLen);
+				try
+				{
+					// retrieve the remote MAC address
+			uint iIP = (uint)RemoteIP.Address;
+			uint iIPAny = (uint)IPAddress.Any.Address;
+			int iResult = SendARP(iIP, iIPAny, hMACBuffer, ref iPhyAddrLen);
+					if (iResult != 0)
+					{
+						var WEX = new Win32Exception(iResult);
+						throw WEX;
+					}
+
+		byte[] abMAC = new byte[] { 0, 0, 0, 0, 0, 0 };
+		Marshal.Copy(hMACBuffer, abMAC, 0, 6);
+					var MAC = new MACAddress(abMAC);
+					return MAC;
+				}
+				finally
+				{
+		Marshal.FreeHGlobal(hMACBuffer);
+		}
+			}
+
+
+
+			/// <summary>Запрашивает в ARP таблице MAC адрес удалённого хоста</summary>
+			/// 		''' <param name="RemoteIP">IP удалённого хоста</param>
+			public static PhysicalAddress GetRemoteMAC(IPAddress RemoteIP)
+			{
+
+				if (RemoteIP.Equals(IPAddress.None) || RemoteIP.Equals(IPAddress.Broadcast) || RemoteIP.Equals(IPAddress.Loopback))
+
+				{
+
+					throw new ArgumentNullException("RemoteIP");
+				}
+
+				int iPhyAddrLen = 6;
+				var hMACBuffer = Marshal.AllocHGlobal(iPhyAddrLen);
+				try
+				{
+
+			uint iIP = (uint)RemoteIP.Address;
+			uint iIPAny = (uint)IPAddress.Any.Address;
+
+			int iResult = SendARP(iIP, iIPAny, hMACBuffer, ref iPhyAddrLen);
+					if (iResult != 0)
+					{
+						var WEX = new Win32Exception(iResult);
+						throw WEX;
+					}
+
+		byte[] abMAC = new byte[] { 0, 0, 0, 0, 0, 0 };
+		Marshal.Copy(hMACBuffer, abMAC, 0, 6);
+					return new PhysicalAddress(abMAC);
+		}
+				finally
+				{
+		Marshal.FreeHGlobal(hMACBuffer);
+		}
+			}
+
+
+
+		/// <summary>Возвращает несколько адресов, которые удалось выяснить</summary>
+		/// 		''' <param name="RemoteIPOrDNSMane">IP или DNS имя удаленного хоста</param>
+		/// 		''' <param name="TryPing">Предварительно пинговать хост ()</param>
+		/// 		''' <param name="PingTimeOut">Тайм-аут пинга</param>
+		/// 		''' <param name="CanThrowError">Генерировать исключение если, произошла ошибка с одним из адресов</param>
+		public static MACAddress[] GetRemoteMAC(string RemoteIPOrDNSMane, bool TryPing, int PingTimeOut = 3000, [Optional, DefaultParameterValue(null)] ref IPAddress[] ResolvedIP, bool CanThrowError = false)
+		{
+
+		var aHE = Dns.GetHostEntry(RemoteIPOrDNSMane);
+		ResolvedIP = aHE.AddressList;
+		var aMACs = new List<MACAddress>();
+		foreach (IPAddress IP in ResolvedIP)
+		{
+		try
+		{
+		   var MAC = GetRemoteMAC(IP, TryPing, PingTimeOut);
+		   aMACs.Add(MAC);
+		}
+		catch
+		{
+		   if (CanThrowError)
+			   throw;
+		}
+		}
+		return aMACs.ToArray();
+		}
+
+			 */
+
+			#endregion
 
 
 			public static FileInfo? DownloadFile_WebRequest(string url, string localFile, TimeSpan timeout)
@@ -3097,7 +3158,7 @@ namespace uom
 
 
 		/// <summary>Comparable PhysicalAddress</summary>
-		internal class PhysicalAddressEx(byte[] mac) : PhysicalAddress(mac), IComparable<PhysicalAddressEx>
+		internal class PhysicalAddressEx(byte[] mac) : PhysicalAddress(mac), IComparable<PhysicalAddressEx>, IComparable<PhysicalAddress>
 		{
 			/// <summary>
 			/// <code>
@@ -3122,76 +3183,26 @@ namespace uom
 
 			public override bool Equals(object? obj) => base.Equals(obj);
 
+			public override int GetHashCode() => GetHash().GetHashCode();
+
+			public int CompareTo(PhysicalAddress? other)
+				=> this.GetHash().CompareTo(other?.ToString() ?? string.Empty);
+
 		}
 
-
-		internal class IP4AddressWithMask(IPAddress ip, uint prefixLength = IP4AddressWithMask.PREFIX_32) : System.Net.NetworkInformation.IPAddressInformation(), IComparable<IP4AddressWithMask>
+		[Obsolete("Not tested!", true)]
+		internal class IPAddressEx : System.Net.IPAddress
 		{
-			internal const uint PREFIX_0 = 0;
-			internal const uint PREFIX_32 = 32;
+			public IPAddressEx(byte[] address) : base(address) { }
 
-			private static Lazy<Regex> _rxMaskedIP = new(() => new Regex(@"\b(?<IP>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?<Mask>\/\d{1,5})?\b"));
-			private readonly IPAddress _ipAddress = ip;
-			public readonly uint PrefixLength = prefixLength.e_CheckRange(0, PREFIX_32);
+			public IPAddressEx(Int64 address) : base(address) { }
 
-			public override IPAddress Address => _ipAddress;
-
-			public IPAddress Mask => PrefixLength.e_GetIP4SubnetMask();
-
-			public override bool IsDnsEligible => throw new NotImplementedException();
-			public override bool IsTransient => throw new NotImplementedException();
-
-
-			public IP4AddressWithMask(IPAddress ip, IPAddress mask) : this(ip, mask.e_GetIP4SubnetPrefixSizeFromMask()) { }
-
-			public override string ToString() => $"{_ipAddress}/{PrefixLength}";
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static IEnumerable<IP4AddressWithMask> ParseIPs(string multiIPString)
-			{
-				MatchCollection result = _rxMaskedIP.Value.Matches(multiIPString);
-				if (result.Count < 1) yield break;
-
-				foreach (Match m in result)
-				{
-					string ip = m.Groups["IP"].Value;
-					string prefixSizeString = m.Groups["Mask"].Value;
-
-					if (!IPAddress.TryParse(ip, out IPAddress? ipa)) continue;
-
-					uint prefixSize = PREFIX_32;
-					if (prefixSizeString.e_IsNOTNullOrWhiteSpace() && uint.TryParse(prefixSizeString.Substring(1), out var parsedPrefixSize))
-						prefixSize = parsedPrefixSize;
-
-					yield return new IP4AddressWithMask(ipa!, prefixSize);
-				}
-				yield break;
-			}
-
-
-
-
-
-			public int CompareTo(IP4AddressWithMask? other)
-				=> (other == null)
-				? 1
-				: Address!.e_CompareTo(other!.Address!);
-		}
-
-
-		internal class ComparibleIPAddress : System.Net.IPAddress
-		{
-			public ComparibleIPAddress(byte[] address) : base(address) { }
-
-			public ComparibleIPAddress(Int64 address) : base(address) { }
-
-			public ComparibleIPAddress(byte[] address, Int64 scopeid) : base(address, scopeid) { }
+			public IPAddressEx(byte[] address, Int64 scopeid) : base(address, scopeid) { }
 
 
 			/// <summary>Determines the relative value of adddress1 to address2.</summary>
 			/// <returns>-1 indicates address1 is less than address2. 1 indicates address1 is greater than address2. 0 indicates both are equal. -2 indicates addresses are incompatible for comparison.</returns>
-			public int CompareTo(ComparibleIPAddress value)
+			public int CompareTo(IPAddressEx value)
 			{
 				int returnVal = 0;
 				if (this.AddressFamily == value.AddressFamily)
@@ -3221,11 +3232,12 @@ namespace uom
 				return returnVal;
 			}
 
+
 			/// <summary>Determines if the current IP Address is in the given range.</summary>
 			/// <param name="rangeStartAddress">The beginning of the range.</param>
 			/// <param name="rangeEndAddress">The end of the range.</param>
 			/// <returns>True if the IP Address is within the passed range.</returns>
-			public bool IsInRange(ComparibleIPAddress rangeStartAddress, ComparibleIPAddress rangeEndAddress)
+			public bool IsInRange(IPAddressEx rangeStartAddress, IPAddressEx rangeEndAddress)
 			{
 				bool returnVal = false;
 				// ensure that all addresses are of the same type otherwise reject //
@@ -3246,22 +3258,22 @@ namespace uom
 				return returnVal;
 			}
 
-			public static ComparibleIPAddress[] GetLocalAddresses()
+			public static IPAddressEx[] GetLocalAddresses()
 			{
 				string hostName = System.Net.Dns.GetHostName();
 				System.Net.IPHostEntry entry = System.Net.Dns.GetHostEntry(hostName);
-				List<ComparibleIPAddress> list = new List<ComparibleIPAddress>();
+				List<IPAddressEx> list = new List<IPAddressEx>();
 				foreach (System.Net.IPAddress address in entry.AddressList)
 				{
-					list.Add(new ComparibleIPAddress(address.GetAddressBytes()));
+					list.Add(new IPAddressEx(address.GetAddressBytes()));
 				}
 				return list.ToArray();
 			}
 
-			public static bool IsLocalAddressInRange(ComparibleIPAddress rangeStartAddress, ComparibleIPAddress rangeEndAddress)
+			public static bool IsLocalAddressInRange(IPAddressEx rangeStartAddress, IPAddressEx rangeEndAddress)
 			{
 				bool returnVal = false;
-				foreach (ComparibleIPAddress address in GetLocalAddresses())
+				foreach (IPAddressEx address in GetLocalAddresses())
 				{
 					if (address.IsInRange(rangeStartAddress, rangeEndAddress))
 					{
@@ -3274,8 +3286,70 @@ namespace uom
 		}
 
 
-		internal class IPAddressComparer : IComparer<IPAddress>
+		internal class IP4AddressWithMask(IPAddress ip, uint prefixLength = IP4AddressWithMask.PREFIX_32) : System.Net.NetworkInformation.IPAddressInformation(), IComparable<IP4AddressWithMask>
 		{
+			internal static readonly IPAddress CloudFlareRecursiveDNSConverter = IPAddress.Parse("1.1.1.1");
+
+			internal static readonly IP4AddressWithMask CloudFlareDNSNetwork = new(CloudFlareRecursiveDNSConverter, 8);
+
+
+			internal const uint PREFIX_0 = 0;
+			internal const uint PREFIX_32 = 32;
+
+			private static Lazy<Regex> _rxMaskedIP = new(() => new Regex(@"\b(?<IP>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?<Mask>\/\d{1,5})?\b"));
+			private readonly IPAddress _ipAddress = ip;
+			public readonly uint PrefixLength = prefixLength.eCheckRange(0, PREFIX_32);
+
+			public override IPAddress Address => _ipAddress;
+
+			public IPAddress Mask => PrefixLength.eGetIP4SubnetMask();
+
+			public override bool IsDnsEligible => throw new NotImplementedException();
+			public override bool IsTransient => throw new NotImplementedException();
+
+
+			public IP4AddressWithMask(IPAddress ip, IPAddress mask) : this(ip, mask.eGetIP4SubnetPrefixSizeFromMask()) { }
+
+			public override string ToString() => $"{_ipAddress}/{PrefixLength}";
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static IEnumerable<IP4AddressWithMask> ParseIPs(string multiIPString)
+			{
+				MatchCollection result = _rxMaskedIP.Value.Matches(multiIPString);
+				if (result.Count < 1) yield break;
+
+				foreach (Match m in result)
+				{
+					string ip = m.Groups["IP"].Value;
+					string prefixSizeString = m.Groups["Mask"].Value;
+
+					if (!IPAddress.TryParse(ip, out IPAddress? ipa)) continue;
+
+					uint prefixSize = PREFIX_32;
+					if (prefixSizeString.eIsNotNullOrWhiteSpace() && uint.TryParse(prefixSizeString.Substring(1), out var parsedPrefixSize))
+						prefixSize = parsedPrefixSize;
+
+					yield return new IP4AddressWithMask(ipa!, prefixSize);
+				}
+				yield break;
+			}
+
+
+
+
+
+			public int CompareTo(IP4AddressWithMask? other)
+				=> (other == null)
+				? 1
+				: Address!.eCompareTo(other!.Address!);
+		}
+
+
+		internal class IP4AddressComparer : IComparer<IPAddress>
+		{
+			public static readonly Lazy<IP4AddressComparer> StaticInstance = new(() => new());
+
 			public int Compare(IPAddress? x, IPAddress? y) => CompareIPAddress(x, y);
 
 			public static int CompareIPAddress(IPAddress? x, IPAddress? y)
@@ -3285,10 +3359,49 @@ namespace uom
 				if (x == null) return -1;
 				if (y == null) return 1;
 
-				uint uX = x.e_ToUInt32CalculableOrder(), uY = y.e_ToUInt32CalculableOrder();
+				uint uX = x.eToUInt32CalculableOrder(), uY = y.eToUInt32CalculableOrder();
 				return uX.CompareTo(uY);
 			}
 		}
+
+		internal class IP4AddressWithMaskComparer : IComparer<string>, IComparer<IP4AddressWithMask>
+		{
+			public static readonly Lazy<IP4AddressWithMaskComparer> StaticInstance = new(() => new());
+
+			public int Compare(string? x, string? y)
+			{
+				try
+				{
+					IP4AddressWithMask?
+						ipX = IP4AddressWithMask.ParseIPs(x ?? string.Empty).FirstOrDefault(),
+						ipY = IP4AddressWithMask.ParseIPs(y ?? string.Empty).FirstOrDefault();
+
+					return Compare(ipX, ipY);
+				}
+				catch { }
+				return string.Compare(x, y);
+			}
+
+			public int Compare(IP4AddressWithMask? x, IP4AddressWithMask? y)
+			{
+				if (x == null && y == null) return 0;
+				if (x == null) return -1;
+				return x.CompareTo(y);
+			}
+		}
+
+
+		internal class MACComparer : IComparer<PhysicalAddress>
+		{
+			public static readonly Lazy<MACComparer> StaticInstance = new(() => new());
+
+
+			public static int CompareMAC(PhysicalAddress? x, PhysicalAddress? y)
+				=> string.Compare(x?.ToString() ?? string.Empty, y?.ToString() ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+
+			public int Compare(PhysicalAddress? x, PhysicalAddress? y) => CompareMAC(x, y);
+		}
+
 
 
 		//https://newbedev.com/progress-bar-with-httpclient
@@ -3459,7 +3572,7 @@ namespace uom
 					this.ex = ex;
 					source = src;
 				}
-				public override string ToString() => $"{fsi.e_FullName_RemoveLongPathPrefix()} {source} {ex.Message.Trim()}";
+				public override string ToString() => $"{fsi.eFullName_RemoveLongPathPrefix()} {source} {ex.Message.Trim()}";
 			}
 
 			public struct SCAN_RUNNING_INFO
@@ -3505,7 +3618,7 @@ namespace uom
 					if (!aDisks.Any()) throw new Exception("Failed to get logical drives!");
 					aRootDirsToScan = (from sDir in aDisks
 									   orderby sDir
-									   let fiDir = sDir.e_ToDirectoryInfo(true)
+									   let fiDir = sDir.eToDirectoryInfo(true)
 									   select fiDir).ToArray();
 				}
 
@@ -3547,7 +3660,7 @@ namespace uom
 			{
 				if (_cts.IsCancellationRequested) return;
 
-				aDirs.e_ForEach((d) =>
+				aDirs.eForEach((d) =>
 				{
 					if (_cts.IsCancellationRequested) return;
 
@@ -3587,7 +3700,7 @@ namespace uom
 
 					try
 					{
-						var aFiles = aChildrens.Where(fsi => fsi.e_IsFileInfo()).Cast<FileInfo>().ToArray();
+						var aFiles = aChildrens.Where(fsi => fsi.eIsFileInfo()).Cast<FileInfo>().ToArray();
 						foreach (var F in aFiles)
 						{
 							if (!OnFileFound(F)) break;
@@ -3604,7 +3717,7 @@ namespace uom
 					try
 					{
 						var aDirs = aChildrens
-							.Where(fsi => fsi.e_ExistAndIsDirectory())
+							.Where(fsi => fsi.eExistAndIsDirectory())
 							.Cast<DirectoryInfo>()
 							.ToArray();
 
@@ -3684,7 +3797,7 @@ namespace uom
 				)
 			{
 				_ = aFilesToFind ?? throw new ArgumentNullException(nameof(aFilesToFind));
-				_aFilesToFind = aFilesToFind.Where((f) => f.e_IsNOTNullOrWhiteSpace()).ToArray();
+				_aFilesToFind = aFilesToFind.Where((f) => f.eIsNotNullOrWhiteSpace()).ToArray();
 				if (!_aFilesToFind.Any()) throw new ArgumentNullException(nameof(aFilesToFind));
 
 				_cbOnOnEnterDir = fuOnEnterDir;
@@ -3705,7 +3818,7 @@ namespace uom
 			{
 				if (!base.OnEnterDir(D)) return false;
 				var bContinueToSearch = _cbOnOnEnterDir?.Invoke(D);
-				return bContinueToSearch.e_ToBool();
+				return bContinueToSearch.eToBool();
 			}
 
 			protected override DirectoryInfo[] OnBeforeCheckSubDirs(DirectoryInfo[] aDirs) =>
@@ -3720,7 +3833,7 @@ namespace uom
 				_lResult.Add(F);
 
 				var bContinueToSearch = _cbOnFileFound?.Invoke(F);
-				return bContinueToSearch.e_ToBool();
+				return bContinueToSearch.eToBool();
 			}
 
 			protected override bool OnError(SCAN_ERROR e)
@@ -3817,14 +3930,14 @@ namespace uom
 			public BackgroundLogFileReader(string sPath, bool bDeleteFileOnFinish = false) : base()
 			{
 				DeleteFileOnFinish = bDeleteFileOnFinish;
-				_File = sPath.e_ToFileInfo();
-				_SR = _File!.e_CreateReader();
+				_File = sPath.eToFileInfo();
+				_SR = _File!.eCreateReader();
 				StartCore(sPath);
 			}
 			public BackgroundLogFileReader(Stream S) : base()
 			{
 				DeleteFileOnFinish = false;
-				_SR = S.e_CreateReader();
+				_SR = S.eCreateReader();
 				StartCore("[Stream]");
 			}
 
@@ -3905,7 +4018,7 @@ namespace uom
 
 			/// <summary>Checks if new value is not equal to old value and updates old value to new value.</summary>
 			/// <returns>true if value was updated</returns>
-			public static bool e_UpdateIfNotEquals<T>(this ref T oldValue, T newValue, Action? onUpdatedCallback) where T : struct
+			public static bool eUpdateIfNotEquals<T>(this ref T oldValue, T newValue, Action? onUpdatedCallback) where T : struct
 			{
 				if (oldValue.Equals(newValue)) return false;
 
@@ -3921,29 +4034,16 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_ToBool(this bool? expr)
+			public static bool eToBool(this bool? expr)
 				=> (null != expr) && expr.HasValue && expr.Value;
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_ToBool(this bool expr) => expr;
+			public static bool eToBool(this bool expr) => expr;
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_ToBool(this int iValue) => (0 != iValue);
-
-
-
-
-
-
-
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static int e_ToInt32ABS(this bool bValue) => (Int32)(bValue ? 1 : 0);
-
-
+			public static bool eToBool(this int iValue) => (0 != iValue);
 
 
 
@@ -3954,7 +4054,20 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static int[] e_RangeTo(this int iFrom, int iTo) => Enumerable.Range(iFrom, iTo).ToArray();
+			public static int eToInt32ABS(this bool bValue) => (Int32)(bValue ? 1 : 0);
+
+
+
+
+
+
+
+
+
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static int[] eRangeTo(this int iFrom, int iTo) => Enumerable.Range(iFrom, iTo).ToArray();
 
 
 
@@ -3965,21 +4078,21 @@ namespace uom
 
 			/// <summary>Чётное</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsEven(this int N) => (N % 2 == 0);
+			internal static bool eIsEven(this int N) => (N % 2 == 0);
 
 
 			/// <summary>Нечётное</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsOdd(this int N) => (!N.e_IsEven());
+			internal static bool eIsOdd(this int N) => (!N.eIsEven());
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsКратно(this int Value, int ЧемуКратно)
+			internal static bool eIsКратно(this int Value, int ЧемуКратно)
 				=> (Value / (double)ЧемуКратно == Value / ЧемуКратно);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsКратно(this long Value, long ЧемуКратно)
+			internal static bool eIsКратно(this long Value, long ЧемуКратно)
 				=> (Value / (double)ЧемуКратно == Value / ЧемуКратно);
 
 
@@ -3987,7 +4100,7 @@ namespace uom
 
 			/*             
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static int e_CheckRange(this int value, int minValue = 0, int maxValue = 100)
+			public static int eCheckRange(this int value, int minValue = 0, int maxValue = 100)
 			{
 				if (value < minValue) value = minValue;
 				else if (value > maxValue) value = maxValue;
@@ -3995,7 +4108,7 @@ namespace uom
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static Int64 e_CheckRange(this Int64 value, Int64 minValue = 0, Int64 maxValue = 100)
+			public static Int64 eCheckRange(this Int64 value, Int64 minValue = 0, Int64 maxValue = 100)
 			{
 				if (value < minValue) value = minValue;
 				else if (value > maxValue) value = maxValue;
@@ -4003,7 +4116,7 @@ namespace uom
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static float e_CheckRange(this float value, float minValue = 0, float maxValue = 100)
+			public static float eCheckRange(this float value, float minValue = 0, float maxValue = 100)
 			{
 				if (value < minValue) value = minValue;
 				else if (value > maxValue) value = maxValue;
@@ -4012,7 +4125,7 @@ namespace uom
 			*/
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T e_CheckRange<T>(this T Value, T? MinLimit = default, T? MaxLimit = default) where T : struct, IComparable
+			internal static T eCheckRange<T>(this T Value, T? MinLimit = default, T? MaxLimit = default) where T : struct, IComparable
 			{
 				try
 				{
@@ -4026,13 +4139,13 @@ namespace uom
 				}
 				catch
 				{
-					return MinLimit.e_ValueOrNull() ?? default;
+					return MinLimit.eValueOrNull() ?? default;
 				}
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T? e_ValueOrNull<T>(this T? v) where T : struct
+			internal static T? eValueOrNull<T>(this T? v) where T : struct
 				=> (null != v && v.HasValue) ? v.Value : null;
 
 			#endregion
@@ -4041,15 +4154,15 @@ namespace uom
 			private const MidpointRounding DEFAULT_ROUNDING_RULE = MidpointRounding.ToEven;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static float e_Round(this float N, int Precision, MidpointRounding mmr = DEFAULT_ROUNDING_RULE) => (float)Math.Round(N, Precision, mmr);
+			internal static float eRound(this float N, int Precision, MidpointRounding mmr = DEFAULT_ROUNDING_RULE) => (float)Math.Round(N, Precision, mmr);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static double e_Round(this double N, int Precision, MidpointRounding mmr = DEFAULT_ROUNDING_RULE) => Math.Round(N, Precision, mmr);
+			internal static double eRound(this double N, int Precision, MidpointRounding mmr = DEFAULT_ROUNDING_RULE) => Math.Round(N, Precision, mmr);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static decimal e_Round(this decimal N, int Precision, MidpointRounding mmr = DEFAULT_ROUNDING_RULE) => Math.Round(N, Precision, mmr);
+			internal static decimal eRound(this decimal N, int Precision, MidpointRounding mmr = DEFAULT_ROUNDING_RULE) => Math.Round(N, Precision, mmr);
 
 
 
@@ -4057,38 +4170,38 @@ namespace uom
 
 
 
-
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static uom._Int64 e_ToInt64(this long V) => new(V);
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static uom._Int64 e_ToInt64(this ulong V) => new(V);
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static uom._Int32 e_ToInt32(this int V) => new(V);
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static uom._Int32 e_ToInt32(this uint V) => new(V);
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static uom._Int16 e_ToInt16(this short V) => new(V);
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static uom._Int16 e_ToInt16(this ushort V) => new(V);
 
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T e_ParseAsNumeric<T>(this string stringValue, T defaultValue, NumberStyles style = NumberStyles.None) where T : struct
+			public static uom._Int64 eToInt64(this long V) => new(V);
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static uom._Int64 eToInt64(this ulong V) => new(V);
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static uom._Int32 eToInt32(this int V) => new(V);
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static uom._Int32 eToInt32(this uint V) => new(V);
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static uom._Int16 eToInt16(this short V) => new(V);
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static uom._Int16 eToInt16(this ushort V) => new(V);
+
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static T eParseAsNumeric<T>(this string stringValue, T defaultValue, NumberStyles style = NumberStyles.None) where T : struct
 			{
-				if (stringValue.e_IsNullOrWhiteSpace()) return defaultValue;
+				if (stringValue.eIsNullOrWhiteSpace()) return defaultValue;
 
 				object numericValue = Type.GetTypeCode(typeof(T)) switch
 				{
@@ -4116,23 +4229,23 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static Int32 e_ToInt32(this IEnumerable<byte> ab) => BitConverter.ToInt32(ab.ToArray(), 0);
+			public static Int32 eToInt32(this IEnumerable<byte> ab) => BitConverter.ToInt32(ab.ToArray(), 0);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static UInt32 e_ToUInt32(this IEnumerable<byte> ab) => BitConverter.ToUInt32(ab.ToArray(), 0);
+			public static UInt32 eToUInt32(this IEnumerable<byte> ab) => BitConverter.ToUInt32(ab.ToArray(), 0);
 
 
 			/// <summary>Reverse bytes from AABBCCDD to DDCCBBAA</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static UInt32 e_ReverseBytes(this UInt32 a) => a.e_GetBytes().Reverse().e_ToUInt32();
+			public static UInt32 eReverseBytes(this UInt32 a) => a.eGetBytes().Reverse().eToUInt32();
 
 			/// <summary>Reverse bytes from AABBCCDD to DDCCBBAA</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static Int32 e_ReverseBytes(this Int32 a) => a.e_GetBytes().Reverse().e_ToInt32();
+			public static Int32 eReverseBytes(this Int32 a) => a.eGetBytes().Reverse().eToInt32();
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static UInt64 e_BinaryPow(this UInt64 baseNumber, UInt64 exponent)
+			public static UInt64 eBinaryPow(this UInt64 baseNumber, UInt64 exponent)
 			{
 				UInt64 result = 1;
 				while (exponent > 0)
@@ -4145,7 +4258,7 @@ namespace uom
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static UInt32 e_BinaryPow(this UInt32 baseNumber, UInt32 exponent)
+			public static UInt32 eBinaryPow(this UInt32 baseNumber, UInt32 exponent)
 			{
 				UInt32 result = 1;
 				while (exponent > 0)
@@ -4164,32 +4277,32 @@ namespace uom
 			internal const UInt64 C_BYTES_IN_GBYTE = 1073741824UL;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static UInt64 e_KBToBytes(this UInt32 mb) => (UInt64)mb * C_BYTES_IN_KBYTE;
+			public static UInt64 eKBToBytes(this UInt32 mb) => (UInt64)mb * C_BYTES_IN_KBYTE;
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static UInt64 e_MBToBytes(this UInt32 mb) => (UInt64)mb * C_BYTES_IN_MBYTE;
+			public static UInt64 eMBToBytes(this UInt32 mb) => (UInt64)mb * C_BYTES_IN_MBYTE;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static UInt64 e_MBToBytes(this UInt64 mb) => mb * C_BYTES_IN_MBYTE;
+			public static UInt64 eMBToBytes(this UInt64 mb) => mb * C_BYTES_IN_MBYTE;
 
 
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static float e_InchesToMM(this float Inches) => Inches * constants.C_MM_IN_INCH;
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static float e_MMToInches(this float MM) => MM / constants.C_MM_IN_INCH;
+			internal static float eInchesToMM(this float Inches) => Inches * constants.C_MM_IN_INCH;
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static float e_InchesToCM(this float Inches) => Inches * constants.C_CM_IN_INCH;
+			internal static float eMMToInches(this float MM) => MM / constants.C_MM_IN_INCH;
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static float e_CMToInches(this float CM) => CM / constants.C_CM_IN_INCH;
+			internal static float eInchesToCM(this float Inches) => Inches * constants.C_CM_IN_INCH;
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static float eCMToInches(this float CM) => CM / constants.C_CM_IN_INCH;
 
 		}
 
@@ -4202,13 +4315,13 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_DumpHexToString(this byte[] data, ulong startAddress = ulong.MinValue, int elementsInLine = 16)
+			internal static string eDumpHexToString(this byte[] data, ulong startAddress = ulong.MinValue, int elementsInLine = 16)
 			{
 				if (data == null || data.Length < 1) return "[NULL OR EMPTY]";
 
 				StringBuilder sbResult = new();
 
-				int fullLineLen = BitConverter.ToString((new string('-', elementsInLine)).e_GetBytes_ASCII()).Length;
+				int fullLineLen = BitConverter.ToString((new string('-', elementsInLine)).eGetBytes_ASCII()).Length;
 				ulong rowAddress = startAddress;
 				int addressLen = Marshal.SizeOf(rowAddress) * 2;
 
@@ -4217,9 +4330,9 @@ namespace uom
 				{
 					sbResult.Append(rowAddress.ToString("X").PadLeft(addressLen, '0')); //Address
 					sbResult.Append('|');
-					sbResult.Append(sw.WindowData.e_ToStringHex().PadRight(fullLineLen, '-')); //Hex Data
+					sbResult.Append(sw.WindowData.eToStringHex().PadRight(fullLineLen, '-')); //Hex Data
 					sbResult.Append('|');
-					sbResult.Append(new string(sw.WindowData.Select(b => b.e_ToChar('.')).ToArray())); // Data as readable text
+					sbResult.Append(new string(sw.WindowData.Select(b => b.eToChar('.')).ToArray())); // Data as readable text
 					sbResult.AppendLine();
 					rowAddress += (ulong)elementsInLine;
 
@@ -4229,15 +4342,15 @@ namespace uom
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_DumpHexToString(this IntPtr lpBuffer, int nBytes)
+			internal static string eDumpHexToString(this IntPtr lpBuffer, int nBytes)
 			=> lpBuffer
-					.e_PtrToBytes(nBytes)
-					.e_DumpHexToString((ulong)lpBuffer.ToInt64());
+					.ePtrToBytes(nBytes)
+					.eDumpHexToString((ulong)lpBuffer.ToInt64());
 
 #if NET
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_DumpHex(this Span<Byte> abData, ulong startAddress = ulong.MinValue, int elementsInLine = 16)
-				=> abData.ToArray().e_DumpHexToString(startAddress, elementsInLine);
+			internal static string eDumpHex(this Span<Byte> abData, ulong startAddress = ulong.MinValue, int elementsInLine = 16)
+				=> abData.ToArray().eDumpHexToString(startAddress, elementsInLine);
 
 #endif
 
@@ -4247,7 +4360,7 @@ namespace uom
 			/// Any pointer type
 			/// Any user-defined struct type that contains fields of unmanaged types only.
 			/// </summary>
-			private static string e_DumpValueToString<T>(this T? value,
+			private static string eDumpValueToString<T>(this T? value,
 				[System.Runtime.CompilerServices.CallerArgumentExpression("value")] string? valueName = null) where T : unmanaged
 			{
 
@@ -4260,7 +4373,7 @@ namespace uom
 				return $"{valueName} = {val}";
 			}
 
-			private static string e_DumpValueToString<T>(this string? value,
+			private static string eDumpValueToString<T>(this string? value,
 				[System.Runtime.CompilerServices.CallerArgumentExpression("value")] string? valueName = null)
 			{
 				string val = "null";
@@ -4273,7 +4386,7 @@ namespace uom
 
 			/*
 
-	  private static string e_DumpValue<T>(this T[]? value,
+	  private static string eDumpValue<T>(this T[]? value,
 		  [System.Runtime.CompilerServices.CallerArgumentExpression("value")] string? valueName = null) where T : unmanaged
 	  {
 		  string val = "null";
@@ -4288,7 +4401,7 @@ namespace uom
 					  if (a == null)
 						  val = "NULL_Array";
 					  else
-						  val = a.e_DumpArrayAsString2();
+						  val = a.eDumpArrayAsString2();
 				  }
 				  catch (Exception ex)
 				  { val = ex.Message; }
@@ -4309,7 +4422,7 @@ namespace uom
 		  */
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_DumpObjectToString<T>(this T? value,
+			internal static string eDumpObjectToString<T>(this T? value,
 				[System.Runtime.CompilerServices.CallerArgumentExpression("value")] string? valueName = null,
 				params string[] excludeMembers) where T : class
 			{
@@ -4321,7 +4434,7 @@ namespace uom
 
 				MemberInfo[] members = t.GetMembers()
 					.OrderBy(m => m.Name)
-					.Where(m => !excludeMembers.e_ContainsOrdinalIgnoreCase(m.Name))
+					.Where(m => !excludeMembers.eContainsOrdinalIgnoreCase(m.Name))
 					.ToArray();
 
 
@@ -4395,8 +4508,9 @@ namespace uom
 				return sb.ToString().TrimEnd();
 			}
 
+
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_DumpStaticMembers(this Type t, params string[] excludeMembers)
+			internal static string eDumpStaticMembers(this Type t, params string[] excludeMembers)
 			{
 				StringBuilder sb = new(2048);
 
@@ -4404,7 +4518,7 @@ namespace uom
 
 				MemberInfo[] members = t.GetMembers(BindingFlags.Public | BindingFlags.Static)
 					.OrderBy(m => m.Name)
-					.Where(m => !excludeMembers.e_ContainsOrdinalIgnoreCase(m.Name))
+					.Where(m => !excludeMembers.eContainsOrdinalIgnoreCase(m.Name))
 					.ToArray();
 
 				foreach (MemberInfo mi in members)
@@ -4450,7 +4564,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_DumpObjectMembersTreeToString<T>(this T? value,
+			internal static string eDumpObjectMembersTreeToString<T>(this T? value,
 				[System.Runtime.CompilerServices.CallerArgumentExpression("value")] string? valueName = null) where T : class
 			{
 
@@ -4475,12 +4589,12 @@ namespace uom
 
 						memberDump = mi switch
 						{
-							PropertyInfo pi => pi.GetValue(value).e_DumpObjectToString(pi.Name),
-							FieldInfo fi => fi.GetValue(value).e_DumpObjectToString(fi.Name),
+							PropertyInfo pi => pi.GetValue(value).eDumpObjectToString(pi.Name),
+							FieldInfo fi => fi.GetValue(value).eDumpObjectToString(fi.Name),
 							_ => ""
 						};
 
-						if (memberDump.e_IsNullOrWhiteSpace()) continue;
+						if (memberDump.eIsNullOrWhiteSpace()) continue;
 
 						bool isOwn = (mi.DeclaringType == t);
 						if (!isOwn) memberDump = $"->[{mi.DeclaringType}]-> " + memberDump;
@@ -4504,7 +4618,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_DumpArrayToString<T>(
+			internal static string eDumpArrayToString<T>(
 				this IEnumerable<T>? src,
 				string itemSeparator = ",",
 				int limitArrayItemsOutput = C_DEFAULT_ARRAY_DUMP_ITEMS_COUNT,
@@ -4527,11 +4641,11 @@ namespace uom
 
 				if (src is byte[] data)
 				{
-					result += data.e_ToStringHex();
+					result += data.eToStringHex();
 				}
 				else if (src is string[] strArr)
 				{
-					result += strArr.e_Join(itemSeparator, null, true)!;
+					result += strArr.eJoin(itemSeparator, null, true)!;
 				}
 				else
 				{
@@ -4542,7 +4656,7 @@ namespace uom
 							: o!.ToString())!)
 						.ToArray();
 
-					result += strArr2.e_Join(itemSeparator)!;
+					result += strArr2.eJoin(itemSeparator)!;
 				}
 				return result;
 			}
@@ -4550,7 +4664,7 @@ namespace uom
 
 			/*
 
-	   internal static string e_DumpArrayToString2(
+	   internal static string eDumpArrayToString2(
 		   this System.Array? src,
 		   string itemSeparator = ",",
 		   int limitArrayItemsOutput = C_DEFAULT_ARRAY_DUMP_ITEMS_COUNT
@@ -4563,7 +4677,7 @@ namespace uom
 
 
 		   var e = src as IEnumerable;
-		   return e.e_DumpArrayToString();
+		   return e.eDumpArrayToString();
 
 
 
@@ -4574,13 +4688,13 @@ namespace uom
 		   if (t == typeof(byte[]))
 		   {
 			   byte[] a = (byte[])src;
-			   return a.e_DumpArrayToString(itemSeparator, limitArrayItemsOutput);
+			   return a.eDumpArrayToString(itemSeparator, limitArrayItemsOutput);
 		   }
 
 		   if (t == typeof(string[]))
 		   {
 			   string[] a = (string[])src;
-			   return a.e_DumpArrayToString(itemSeparator, limitArrayItemsOutput);
+			   return a.eDumpArrayToString(itemSeparator, limitArrayItemsOutput);
 		   }
 
 		   string result = $"{t}[{src.Length}]";
@@ -4602,7 +4716,7 @@ namespace uom
 #pragma warning restore CS8604 // Possible null reference argument.
 			   if (l.Count >= limitArrayItemsOutput) break;
 		   }
-		   result += l.ToArray().e_Join(itemSeparator)!;
+		   result += l.ToArray().eJoin(itemSeparator)!;
 		   return result;
 	   }
 				  */
@@ -4695,35 +4809,35 @@ namespace uom
 			#region HIWORD/LOWORD/MAKELPARAM
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static uint e_MAKELPARAM(this ushort LoWord16, ushort HiWord16) => (uint)((uint)HiWord16 << 16 | LoWord16 & 0xFFFFL);
+			internal static uint eMAKELPARAM(this ushort LoWord16, ushort HiWord16) => (uint)((uint)HiWord16 << 16 | LoWord16 & 0xFFFFL);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static uint e_MakeLong(this ushort LoWord16, ushort HiWord16) => LoWord16.e_MAKELPARAM(HiWord16);
+			internal static uint eMakeLong(this ushort LoWord16, ushort HiWord16) => LoWord16.eMAKELPARAM(HiWord16);
 
 
 			//e_HiWord
 			//if ((UI32 & 0x80000000U) == 0x80000000U) return (ushort)(UI32 >> 16);
 			//else return (ushort)(UI32 >> 16 & 0xFFFFu);
-			//internal static ushort e_LoWord(this uint UI32) => (ushort)(UI32 & 0xFFFFL);
+			//internal static ushort eLoWord(this uint UI32) => (ushort)(UI32 & 0xFFFFL);
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static ushort e_LoWord(this uint i) => new _Int32(i).ULoWord;
+			internal static ushort eLoWord(this uint i) => new _Int32(i).ULoWord;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static short e_LoWord(this int i) => new _Int32(i).LoWord;
+			internal static short eLoWord(this int i) => new _Int32(i).LoWord;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static ushort e_HiWord(this uint i) => new _Int32(i).UHiWord;
+			internal static ushort eHiWord(this uint i) => new _Int32(i).UHiWord;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static short e_HiWord(this int i) => new _Int32(i).HiWord;
+			internal static short eHiWord(this int i) => new _Int32(i).HiWord;
 
 
 			#endregion
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static long e_MakeFourCC(this byte ch0, byte ch1, byte ch2, byte ch3)
+			internal static long eMakeFourCC(this byte ch0, byte ch1, byte ch2, byte ch3)
 			{
 				throw new NotImplementedException();
 				// Dim lRes&, lVal&
@@ -4749,26 +4863,26 @@ namespace uom
 
 			private const string C_BAD_BYTE_SEPARATOR_CHARS = @" :_|./*+,\~`'=";
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_NormalizeHexString(this string HexString, string? BadSeparators = null, char? GoodHexSeparator = null)
+			internal static string eNormalizeHexString(this string HexString, string? BadSeparators = null, char? GoodHexSeparator = null)
 			{
-				if (HexString.e_IsNullOrWhiteSpace()) return HexString;
+				if (HexString.eIsNullOrWhiteSpace()) return HexString;
 
 				BadSeparators ??= C_BAD_BYTE_SEPARATOR_CHARS;
 				GoodHexSeparator ??= constants.SystemDefaultHexByteSeparator;
 
-				return HexString.Trim().ToUpper().e_ReplaceAll2(BadSeparators.ToCharArray().e_ToStringArray(), GoodHexSeparator!.ToString()!);
+				return HexString.Trim().ToUpper().eReplaceAll(BadSeparators.ToCharArray().eToStrings(), GoodHexSeparator!.ToString()!);
 			}
 
 
 			/// <summary>Получаем массив байт из строки</summary>
 			/// <param name="HexString">Строка вида: 0D-0A-2B / 43:53:51:3A / 43.53.51.3A / </param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] e_HexStringToBytes(this string HexString, string ByteSeparatorChars = C_BAD_BYTE_SEPARATOR_CHARS)
+			internal static byte[] eHexStringToBytes(this string HexString, string ByteSeparatorChars = C_BAD_BYTE_SEPARATOR_CHARS)
 			{
-				if (HexString.e_IsNullOrWhiteSpace()) return Array.Empty<byte>();
+				if (HexString.eIsNullOrWhiteSpace()) return Array.Empty<byte>();
 
 				string[] hexBytedStrings = HexString
-					.e_NormalizeHexString(ByteSeparatorChars, constants.SystemDefaultHexByteSeparator)
+					.eNormalizeHexString(ByteSeparatorChars, constants.SystemDefaultHexByteSeparator)
 					.Trim()
 					.Split(constants.SystemDefaultHexByteSeparator); // Делим по разделителю на отдельные элементы
 
@@ -4792,7 +4906,7 @@ namespace uom
 			/// <summary>Sets specifed bit by index</summary>
 			/// <param name="bitIndex">Zero-baset bit index</param>			
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_SetBitRef(this ref byte a, int bitIndex, bool bitValue = true)
+			internal static void eSetBitRef(this ref byte a, int bitIndex, bool bitValue = true)
 			{
 				if (bitValue)
 					a |= (byte)(0x1 << bitIndex);
@@ -4800,9 +4914,9 @@ namespace uom
 					a &= (byte)~(0x1 << bitIndex);
 			}
 
-			/// <inheritdoc cref="e_SetBitRef(ref byte, int, bool)" />
+			/// <inheritdoc cref="eSetBitRef(ref byte, int, bool)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_SetBitRef(this ref UInt32 a, int bitIndex, bool bitValue = true)
+			internal static void eSetBitRef(this ref UInt32 a, int bitIndex, bool bitValue = true)
 			{
 				if (bitValue)
 					a |= (1U << bitIndex);
@@ -4810,9 +4924,9 @@ namespace uom
 					a &= ~(1U << bitIndex);
 			}
 
-			/// <inheritdoc cref="e_SetBitRef(ref byte, int, bool)" />
+			/// <inheritdoc cref="eSetBitRef(ref byte, int, bool)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_SetBitRef(this ref Int32 a, int bitIndex, bool bitValue = true)
+			internal static void eSetBitRef(this ref Int32 a, int bitIndex, bool bitValue = true)
 			{
 				if (bitValue)
 					a |= (1 << bitIndex);
@@ -4820,9 +4934,9 @@ namespace uom
 					a &= ~(1 << bitIndex);
 			}
 
-			/// <inheritdoc cref="e_SetBitRef(ref byte, int, bool)" />
+			/// <inheritdoc cref="eSetBitRef(ref byte, int, bool)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_SetBitRef(this ref UInt64 a, int bitIndex, bool bitValue = true)
+			internal static void eSetBitRef(this ref UInt64 a, int bitIndex, bool bitValue = true)
 			{
 				if (bitValue)
 					a |= (1UL << bitIndex);
@@ -4830,9 +4944,9 @@ namespace uom
 					a &= ~(1UL << bitIndex);
 			}
 
-			/// <inheritdoc cref="e_SetBitRef(ref byte, int, bool)" />
+			/// <inheritdoc cref="eSetBitRef(ref byte, int, bool)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_SetBitRef(this ref Int64 a, int bitIndex, bool bitValue = true)
+			internal static void eSetBitRef(this ref Int64 a, int bitIndex, bool bitValue = true)
 			{
 				if (bitValue)
 					a |= (1L << bitIndex);
@@ -4844,71 +4958,71 @@ namespace uom
 			/// <summary>Sets specifed bit by index</summary>
 			/// <param name="bitIndex">Zero-baset bit index</param>			
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static UInt32 e_SetBit(this UInt32 a, int bitIndex) => a | (1U << bitIndex);
+			internal static UInt32 eSetBit(this UInt32 a, int bitIndex) => a | (1U << bitIndex);
 
-			/// <inheritdoc cref="e_SetBit(UInt32, int)" />
+			/// <inheritdoc cref="eSetBit(UInt32, int)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Int32 e_SetBit(this Int32 a, int bitIndex) => a | (1 << bitIndex);
+			internal static Int32 eSetBit(this Int32 a, int bitIndex) => a | (1 << bitIndex);
 
-			/// <inheritdoc cref="e_SetBit(UInt32, int)" />
+			/// <inheritdoc cref="eSetBit(UInt32, int)" />
 			/// <param name="bitIndex">Zero-baset bit index</param>			
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static UInt64 e_SetBit(this UInt64 a, int bitIndex) => a | (1UL << bitIndex);
+			internal static UInt64 eSetBit(this UInt64 a, int bitIndex) => a | (1UL << bitIndex);
 
-			/// <inheritdoc cref="e_SetBit(UInt32, int)" />
+			/// <inheritdoc cref="eSetBit(UInt32, int)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Int64 e_SetBit(this Int64 a, int bitIndex) => a | (1L << bitIndex);
+			internal static Int64 eSetBit(this Int64 a, int bitIndex) => a | (1L << bitIndex);
 
 
 			/// <summary>Gets specifed bit by index</summary>
 			/// <param name="bitIndex">Zero-baset bit index</param>			
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_GetBit(this UInt32 a, int bitIndex) => (a & (1U << bitIndex)) != 0;
+			internal static bool eGetBit(this UInt32 a, int bitIndex) => (a & (1U << bitIndex)) != 0;
 
-			/// <inheritdoc cref="e_GetBit(UInt32, int)" />"
+			/// <inheritdoc cref="eGetBit(UInt32, int)" />"
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_GetBit(this Int32 a, int bitIndex) => (a & (1 << bitIndex)) != 0;
+			internal static bool eGetBit(this Int32 a, int bitIndex) => (a & (1 << bitIndex)) != 0;
 
-			/// <inheritdoc cref="e_GetBit(UInt32, int)" />"
+			/// <inheritdoc cref="eGetBit(UInt32, int)" />"
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_GetBit(this UInt64 a, int bitIndex) => (a & (1UL << bitIndex)) != 0;
+			internal static bool eGetBit(this UInt64 a, int bitIndex) => (a & (1UL << bitIndex)) != 0;
 
-			/// <inheritdoc cref="e_GetBit(UInt32, int)" />"
+			/// <inheritdoc cref="eGetBit(UInt32, int)" />"
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_GetBit(this Int64 a, int bitIndex) => (a & (1L << bitIndex)) != 0;
+			internal static bool eGetBit(this Int64 a, int bitIndex) => (a & (1L << bitIndex)) != 0;
 
 
 			#endregion
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] e_GetBytes(this long value) => BitConverter.GetBytes(value);
+			internal static byte[] eGetBytes(this long value) => BitConverter.GetBytes(value);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] e_GetBytes(this ulong value) => BitConverter.GetBytes(value);
+			internal static byte[] eGetBytes(this ulong value) => BitConverter.GetBytes(value);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] e_GetBytes(this int value) => BitConverter.GetBytes(value);
+			internal static byte[] eGetBytes(this int value) => BitConverter.GetBytes(value);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] e_GetBytes(this uint value) => BitConverter.GetBytes(value);
+			internal static byte[] eGetBytes(this uint value) => BitConverter.GetBytes(value);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] e_GetBytes(this short value) => BitConverter.GetBytes(value);
+			internal static byte[] eGetBytes(this short value) => BitConverter.GetBytes(value);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] e_GetBytes(this ushort value) => BitConverter.GetBytes(value);
+			internal static byte[] eGetBytes(this ushort value) => BitConverter.GetBytes(value);
 
 
 
 			/// <summary>Divides value to divideTo with rounding to the nearest max int</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static uint e_DivideWithRoundToMax(this uint value, uint divideTo)
+			internal static uint eDivideWithRoundToMax(this uint value, uint divideTo)
 			{
 				uint floor = value % divideTo;
 				uint newVal = value / divideTo;
@@ -4918,7 +5032,7 @@ namespace uom
 
 			/// <summary>Divides value to divideTo with rounding to the nearest max int</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static int e_DivideWithRoundToMax(this int value, int divideTo)
+			internal static int eDivideWithRoundToMax(this int value, int divideTo)
 			{
 				int floor = value % divideTo;
 				int newVal = value / divideTo;
@@ -4929,10 +5043,10 @@ namespace uom
 
 			/// <summary>Переводит биты в числовое значение. Количество байт, рассчитывается как число_бит/8</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] e_GetBytes(this BitArray ba)
+			internal static byte[] eGetBytes(this BitArray ba)
 			{
 				//var bytesCount = (int)Math.Round(Math.Ceiling(ba.Count / 8f));
-				int bytesCount = ba.Count.e_DivideWithRoundToMax(8);
+				int bytesCount = ba.Count.eDivideWithRoundToMax(8);
 				var abMaxIP = new byte[bytesCount];
 				ba.CopyTo(abMaxIP, 0);
 				return abMaxIP;
@@ -4941,68 +5055,68 @@ namespace uom
 
 			/// <summary>Переводит биты в числовое значение. Количество байт, рассчитывается как число_бит/8</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] e_GetBytes(this IEnumerable<bool> bits) => (new BitArray(bits.ToArray())).e_GetBytes();
+			internal static byte[] eGetBytes(this IEnumerable<bool> bits) => (new BitArray(bits.ToArray())).eGetBytes();
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static BitArray e_ToBitArray(this byte value) => new(new byte[] { value });
+			internal static BitArray eToBitArray(this byte value) => new(new byte[] { value });
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static BitArray e_ToBitArray(this Int64 value) => new(value.e_GetBytes());
+			internal static BitArray eToBitArray(this Int64 value) => new(value.eGetBytes());
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static BitArray e_ToBitArray(this UInt64 value) => new(value.e_GetBytes());
+			internal static BitArray eToBitArray(this UInt64 value) => new(value.eGetBytes());
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static BitArray e_ToBitArray(this Int32 value) => new(value.e_GetBytes());
+			internal static BitArray eToBitArray(this Int32 value) => new(value.eGetBytes());
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static BitArray e_ToBitArray(this UInt32 value) => new(value.e_GetBytes());
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static BitArray e_ToBitArray(this UInt16 value) => new(value.e_GetBytes());
+			internal static BitArray eToBitArray(this UInt32 value) => new(value.eGetBytes());
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static BitArray e_ToBitArray(this Int16 value) => new(value.e_GetBytes());
+			internal static BitArray eToBitArray(this UInt16 value) => new(value.eGetBytes());
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static BitArray eToBitArray(this Int16 value) => new(value.eGetBytes());
 
 
 
 
-			//internal static bool[] e_GetBits(this BitArray ba) => [.. ba.Cast<bool>()];
+			//internal static bool[] eGetBits(this BitArray ba) => [.. ba.Cast<bool>()];
 			/// <summary>Returns bits array in double reversed mode (See Bitarray), lower bit starts (0x1 = '10000000')</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool[] e_GetBits(this BitArray ba)
+			internal static bool[] eGetBits(this BitArray ba)
 			{
 				bool[] bytes = new bool[ba.Length];
 				ba.CopyTo(bytes, 0);
 				return bytes;
 			}
 
-			/// <inheritdoc cref="e_GetBits(BitArray)" />
+			/// <inheritdoc cref="eGetBits(BitArray)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool[] e_GetBits(this Int32 value) => value.e_ToBitArray().e_GetBits();
+			internal static bool[] eGetBits(this Int32 value) => value.eToBitArray().eGetBits();
 
-			/// <inheritdoc cref="e_GetBits(BitArray)" />
+			/// <inheritdoc cref="eGetBits(BitArray)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool[] e_GetBits(this UInt32 value) => value.e_ToBitArray().e_GetBits();
+			internal static bool[] eGetBits(this UInt32 value) => value.eToBitArray().eGetBits();
 
-			/// <inheritdoc cref="e_GetBits(BitArray)" />
+			/// <inheritdoc cref="eGetBits(BitArray)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool[] e_GetBits(this Int64 value) => value.e_ToBitArray().e_GetBits();
+			internal static bool[] eGetBits(this Int64 value) => value.eToBitArray().eGetBits();
 
-			/// <inheritdoc cref="e_GetBits(BitArray)" />
+			/// <inheritdoc cref="eGetBits(BitArray)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool[] e_GetBits(this UInt64 value) => value.e_ToBitArray().e_GetBits();
+			internal static bool[] eGetBits(this UInt64 value) => value.eToBitArray().eGetBits();
 
-			/// <inheritdoc cref="e_GetBits(BitArray)" />
+			/// <inheritdoc cref="eGetBits(BitArray)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool[] e_GetBits(this Int16 value) => value.e_ToBitArray().e_GetBits();
+			internal static bool[] eGetBits(this Int16 value) => value.eToBitArray().eGetBits();
 
-			/// <inheritdoc cref="e_GetBits(BitArray)" />
+			/// <inheritdoc cref="eGetBits(BitArray)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool[] e_GetBits(this byte value) => value.e_ToBitArray().e_GetBits();
+			internal static bool[] eGetBits(this byte value) => value.eToBitArray().eGetBits();
 
 
 
@@ -5021,29 +5135,28 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_SetBitsFromStartToEnd(this BitArray bits, int startIndex, int endIndex, bool value = true)
+			internal static void eSetBitsFromStartToEnd(this BitArray bits, int startIndex, int endIndex, bool value = true)
 			{
 				for (int i = startIndex; i < endIndex; i++) bits.Set(i, value);
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_SetBitsFromStart(this BitArray bits, int startIndex, int count, bool value = true)
-				=> bits.e_SetBitsFromStartToEnd(startIndex, startIndex + count, value);
+			internal static void eSetBitsFromStart(this BitArray bits, int startIndex, int count, bool value = true)
+				=> bits.eSetBitsFromStartToEnd(startIndex, startIndex + count, value);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Byte[] e_SetBitsFromStartToEnd(this Byte[] bytes, int startIndex, int endIndex, bool value = true)
+			internal static Byte[] eSetBitsFromStartToEnd(this Byte[] bytes, int startIndex, int endIndex, bool value = true)
 			{
 				BitArray bits = new(bytes);
-				bits.e_SetBitsFromStartToEnd(startIndex, endIndex, value);
+				bits.eSetBitsFromStartToEnd(startIndex, endIndex, value);
 				bits.CopyTo(bytes, 0);
 				return bytes;
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Byte[] e_SetManyFromStart(this Byte[] bytes, int startIndex, int count, bool value = true)
-				=> bytes.e_SetBitsFromStartToEnd(startIndex, startIndex + count, value);
-
+			internal static Byte[] eSetManyFromStart(this Byte[] bytes, int startIndex, int count, bool value = true)
+				=> bytes.eSetBitsFromStartToEnd(startIndex, startIndex + count, value);
 
 
 
@@ -5051,9 +5164,9 @@ namespace uom
 			/// <summary>Returns string of bitss like 0000-0001</summary>
 			/// <param name="groupSize">Octet size which will be saparated with groupsSeparator</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ToBitsString(this BitArray ba, bool reorderToHumanReadableView = true, char char_0 = '0', char char_1 = '1', int groupSize = 8, string groupsSeparator = "-")
+			internal static string eToBitsString(this BitArray ba, bool reorderToHumanReadableView = true, char char_0 = '0', char char_1 = '1', int groupSize = 8, string groupsSeparator = "-")
 			{
-				bool[] aBoolValues = ba.e_GetBits();
+				bool[] aBoolValues = ba.eGetBits();
 				Span<bool> bitsSpan = new(aBoolValues);
 
 				List<string> octetsList = [];
@@ -5068,7 +5181,7 @@ namespace uom
 					slicePos += groupSize;
 				}
 				while (slicePos < bitsSpan.Length);
-				string r = octetsList.e_Join(groupsSeparator)!.Trim();
+				string r = octetsList.eJoin(groupsSeparator)!.Trim();
 				if (reorderToHumanReadableView) r = new string(r.Reverse().ToArray());
 				return r;
 			}
@@ -5077,7 +5190,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static System.Numerics.BigInteger e_ToBigInteger(this uint value) => new(value);
+			internal static System.Numerics.BigInteger eToBigInteger(this uint value) => new(value);
 
 #endif
 
@@ -5097,25 +5210,25 @@ namespace uom
 
 			/// <inheritdoc cref="System.Convert.ToBase64String(byte[])"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_ToBase64String(this byte[] data) => Convert.ToBase64String(data);
+			public static string eToBase64String(this byte[] data) => Convert.ToBase64String(data);
 
 			/// <inheritdoc cref="System.Convert.FromBase64String"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static byte[] e_FromBase64String(this string base64String) => Convert.FromBase64String(base64String);
+			public static byte[] eFromBase64String(this string base64String) => Convert.FromBase64String(base64String);
 
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] e_GetBytes_Default(this string sData) => Encoding.Default.GetBytes(sData);
+			internal static byte[] eGetBytes_Default(this string sData) => Encoding.Default.GetBytes(sData);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] e_GetBytes_ASCII(this string sData) => Encoding.ASCII.GetBytes(sData);
+			internal static byte[] eGetBytes_ASCII(this string sData) => Encoding.ASCII.GetBytes(sData);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] e_GetBytes_Unicode(this string sData) => Encoding.Unicode.GetBytes(sData);
+			internal static byte[] eGetBytes_Unicode(this string sData) => Encoding.Unicode.GetBytes(sData);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_GetBytes_Unicode_ToBase64String(this string sData) => Convert.ToBase64String(sData.e_GetBytes_Unicode());
+			internal static string eGetBytes_Unicode_ToBase64String(this string sData) => Convert.ToBase64String(sData.eGetBytes_Unicode());
 
 
 			#endregion
@@ -5130,13 +5243,13 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T e_ParseRegexValueAsNumeric<T>(this GroupCollection g, string groupName, T defaultValue, NumberStyles style = NumberStyles.None) where T : struct
-				=> (g[groupName].Value ?? "").e_ParseAsNumeric(defaultValue, style);
+			public static T eParseRegexValueAsNumeric<T>(this GroupCollection g, string groupName, T defaultValue, NumberStyles style = NumberStyles.None) where T : struct
+				=> (g[groupName].Value ?? "").eParseAsNumeric(defaultValue, style);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T e_ParseRegexValueAsNumeric<T>(this Match mx, string groupName, T defaultValue, NumberStyles style = NumberStyles.None) where T : struct
-				=> mx.Groups.e_ParseRegexValueAsNumeric<T>(groupName, defaultValue, style);
+			public static T eParseRegexValueAsNumeric<T>(this Match mx, string groupName, T defaultValue, NumberStyles style = NumberStyles.None) where T : struct
+				=> mx.Groups.eParseRegexValueAsNumeric<T>(groupName, defaultValue, style);
 
 		}
 
@@ -5144,55 +5257,65 @@ namespace uom
 		internal static class Extensions_StringAndFormat
 		{
 
+			// (parenthesis)
+			// [brackets]
+			// {curly brackets}.
 
+			public const string DEFAULT_REPLACE_WITH = "";
+			public const StringComparison DEFAULT_STRING_COMPARSION = StringComparison.OrdinalIgnoreCase;
+			private const byte FIRST_READABLE_CHAR = 32;
+
+
+
+			/// <returns>string.Empty if sourceText is null</returns>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_ToNonNull(this string? sourceText) => (sourceText ?? "");
+			public static string eToNonNull(this string? sourceText) => (sourceText ?? string.Empty);
 
 			/// <inheritdoc cref="string.IsNullOrEmpty"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_IsNullOrEmpty(this string? sourceText) => string.IsNullOrEmpty(sourceText);
+			public static bool eIsNullOrEmpty(this string? sourceText) => string.IsNullOrEmpty(sourceText);
 
 
 			/// <inheritdoc cref="string.IsNullOrWhiteSpace"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_IsNullOrWhiteSpace(this string? sourceText) => string.IsNullOrWhiteSpace(sourceText!);
+			public static bool eIsNullOrWhiteSpace(this string? sourceText) => string.IsNullOrWhiteSpace(sourceText!);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_IsNOTNullOrWhiteSpace(this string? sourceText) => (!sourceText.e_IsNullOrWhiteSpace());
+			public static bool eIsNotNullOrWhiteSpace(this string? sourceText) => (!sourceText.eIsNullOrWhiteSpace());
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_IsNOTNullOrWhiteSpaceAndStartsWith(this string? sourceText, string sFindWhat) => sourceText.e_IsNOTNullOrWhiteSpace() && sourceText!.StartsWith(sFindWhat);
+			public static bool eIsNotNullOrWhiteSpaceAndStartsWith(this string? sourceText, string sFindWhat) => sourceText.eIsNotNullOrWhiteSpace() && sourceText!.StartsWith(sFindWhat);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_IsNOTNullOrWhiteSpaceAndEndsWith(this string? sourceText, string sFindWhat) => sourceText.e_IsNOTNullOrWhiteSpace() && sourceText!.EndsWith(sFindWhat);
+			public static bool eIsNotNullOrWhiteSpaceAndEndsWith(this string? sourceText, string sFindWhat) => sourceText.eIsNotNullOrWhiteSpace() && sourceText!.EndsWith(sFindWhat);
 
 
 
 
 			[MethodImpl(MethodImplOptions.NoOptimization | MethodImplOptions.AggressiveInlining)]
-			public static bool e_Assert_NullOrWhiteSpace(
-				this string? s,
-				[System.Runtime.CompilerServices.CallerArgumentExpression("s")] string? valueName = null)
-				=> !string.IsNullOrWhiteSpace(s)
+			public static bool eAssert_NullOrWhiteSpace(
+				this string? source,
+				[System.Runtime.CompilerServices.CallerArgumentExpression(nameof(source))] string? valueName = null)
+				=> !string.IsNullOrWhiteSpace(source)
 					? true
 					: throw new ArgumentNullException(valueName);
 
 			[MethodImpl(MethodImplOptions.NoOptimization | MethodImplOptions.AggressiveInlining)]
-			public static bool e_Assert_NullOrEmpty(
-				this string? s,
-				[System.Runtime.CompilerServices.CallerArgumentExpression("s")] string? valueName = null)
-				=> !string.IsNullOrEmpty(s)
+			public static bool eAssert_NullOrEmpty(
+				this string? source,
+				[System.Runtime.CompilerServices.CallerArgumentExpression(nameof(source))] string? valueName = null)
+				=> !string.IsNullOrEmpty(source)
 					? true
 					: throw new ArgumentNullException(valueName);
 
 			[MethodImpl(MethodImplOptions.NoOptimization | MethodImplOptions.AggressiveInlining)]
-			public static bool e_Assert_Null<T>(
-				this T? v,
-				[System.Runtime.CompilerServices.CallerArgumentExpression("v")] string? valueName = null) where T : class
-				=> (v != null)
+			public static bool eAssert_Null<T>(
+				this T? source,
+				[System.Runtime.CompilerServices.CallerArgumentExpression(nameof(source))] string? valueName = null) where T : class
+				=> (source != null)
 					? true
 					: throw new ArgumentNullException(valueName);
 
@@ -5201,65 +5324,74 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_ReverseString(this string src) => new(src.Reverse().ToArray());
+			public static string eReverseString(this string source) => new([.. source.Reverse()]);
 
 
+			/// <returns>'{source}'</returns>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_ВФигурныеСкобки(this Guid G) => '{' + G.ToString() + '}';
+			public static string eEncloseWithCurlyBrackets(this string source) => '{' + source.ToString() + '}';
+
+			/// <returns>'{Guid}'</returns>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string eEncloseWithCurlyBrackets(this Guid source) => source.ToString().eEncloseWithCurlyBrackets();
 
 
-			/// <summary>The strings is differ only in case?</summary>
-			internal static bool e_IsDifferOlyInCase(this string? s1, string? s2)
+			/// <summary>true if 'A' and 'a'</summary>
+			internal static bool eIsDifferOnlyByCase(this string? s1, string? s2)
 			{
-				if (string.Compare(s1, s2) == 0) return false;
-				if (null == s1) return false;
-				if (null == s2) return false;
-
-				return ((s1.ToLower() == s2.ToLower()) && (s1 != s2));
+				if (null == s1 || null == s2) return false;
+				return s1.Equals(s2, StringComparison.OrdinalIgnoreCase) && !s1.Equals(s2, StringComparison.InvariantCulture);
 			}
 
 
 			/// <inheritdoc cref="string.Join(string?, IEnumerable{string?})"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string? e_Join(
-				this IEnumerable<string>? src,
+			public static string? eJoin(
+				this IEnumerable<string>? source,
 				string separator = " ",
 				string? emptyOrNullValue = null,
 				bool enquoteAllStrings = false
 				)
 			{
-				if ((null == src) || !src!.Any()) return emptyOrNullValue;
+				if ((null == source) || !source!.Any()) return emptyOrNullValue;
 
-				if (enquoteAllStrings) src = src.Select(s => ('"' + s + '"')).ToArray();
-				return string.Join(separator, src);
+				if (enquoteAllStrings) source = [.. source.Select(s => '"' + s + '"')];
+				return string.Join(separator, source);
 			}
 
 			/// <inheritdoc cref="string.Join(string?, IEnumerable{string?})"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_Join(this System.Collections.Specialized.StringCollection? cSpecializedStringCollection, string separator = " ")
-				=> (null == cSpecializedStringCollection)
-					? ""
-					: cSpecializedStringCollection!.Cast<string>().e_Join(separator)!;
+			public static string eJoin(
+				this System.Collections.Specialized.StringCollection? source,
+				string separator = " ",
+				string? emptyOrNullValue = null,
+				bool enquoteAllStrings = false
+				)
+				=> (null == source)
+					? string.Empty
+					: source!.Cast<string>().eJoin(separator, emptyOrNullValue, enquoteAllStrings)!;
 
 
 			/// <summary>Make string.Format(sFormatString, Args)</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_Repeat(this char cChar, int Length = 70) => new(cChar, Length);
-
-
+			public static string eRepeat(this char c, int Length = 70) => new(c, Length);
 
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<string> e_Indent(this string src, int indentLevel = 1, Char indentChar = '\t')
+			public static IEnumerable<string> eIndent(this string source, int level = 1, Char indentChar = '\t')
 			{
-				foreach (var s in src.e_ReadLines()) yield return (new string(indentChar, indentLevel) + s);
+				foreach (var s in source.eReadLines()) yield return (new string(indentChar, level) + s);
 			}
 
 
-			/// <summary>Make string.Format(sFormatString, Args)</summary>
+			/// <returns>
+			/// if (source = null) return nullValue;<br/>
+			/// if (source = empty) return emptyValue;<br/>
+			/// return source;
+			/// </returns>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_ToStringAllowNull(
+			public static string eFormatAllowNullOrEmpty(
 				this string? source,
 				string nullValue = "null",
 				string emptyValue = "''")
@@ -5272,16 +5404,47 @@ namespace uom
 
 			/// <inheritdoc cref="string.Format(string, object?[])" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_Format(this string sFormatString, params object[] Args) => string.Format(sFormatString, Args);
+			public static string eFormat(this string formatString, params object[] args)
+				=> string.Format(formatString, args);
+
+
+			private static readonly string[] TIMESPAN_PARTS_EN = ["d", "h", "m", "s", "ms"];
+			private static readonly string[] TIMESPAN_PARTS_RU = ["д", "ч", "м", "с", "мс"];
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string eFormatTimespan(this TimeSpan source, bool useMilliseconds = false, bool skipZeroParts = false)
+			{
+				string[] parts = uom.AppInfo.CurrentUICultureIsRuTree
+					? TIMESPAN_PARTS_RU
+					: TIMESPAN_PARTS_EN;
+
+				StringBuilder sb = new(200);
+				if (source.Days > 0) sb.Append($"{source.Days}{parts[0]},");
+				if (source.Hours > 0) sb.Append($"{source.Hours}{parts[1]}:");
+				if (source.Minutes > 0) sb.Append($"{source.Minutes}{parts[2]}:");
+				if (source.Seconds > 0) sb.Append($"{source.Seconds}{parts[3]}");
+				if (useMilliseconds) sb.Append($":{source.Milliseconds}{parts[4]}");
+				return sb
+					.ToString()
+					.eReplaceAll("::", ":")
+					.Trim()
+					.TrimEnd(':')
+					.TrimEnd(',');
+			}
+
+
 
 
 			private static readonly string[] ByteSize_En = ["B", "KB", "MB", "GB", "TB", "PB", "EB"];
 			private static readonly string[] ByteSize_Ru = ["Б", "КБ", "МБ", "ГБ", "ТБ", "ПБ", "ЕБ"];
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_FormatByteSize(this Int64 BytesLength, int iDecimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS)
+			public static string eFormatByteSize(this UInt64 bytesLength, int decimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS)
 			{
-				string[] sizes = uom.AppInfo.CurrentUICultureIsRuTree ? ByteSize_Ru : ByteSize_En;
-				double dblLen = (double)BytesLength;
+				string[] sizes = uom.AppInfo.CurrentUICultureIsRuTree
+					? ByteSize_Ru
+					: ByteSize_En;
+
+				double dblLen = (double)bytesLength;
 				int order = 0;
 				while (dblLen >= 1024 && (order < sizes.Length - 1))
 				{
@@ -5289,54 +5452,39 @@ namespace uom
 					dblLen /= 1024;
 				}
 				// Adjust the format string to your preferences. For example "{0:0.#}{1}" would show a single decimal place, and no space.
-				string sFormat = (iDecimalPlaces > 0) ? ("{0:0." + new String('#', iDecimalPlaces) + "} {1}") : "{0:0} {1}";
-				var result = string.Format(sFormat, dblLen, sizes[order]);
+				string format = (decimalPlaces > 0) ? ("{0:0." + new String('#', decimalPlaces) + "} {1}") : "{0:0} {1}";
+				var result = string.Format(format, dblLen, sizes[order]);
 				return result;
 			}
 
-
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string eFormatByteSize(this Int64 bytesLength, int decimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS)
+				=> ((UInt64)bytesLength).eFormatByteSize(decimalPlaces);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_FormatByteSize(
-				this int BytesLength,
-				int iDecimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS) => ((Int64)BytesLength).e_FormatByteSize(iDecimalPlaces);
+			public static string eFormatByteSize(this Int32 bytesLength, int decimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS)
+				=> ((UInt64)bytesLength).eFormatByteSize(decimalPlaces);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string eFormatByteSize(this UInt32 bytesLength, int decimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS)
+				=> ((UInt64)bytesLength).eFormatByteSize(decimalPlaces);
 
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_FormatPercent(this int iPercentValue, bool RightAlign = true)
-				=> ((float)((float)iPercentValue.e_CheckRange() / (float)100)).e_FormatPercent(0, RightAlign);
+			public static string eFormatPercent(this int value, bool alignRight = true)
+				=> ((float)((float)value.eCheckRange() / 100f)).eFormatPercent(0, alignRight);
 
 			/// <summary>Возвращает строку вида '20,23 %'</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_FormatPercent(this float fPercentValue, int iDecimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS, bool RightAlign = true)
+			public static string eFormatPercent(this float value, int decimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS, bool alignRight = true)
 			{
-				if (float.IsNaN(fPercentValue)) fPercentValue = 0F;
-				var sFormat = $"P{iDecimalPlaces}";
-				var sValue = fPercentValue.ToString(sFormat);
-				if (RightAlign)
+				if (float.IsNaN(value)) value = 0F;
+				var format = $"P{decimalPlaces}";
+				var sValue = value.ToString(format);
+				if (alignRight)
 				{
-					var sPercent100 = ((float)1).ToString(sFormat);
+					var sPercent100 = ((float)1).ToString(format);
 					sValue = sValue.PadLeft(sPercent100.Length, ' ');
 				}
 				return sValue;
@@ -5344,17 +5492,13 @@ namespace uom
 
 
 			/// <summary>Возвращает строку вида '20,2%'</summary>
-			/// <param name="PercentValue">Значение от 0,0 до 1,0 !!!НЕ от 0 до 100!!!</param>
+			/// <param name="value">Значение от 0,0 до 1,0 !!!НЕ от 0 до 100!!!</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_FormatPercent(this double PercentValue, int iDecimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS)
+			public static string eFormatPercent(this double value, int decimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS)
 			{
-				if (double.IsNaN(PercentValue)) PercentValue = 0d;
-				return ((float)PercentValue).e_FormatPercent(iDecimalPlaces);
+				if (double.IsNaN(value)) value = 0d;
+				return ((float)value).eFormatPercent(decimalPlaces);
 			}
-
-
-
-
 
 
 
@@ -5363,96 +5507,70 @@ namespace uom
 
 			/// <summary>Format number like '1 000 000'</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_Format(this int iValue) => iValue.ToString("N0").Trim();
+			public static string eFormatReadable(this int value)
+				=> value.ToString("N0").Trim();
 
-
-			/// <summary>Выводит число как строку, разделяя тысячные разряды пробелом </summary>
+			/// <inheritdoc cref="eFormatReadable(int)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_Format2(this int Value)
-			{
-				return Value.ToString(constants.C_FMT_LONGNUMBER).Trim();
-			}
+			public static string eFormatReadable(this long value)
+				=> value.ToString("N0").Trim();
 
+			/// <inheritdoc cref="eFormatReadable(int)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_Format(this long iValue) => iValue.ToString("N0").Trim();
+			internal static string eFormatReadable(this IntPtr value)
+				=> value.ToInt64().eFormatReadable();
 
-
-
-			[Obsolete("!!!Need to Verify correct output!!!", true)]
+			/// <summary>Format number like '1 000 000.00'</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_Format(this float fValue, int iDecimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS)
-				=> fValue.ToString($"N{iDecimalPlaces}").Trim();
+			public static string eFormatReadable(this float value, int decimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS)
+				=> value.ToString($"N{decimalPlaces}").Trim();
 
-			/// <summary>Выводит число как строку, разделяя тысячные разряды пробелом </summary>
+			/// <inheritdoc cref="eFormatReadable(float,int)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_Format2(this float Value, int Prcission = 3)
-			{
-				string sFormat = constants.C_FMT_LONGNUMBER + "." + "".PadRight(Prcission, '0');
-				return Value.ToString(sFormat).Trim();
-			}
-
-
-
-
-
-			/// <summary>Выводит число как строку, разделяя тысячные разряды пробелом </summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_Format2(this long Value)
-				=> Value.ToString(constants.C_FMT_LONGNUMBER).Trim();
+			public static string eFormatReadable(this double value, int decimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS)
+				=> value.ToString($"N{decimalPlaces}").Trim();
 
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_Format(this IntPtr Value)
-				=> e_Format(Value.ToInt64());
-
-
-
-
-
-
-
+			internal static string eFormat_PlusMinus(this bool bValue) => bValue
+				? "+"
+				: "-";
 
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_Format_PlusMinus(this bool bValue) => bValue ? "+" : "-";
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_Format_YesNoGlobal(this bool bValue)
-			{
-				if (uom.AppInfo.CurrentUICultureIsRuTree)
-					return bValue ? constants.C_YES_RUS : constants.C_NO_RUS;
-				else
-					return bValue ? constants.C_YES_ENG : constants.C_NO_ENG;
-			}
-
+			public static string eFormat_YesNoGlobal(this bool bValue)
+				=> (uom.AppInfo.CurrentUICultureIsRuTree)
+					? (bValue ? constants.C_YES_RUS : constants.C_NO_RUS)
+					: (bValue ? constants.C_YES_ENG : constants.C_NO_ENG);
 
 
 			/// <summary>iProgress из iMax (20.25%)</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_FormatProgress(this int iProgress, int iMax, int PercentDigits = 2)
+			internal static string eFormatProgress(this int progressValue, int maxValue, int percentDigits = 2)
 			{
 				float sngProgress = 0f;
-				if (iMax > 0) sngProgress = iProgress / (float)iMax;
-				return "{0} из {1} ({2})".e_Format(iProgress, iMax, sngProgress.e_FormatPercent(PercentDigits));
+				if (maxValue > 0) sngProgress = progressValue / (float)maxValue;
+				return "{0} из {1} ({2})".eFormat(progressValue, maxValue, sngProgress.eFormatPercent(percentDigits));
 			}
 
+
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_FormatProgressConsole(this int iACurrent, int iBTotal, string sFormat = "G")
+			internal static string eFormatProgressConsole(this int progressValue, int maxValue, string format = "G")
 			{
-				string sBTotal = iBTotal.ToString(sFormat);
-				string sACurrent = iACurrent.ToString(sFormat).PadLeft(sBTotal.Length, ' ');
-				return "{0} из {1}".e_Format(sACurrent, sBTotal);
+				string sBTotal = maxValue.ToString(format);
+				string sACurrent = progressValue.ToString(format).PadLeft(sBTotal.Length, ' ');
+				return "{0} из {1}".eFormat(sACurrent, sBTotal);
 			}
 
 
 
 
-			private const byte FIRST_READABLE_CHAR = 32;
+
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static char e_ToChar(this byte b, char? notReadableCharReplacement = null)
+			internal static char eToChar(this byte b, char? notReadableCharReplacement = null)
 				=> (b >= FIRST_READABLE_CHAR)
 				? Convert.ToChar(b)
 				: notReadableCharReplacement.HasValue
@@ -5460,48 +5578,52 @@ namespace uom
 					: Convert.ToChar(b);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static IEnumerable<char> e_ToChars(this IEnumerable<byte> data, char? notReadableCharReplacement = null)
-				=> data.Select(B => B.e_ToChar(notReadableCharReplacement));
+			internal static IEnumerable<char> eToChars(this IEnumerable<byte> data, char? notReadableCharReplacement = null)
+				=> data.Select(B => B.eToChar(notReadableCharReplacement));
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static char[] e_ToCharArray(this IEnumerable<byte> data, char? notReadableCharReplacement = null)
-				=> data.e_ToChars(notReadableCharReplacement).ToArray();
+			internal static char[] eToCharArray(this IEnumerable<byte> data, char? notReadableCharReplacement = null)
+				=> data.eToChars(notReadableCharReplacement).ToArray();
 
 
 			//[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			//internal static long  e_UnHex(this string HexVal) => (long)Math.Round(Conversion.Val("&H" + HexVal));
+			//internal static long  eUnHex(this string HexVal) => (long)Math.Round(Conversion.Val("&H" + HexVal));
 
 			/// <summary>Возвращает строку из байт, заменяя нечинаемые символы заменителями</summary>
 			/// <param name="abData">Массив байт</param>
 			/// <param name="notReadableCharReplacement">Заменитель нечитаемых символов</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ToStringAnsiASC(this IEnumerable<byte>? abData, char? notReadableCharReplacement = '.')
+			internal static string eToStringAnsiASC(this IEnumerable<byte>? abData, char? notReadableCharReplacement = '.')
 				=> (abData == null || !abData.Any())
-					? ""
-					: new string(abData!.e_ToCharArray(notReadableCharReplacement));
+					? string.Empty
+					: new string(abData!.eToCharArray(notReadableCharReplacement));
 
 
 			/// <summary>Возвращает строку из байт, включая нечитаемые символы (используется Text.Encoding.ASCII.GetString)</summary>
 			/// <param name="abData">Массив байт</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ToStringAnsiASCFast(this IEnumerable<byte>? abData)
-				=> (abData == null || !abData.Any()) ? "" : Encoding.ASCII.GetString((byte[])(abData!));
+			internal static string eToStringAnsiASCFast(this IEnumerable<byte>? abData)
+				=> (abData == null || !abData.Any())
+					? string.Empty
+					: Encoding.ASCII.GetString((byte[])(abData!));
 
 
 			/// <summary>Возвращает строку из байт, включая нечитаемые символы (используется Text.Encoding.Unicode.GetString)</summary>
 			/// <param name="abData">Массив байт</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ToStringUnicodeFast(this IEnumerable<byte>? abData)
-				=> (abData == null || !abData.Any()) ? "" : Encoding.Unicode.GetString((byte[])(abData!));
+			internal static string eToStringUnicodeFast(this IEnumerable<byte>? abData)
+				=> (abData == null || !abData.Any())
+					? string.Empty
+					: Encoding.Unicode.GetString((byte[])(abData!));
 
 
 			/// <summary>Возвращает строку байт вида 00-00-01-01-05-AA</summary>
 			/// <param name="reverseRTL">Развернуть в программисткий вид (младший байт будет справа)</param>
 			/// <param name="bytesSeparator">Рзделитель байтов. Если не указан, используется системный (по-умолчанию) - обычно это минус</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ToStringHex(this IEnumerable<byte>? data, bool reverseRTL = false, string? bytesSeparator = null)
+			internal static string eToStringHex(this IEnumerable<byte>? data, bool reverseRTL = false, string? bytesSeparator = null)
 			{
-				if (null == data || data.Count() < 1) return "";
+				if (null == data || data.Count() < 1) return string.Empty;
 
 				if (reverseRTL) data = data.Reverse();
 				string sResult = BitConverter.ToString(data.ToArray());
@@ -5511,7 +5633,7 @@ namespace uom
 					string defaultSeparator = constants.SystemDefaultHexByteSeparator.ToString();
 					if (bytesSeparator != defaultSeparator)
 					{
-						sResult = sResult.e_ReplaceAll2(defaultSeparator, bytesSeparator);
+						sResult = sResult.eReplaceAll(defaultSeparator, bytesSeparator);
 					}
 				}
 
@@ -5523,119 +5645,122 @@ namespace uom
 			#region IP Address
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ToStringHex(this System.Net.NetworkInformation.PhysicalAddress MAC) => MAC.GetAddressBytes().e_ToStringHex(false);
+			internal static string eToStringHex(this System.Net.NetworkInformation.PhysicalAddress MAC) => MAC.GetAddressBytes().eToStringHex(false);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ToStringHex(this System.Net.IPAddress IP) => IP.GetAddressBytes().e_ToStringHex(false);
+			internal static string eToStringHex(this System.Net.IPAddress IP) => IP.GetAddressBytes().eToStringHex(false);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ToStringHex(this System.Net.IPEndPoint IPEP) => $"{IPEP.Address.e_ToStringHex()}-{BitConverter.GetBytes((ushort)IPEP.Port).e_ToStringHex()}";
+			internal static string eToStringHex(this System.Net.IPEndPoint IPEP) => $"{IPEP.Address.eToStringHex()}-{BitConverter.GetBytes((ushort)IPEP.Port).eToStringHex()}";
 
 			#endregion
 
 			/// <summary>Removes only Space char (0x32)</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_RemoveSpacesFast(this string source)
+			internal static string eRemoveSpacesFast(this string source)
 				=> source.Replace(" ", string.Empty);
 
 			/// <summary>Removes all Unicode character which is categorized as white space.</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_RemoveSpacesEx(this string source)
+			internal static string eRemoveSpacesEx(this string source)
 				=> string.Concat(source.Where(c => !char.IsWhiteSpace(c)));
 
 
 
 			/// <summary>Заменяет все множественные пробелы на один пробел</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_RemoveDoubleSpaces(this string sourceText) => sourceText.e_ReplaceAll2("  ", " ");
+			internal static string eRemoveDoubleSpaces(this string source)
+				=> source.eReplaceAll("  ", " ");
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static string eReplaceCharsWithString(this string source, char[] charsToReplace, string replaceWith, StringComparison comparison = DEFAULT_STRING_COMPARSION)
+				=> string.Concat(source
+					.Select(x => charsToReplace.Contains(x)
+						? replaceWith
+						: x.ToString()
+						)
+					.ToArray());
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static string eReplaceCharsWithString(this string source, char[] charsToReplace, Func<char, string> replaceFunc)
+				=> string.Concat(source
+					.Select(x => charsToReplace.Contains(x)
+						? replaceFunc.Invoke(x)
+						: x.ToString()
+						)
+					.ToArray());
+
 
 
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ReplaceCharsWithString(this string source, char[] charsToReplace, string replaceWith)
+			internal static string eReplaceAll(this string source, string search, string replaceWith = DEFAULT_REPLACE_WITH, StringComparison comparison = DEFAULT_STRING_COMPARSION)
 			{
-				string[] fixedChars = source
-					.ToCharArray()
-					.Select(x =>
-					{
-						if (!charsToReplace.Contains(x)) return x.ToString();
-						return replaceWith;
-					})
-					.ToArray();
+				if (search.eIsNullOrEmpty()) throw new ArgumentNullException(nameof(search));
+				if (replaceWith.Contains(search, comparison)) throw new ArgumentException($"{nameof(replaceWith)} = '{replaceWith}', and contains search = '{search}'");
 
-				string result = string.Join("", fixedChars);
-				return result;
-			}
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ReplaceCharsWithString(this string source, char[] charsToReplace, Func<char, string> replaceFunc)
-			{
-				string[] fixedChars = source
-					.ToCharArray()
-					.Select(x =>
-					{
-						if (!charsToReplace.Contains(x)) return x.ToString();
-						return replaceFunc.Invoke(x);
-					})
-					.ToArray();
-
-				string result = string.Join("", fixedChars);
-				return result;
-			}
-
-
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ReplaceAll2(this string source, string WhatToFind, string sReplaceWith, bool onlyFirst = false)
-			{
-				if (WhatToFind.e_IsNullOrEmpty()) throw new ArgumentNullException(nameof(WhatToFind));
-				if (sReplaceWith.Contains(WhatToFind) && !onlyFirst)
-					throw new ArgumentException($"{nameof(sReplaceWith)} = '{sReplaceWith}', and contains WhatToFind = '{WhatToFind}'");
-
-				while (source.Contains(WhatToFind))
+				while (source.Contains(search, comparison))
 				{
-					source = source.Replace(WhatToFind, sReplaceWith);
-					if (onlyFirst) break;
+					source = source.Replace(search, replaceWith, comparison);
 				}
 				return source;
 			}
 
-			/// <summary>Заменяем все вхождения на заданную строку</summary>
-			/// <param name="source">Исходный текст</param>
-			/// <param name="WhatToFind">Что нужно найти и заменить</param>
-			/// <param name="sReplaceWith">На что заменять</param>
-			/// <returns></returns>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ReplaceAll2(this string source, IEnumerable<string> WhatToFind, string sReplaceWith, bool onlyFirst = false)
-			{
-				if (null == WhatToFind || !WhatToFind.Any()) throw new ArgumentNullException(nameof(WhatToFind));
 
-				foreach (var sFind in WhatToFind) source = source.e_ReplaceAll2(sFind, sReplaceWith, onlyFirst);
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static string eReplaceAll(this string source, IEnumerable<string> search, string replaceWith = DEFAULT_REPLACE_WITH, StringComparison comparison = DEFAULT_STRING_COMPARSION)
+			{
+				if (null == search || !search.Any()) throw new ArgumentNullException(nameof(search));
+
+				foreach (var sFind in search) source = source.eReplaceAll(sFind, replaceWith, comparison);
 				return source;
 			}
 
 
 			/// <param name="replacePairs">(FindWhat As String, ReplaceWith As String)</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ReplacePairs(this string source, IEnumerable<(string WhatToFind, string ReplaceWith)> replacePairs, bool onlyFirst = false)
+			internal static string eReplacePairs(this string source, IEnumerable<(string search, string replaceWith)> replacePairs, StringComparison comparison = DEFAULT_STRING_COMPARSION)
 			{
 				if (!replacePairs.Any()) throw new ArgumentNullException(nameof(replacePairs));
 
 				foreach (var frp in replacePairs)
-					source = source.e_ReplaceAll2(frp.WhatToFind, frp.ReplaceWith, onlyFirst);
+					source = source.eReplaceAll(frp.search, frp.replaceWith, comparison);
 
 				return source;
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_ЗаменитьЗапятыеНаТочки(this string Num)
-				=> Num.e_ReplaceAll2(",", ".");
+			public static string eЗаменитьЗапятыеНаТочки(this string source)
+				=> source.eReplaceAll(",", ".");
+
+
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static KeyValuePair<string, string> eToKeyValuePair(this string source, string separator, StringComparison comparison = DEFAULT_STRING_COMPARSION, bool trim = true)
+			{
+				if (source.eIsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(source));
+
+				int sepPos = source.IndexOf(separator, comparison);
+				if (sepPos < 1) throw new ArgumentException("Separator pos < 1!");
+
+				string key = source.Substring(0, sepPos);
+				string value = source.Substring(sepPos + separator.Length);
+
+				if (trim)
+				{
+					key = key.Trim();
+					value = value.Trim();
+				}
+				return new(key, value);
+			}
+
 
 
 
@@ -5643,41 +5768,45 @@ namespace uom
 
 			/// <summary>Создаёт строку нулевых символов заданной длинны</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_CreateNullCharSrting(this int iNullCharCount) => new(constants.CC_NULL, iNullCharCount);
+			internal static string eCreateNullCharSrting(this int iNullCharCount) => new(constants.CC_NULL, iNullCharCount);
 
 
 
 
 
-			/// <summary>Убирает с конца строку, если она есть</summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string? e_SubstringFrom(this string source, int iPos)
-			{
-				if (source.e_IsNullOrWhiteSpace()) return null;
-				if (iPos <= 0) return source;
-				if (iPos >= source.Length) return null;
-				return source.Substring(0, iPos);
-			}
+
 
 #if NET6_0_OR_GREATER
-			/// <summary>Берёт левую часть строки</summary>
+			/// <summary>Take left part of the string</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string? e_Left(this string source, int charCount)
+			internal static string? eLeft(this string? source, int charCount)
 			{
-				if (source.e_IsNullOrWhiteSpace()) return null;
-				if (charCount <= 0) return null;
-				if (charCount >= source.Length) return source;
+				if (source == null) return null;
+				if (charCount <= 0) throw new ArgumentOutOfRangeException(nameof(charCount));
+				if (source.Length < charCount) charCount = source.Length;
 				return source[..charCount];
+			}
+
+#else
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static string? eLeft(this string? source, int charCount)
+			{
+				if (source == null) return null;
+				if (charCount <= 0) throw new ArgumentOutOfRangeException(nameof(charCount));
+				if (source.Length < charCount) charCount = source.Length;
+
+				return string.Concat(source.Take(charCount));
 			}
 #endif
 
 
+
 			/// <summary>Split string to left and right parts</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static (string Left, string Right)? e_SplitByIndex(this string source, int leftPartLen)
+			internal static (string Left, string Right)? eSplitByIndex(this string source, int leftPartLen)
 			{
 				if (source == null) return null;
-				if (source.e_IsNullOrWhiteSpace() || leftPartLen <= 0) return (string.Empty, string.Empty);
+				if (source.eIsNullOrWhiteSpace() || leftPartLen <= 0) return (string.Empty, string.Empty);
 				if (leftPartLen >= source.Length) return (source, string.Empty);
 				string left = source.Substring(0, leftPartLen);
 				string right = source.Substring(leftPartLen);
@@ -5686,10 +5815,10 @@ namespace uom
 
 			/// <summary>Split string to left and right parts</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static (string Left, string Right, int SplitCharIndex)? e_SplitByChar(this string source, char separatorChar, bool excludeSeparatorChar)
+			internal static (string Left, string Right, int SplitCharIndex)? eSplitByChar(this string source, char separatorChar, bool excludeSeparatorChar)
 			{
 				if (source == null) return null;
-				if (source.e_IsNullOrWhiteSpace()) return (string.Empty, string.Empty, -1);
+				if (source.eIsNullOrWhiteSpace()) return (string.Empty, string.Empty, -1);
 				int separatorCharIndex = source.IndexOf(separatorChar);
 				if (separatorCharIndex < 0) return (source, string.Empty, separatorCharIndex);
 
@@ -5704,154 +5833,86 @@ namespace uom
 			}
 
 
-
-
-			/// <summary>
-			/// The example displays the following output: 
-			///    Current Culture: en-US 
-			///       case = Case (CurrentCulture): False 
-			///       case = Case (CurrentCultureIgnoreCase): True 
-			///       case = Case (InvariantCulture): False 
-			///       case = Case (InvariantCultureIgnoreCase): True 
-			///       case = Case (Ordinal): False 
-			///       case = Case (OrdinalIgnoreCase): True 
-			///     
-			///       encyclopædia = encyclopaedia (CurrentCulture): True 
-			///       encyclopædia = encyclopaedia (CurrentCultureIgnoreCase): True 
-			///       encyclopædia = encyclopaedia (InvariantCulture): True 
-			///       encyclopædia = encyclopaedia (InvariantCultureIgnoreCase): True 
-			///       encyclopædia = encyclopaedia (Ordinal): False 
-			///       encyclopædia = encyclopaedia (OrdinalIgnoreCase): False 
-			///     
-			///       encyclopædia = encyclopedia (CurrentCulture): False 
-			///       encyclopædia = encyclopedia (CurrentCultureIgnoreCase): False 
-			///       encyclopædia = encyclopedia (InvariantCulture): False 
-			///       encyclopædia = encyclopedia (InvariantCultureIgnoreCase): False 
-			///       encyclopædia = encyclopedia (Ordinal): False 
-			///       encyclopædia = encyclopedia (OrdinalIgnoreCase): False 
-			///     
-			///       Archæology = ARCHÆOLOGY (CurrentCulture): False 
-			///       Archæology = ARCHÆOLOGY (CurrentCultureIgnoreCase): True 
-			///       Archæology = ARCHÆOLOGY (InvariantCulture): False 
-			///       Archæology = ARCHÆOLOGY (InvariantCultureIgnoreCase): True 
-			///       Archæology = ARCHÆOLOGY (Ordinal): False 
-			///       Archæology = ARCHÆOLOGY (OrdinalIgnoreCase): True 
-			///     
-			///     
-			///    Current Culture: se-SE 
-			///       case = Case (CurrentCulture): False 
-			///       case = Case (CurrentCultureIgnoreCase): True 
-			///       case = Case (InvariantCulture): False 
-			///       case = Case (InvariantCultureIgnoreCase): True 
-			///       case = Case (Ordinal): False 
-			///       case = Case (OrdinalIgnoreCase): True 
-			///     
-			///       encyclopædia = encyclopaedia (CurrentCulture): False 
-			///       encyclopædia = encyclopaedia (CurrentCultureIgnoreCase): False 
-			///       encyclopædia = encyclopaedia (InvariantCulture): True 
-			///       encyclopædia = encyclopaedia (InvariantCultureIgnoreCase): True 
-			///       encyclopædia = encyclopaedia (Ordinal): False 
-			///       encyclopædia = encyclopaedia (OrdinalIgnoreCase): False 
-			///     
-			///       encyclopædia = encyclopedia (CurrentCulture): False 
-			///       encyclopædia = encyclopedia (CurrentCultureIgnoreCase): False 
-			///       encyclopædia = encyclopedia (InvariantCulture): False 
-			///       encyclopædia = encyclopedia (InvariantCultureIgnoreCase): False 
-			///       encyclopædia = encyclopedia (Ordinal): False 
-			///       encyclopædia = encyclopedia (OrdinalIgnoreCase): False 
-			///     
-			///       Archæology = ARCHÆOLOGY (CurrentCulture): False 
-			///       Archæology = ARCHÆOLOGY (CurrentCultureIgnoreCase): True 
-			///       Archæology = ARCHÆOLOGY (InvariantCulture): False 
-			///       Archæology = ARCHÆOLOGY (InvariantCultureIgnoreCase): True 
-			///       Archæology = ARCHÆOLOGY (Ordinal): False 
-			///       Archæology = ARCHÆOLOGY (OrdinalIgnoreCase): True
-			/// </summary>
-			/// <returns></returns>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_Contains(this string sourceText, string FindWhat, bool IgnoreCase)
+			internal static bool eContains(this string sourceText, string search, StringComparison comparison = DEFAULT_STRING_COMPARSION)
 			{
-				if (null == sourceText || null == FindWhat) return false;
-				return (sourceText.IndexOf(FindWhat,
-					(IgnoreCase) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)
-					> 0);
+				if (null == sourceText || null == search) return false;
+				return sourceText.IndexOf(search, comparison) >= 0;
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_Contains(this string sourceText, IEnumerable<string> FindWhat, bool IgnoreCase)
+			internal static bool eContains(this string sourceText, IEnumerable<string> search, StringComparison comparison = DEFAULT_STRING_COMPARSION)
 			{
-				foreach (var S in FindWhat) { if (sourceText.e_Contains(S, IgnoreCase)) return true; }
+				foreach (var S in search) { if (sourceText.eContains(S, comparison)) return true; }
 				return false;
 			}
+
 
 			#region Wrap
 			//private const string CS_ESCAPE_LF = "\n";
 
 			/// <summary>Replacing "\n" to Environment.NewLine</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_WrapCPP(this string sourceText) => sourceText.Replace(@"\n", Environment.NewLine);
+			private static string eWrapCPP(this string source)
+				=> source.Replace(@"\n", Environment.NewLine);
 
 			/// <summary>Replacing "|" to Environment.NewLine</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_WrapVB(this string sourceText) => sourceText.Replace('|'.ToString(), Environment.NewLine);
+			private static string eWrapVB(this string source)
+				=> source.Replace('|'.ToString(), Environment.NewLine);
 
 
-			/// <summary>Replacing "\n" or "|" to Environment.NewLine</summary>
+			/// <summary>Replacing "\n" and "|" to Environment.NewLine</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_Wrap(this string sourceText) => sourceText.e_WrapVB().e_WrapCPP();
+			internal static string eWrap(this string source) => source.eWrapVB().eWrapCPP();
 
 			#endregion
 
-			/// <summary>Добавляет строку к тексту. Если исходный текст пустой, то разделитель к исходному тексту не добавляется</summary>
-			/// <param name="TextToAppend">Строка для добавления</param>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_AppendText(this string sourceText, string TextToAppend, string sSeparator = constants.vbCrLf)
-			{
-				if (sourceText.e_IsNullOrWhiteSpace()) sourceText = "";
-				if (sourceText.e_IsNOTNullOrWhiteSpace()) sourceText += sSeparator;
-				return (sourceText + TextToAppend);
-			}
-			/// <summary>Добавляет строку к тексту. Если исходный текст пустой, то разделитель к исходному тексту не добавляется</summary>
-			/// <param name="sourceText">Строка для добавления</param>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static StringBuilder e_toStringBuilder(this string sourceText)
-				=> new StringBuilder(sourceText);
 
 
-			/// <summary>Вырезает кусок строки</summary>
-			/// <returns>Возвращает строку без вырезанного текста</returns>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ReplaceSubstring(this string sourceText, int ReplaceStart, int ReplaceLenght, string ReplaceWith)
+			internal static string eAppend(this string? source, string append, string separator = constants.vbCrLf)
 			{
-				string sBefore = sourceText.Substring(0, ReplaceStart);
-				string sAfter = sourceText.Substring(ReplaceStart + ReplaceLenght);
-				sourceText = sBefore + ReplaceWith + sAfter;
-				return sourceText;
+				source ??= string.Empty;
+				if (source.Length > 0) source += separator;
+				return (source + append);
 			}
 
 
-			/// <summary>Вырезает кусок строки. Возвращает строку без вырезанного текста</summary>
-			/// <returns>Возвращает строку без вырезанного текста</returns>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_Cut(this string sourceText, int CutStart, int CutLenght)
-				=> sourceText.e_ReplaceSubstring(CutStart, CutLenght, "");
+			internal static StringBuilder eToStringBuilder(this string sourceText)
+				=> new(sourceText);
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static string eReplace(this string source, int startIndex, int len, string replaceWith)
+			{
+				string before = source.Substring(0, startIndex);
+				string after = source.Substring(startIndex + len);
+				return before + replaceWith + after;
+			}
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static string eCut(this string source, int cutStart, int len)
+				=> source.eReplace(cutStart, len, "");
 
 
 			/// <summary>Заменяет в тексте строки &lt;0x0A&gt; на соответствующий символ</summary>
 			/// <param name="source">Текст например: aaa&lt;0x0A&gt;bbb&lt;0x0D&gt;</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ReplaceSpecialHexChars(this string source)
+			internal static string eReplaceSpecialHexChars(this string source)
 			{
 				const string CS_HEX_PREFIX = "<0x";
-				Regex rx = new(CS_HEX_PREFIX + "[0-9a-fA-F]{2}>");
-				var aM = rx.Matches(source).Cast<Match>().ToArray().Reverse();
-				foreach (var M in aM)
+				Regex rx = new(CS_HEX_PREFIX + @"[0-9a-fA-F]{2}>");
+				var mm = rx.Matches(source).Cast<Match>().Reverse();
+				foreach (var m in mm)
 				{
-					string hex = M.Value;
-					hex = hex.Substring(CS_HEX_PREFIX.Length, M.Length - CS_HEX_PREFIX.Length - 1);
-					byte B = byte.Parse(hex, NumberStyles.HexNumber);
-					source = source.e_ReplaceSubstring(M.Index, M.Length, B.e_ToChar().ToString());
+					string hex = m.Value;
+					hex = hex.Substring(CS_HEX_PREFIX.Length, m.Length - CS_HEX_PREFIX.Length - 1);
+					byte b = byte.Parse(hex, NumberStyles.HexNumber);
+					source = source.eReplace(m.Index, m.Length, b.eToChar().ToString());
 				}
 				return source;
 			}
@@ -5859,129 +5920,169 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static char[] e_ToChars(this IEnumerable<byte> abData)
-				=> abData.Select<byte, char>((B) => B.e_ToChar()).ToArray();
+			internal static char[] eToChars(this IEnumerable<byte> abData)
+				=> [..
+					abData.Select(b => b.eToChar())
+					];
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ToStringLine(this IEnumerable<char> A)
-				=> new(A.ToArray());
+			internal static string eToString(this IEnumerable<char> chars)
+				=> new([.. chars]);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string[] e_ToStringArray(this IEnumerable<char> A)
-				=> A.Select<char, string>((C) => C.ToString()).ToArray();
+			internal static string[] eToStrings(this IEnumerable<char> chars)
+				=> [..
+					chars.Select(c => c.ToString())
+					];
 
 
-			/// <summary>Делит текст на строки, использует StringReader.ReadLine()</summary>
-			/// <param name="source">Исходный текст для разделения</param>
-			/// <returns>Массив строк исходного текста</returns>
+			/// <summary>using StringReader.ReadLine()</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static IEnumerable<string> e_SplitToLines(this string? source, bool skipEmptyLines = false, bool trimEachLine = false)
+			internal static IEnumerable<string> eSplitLines(this string? source, bool skipEmptyLines = false, bool trimEachLine = false)
 			{
-				if (source.e_IsNullOrEmpty()) yield break;
+				if (source.eIsNullOrEmpty()) yield break;
 
-				using StringReader sr = new(source!);
-				string? sLine = sr.ReadLine();
-				while (null != sLine)
+				using (StringReader sr = new(source!))
 				{
-					bool bAdd = true;
+					string? line = sr.ReadLine();
+					while (null != line)
+					{
+						if (trimEachLine) line = line.Trim();
 
-					if (trimEachLine) sLine = sLine.Trim();
-					if (skipEmptyLines) bAdd = sLine.e_IsNOTNullOrWhiteSpace();
-					if (bAdd) yield return sLine;
-					sLine = sr.ReadLine();
+						bool bAdd = skipEmptyLines
+							? line.eIsNotNullOrWhiteSpace()
+							: true;
+
+						if (bAdd) yield return line;
+						line = sr.ReadLine();
+					}
 				}
 			}
 
 
 			/// <summary>Создаёт объект System.Guid из строки</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Guid e_ToGUID(this string GUIDString) => Guid.Parse(GUIDString);
+			internal static Guid eToGUID(this string GUIDString) => Guid.Parse(GUIDString);
 
 
-			/// <summary>Убирает с конца строку, если она есть</summary>
+
+
+
+
+
+
+
+			#region eTrimStart / eTrimEnd
+
+
+
+
+
+
+			/// <inheritdoc cref="string.TrimStart(char)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_RemoveAtEnd(this string source, string SuffixToRemove)
+			internal static string eTrimStart(this string source, string trimPrefix, bool onlyOnce = false, StringComparison comparison = DEFAULT_STRING_COMPARSION)
 			{
-				if (SuffixToRemove.e_IsNullOrEmpty()) return source;
-				while (source.EndsWith(SuffixToRemove) && source.Length >= SuffixToRemove.Length)
+				if (trimPrefix.eIsNullOrEmpty()) return source;
+
+				while (source.StartsWith(trimPrefix, comparison) && source.Length >= trimPrefix.Length)
 				{
-					int iTake = source.Length - SuffixToRemove.Length;
-					if (iTake == 0) return "";
-					source = source.Substring(0, iTake);
+					source = source.Substring(trimPrefix.Length);
+					if (onlyOnce) break;
 				}
 				return source;
 			}
 
-			/// <summary>Убирает с начала строку, если она есть</summary>
+			/// <inheritdoc cref="string.TrimStart(char)" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_RemoveAtStart(this string source, string prefixToRemove)
+			internal static string eTrimStart(this string source, char trimPrefix, bool onlyOnce = false, StringComparison comparison = DEFAULT_STRING_COMPARSION)
+				=> source.eTrimStart(trimPrefix.ToString(), onlyOnce, comparison);
+
+
+			/// <inheritdoc cref="string.TrimEnd(char)" />
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static string eTrimEnd(this string source, string trimSuffix, bool onlyOnce = false, StringComparison comparison = DEFAULT_STRING_COMPARSION)
 			{
-				if (prefixToRemove.e_IsNullOrEmpty()) return source;
-				while (source.StartsWith(prefixToRemove))
+				if (trimSuffix.eIsNullOrEmpty()) return source;
+				while (source.EndsWith(trimSuffix, comparison) && source.Length >= trimSuffix.Length)
 				{
-					if (source.Length <= prefixToRemove.Length) return "";
-					source = source.Substring(prefixToRemove.Length);
+					int charsToTake = source.Length - trimSuffix.Length;
+					if (charsToTake == 0) return string.Empty;
+
+					source = source.Substring(0, charsToTake);
+					if (onlyOnce) break;
 				}
 				return source;
 			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static string eTrimEnd(this string source, char trimSuffix, bool onlyOnce = false, StringComparison comparison = DEFAULT_STRING_COMPARSION)
+				=> source.eTrimEnd(trimSuffix.ToString(), onlyOnce, comparison);
+
+
+			#endregion
+
+
+
 
 
 			/// <summary>Возвращает окончание строки после указанного фрагмента</summary>
-			/// <param name="sourceText">Исходная строка</param>
-			/// <param name="StartWithString">Вернётся отсток, после конца этой строки</param>
+			/// <param name="source">Исходная строка</param>
+			/// <param name="startWithString">Вернётся отсток, после конца этой строки</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_SubstringAfter(this string sourceText, string StartWithString)
+			internal static string eSubstring(this string source, string startWithString, StringComparison comparison = DEFAULT_STRING_COMPARSION)
 			{
-				if (StartWithString.e_IsNullOrWhiteSpace()) return sourceText;
-				int iFind = sourceText.IndexOf(StartWithString);
-				if (iFind < 0) return sourceText;
-				string S = sourceText.Substring(iFind + StartWithString.Length);
+				if (startWithString.eIsNullOrWhiteSpace()) return source;
+
+				int pos = source.IndexOf(startWithString, comparison);
+				if (pos < 0) return source;
+				string S = source.Substring(pos + startWithString.Length);
 				return S;
 			}
 
 			/// <summary>Возвращает кусок строки между Prefix и Suffix</summary>
-			/// <param name="sourceText">Исходная строка от которой выделяется остаток</param>
+			/// <param name="source">Исходная строка от которой выделяется остаток</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string? e_SubstringBetween(this string sourceText, string Prefix, string Suffix)
+			internal static string? eSubstringBetween(this string? source, string prefix, string suffix, StringComparison comparison = DEFAULT_STRING_COMPARSION)
 			{
-				if (null == sourceText) return null;
-				var S = sourceText.e_SubstringAfter(Prefix);
-				if (S.e_IsNullOrWhiteSpace() || Suffix.e_IsNullOrWhiteSpace()) return null;
-				int iFind = S.IndexOf(Suffix);
-				if (iFind <= 0) return null;
-				S = S.Substring(0, iFind);
-				return S;
+				if (source.eIsNullOrWhiteSpace()) return null;
+
+				var s = source!.eSubstring(prefix, comparison);
+				if (s.eIsNullOrWhiteSpace() || suffix.eIsNullOrWhiteSpace()) return null;
+
+				int pos = s.IndexOf(suffix, comparison);
+				if (pos <= 0) return null;
+				s = s.Substring(0, pos);
+				return s;
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static StringCollection e_ToSpecializedStringCollection(this IEnumerable<string> SourceStrings)
-			{
-				StringCollection C = new();
-				C.AddRange(SourceStrings.ToArray());
-				return C;
-			}
+			internal static StringCollection eToStringCollection(this IEnumerable<string> source)
+				=> [.. source];
+
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static List<string> e_ToList(this StringCollection C) => C.Cast<string>().ToList();
+			internal static List<string> eToList(this StringCollection source)
+				=> source.Cast<string>().ToList();
 
 
 			#region MiltiStringZ
 
 			/// <summary>Создаёт одну строку (REG_MULTI_SZ) из элементов массива (где каждая строка отделена [0] а в конце [00])</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ToAPIMultiStringZ(this IEnumerable<string> SourceStrings)
+			internal static string eToAPIMultiStringZ(this IEnumerable<string> SourceStrings)
 			{
-				var sResult = SourceStrings!.e_Join('\0'.ToString());
+				var sResult = SourceStrings!.eJoin('\0'.ToString());
 				sResult += '\0'.ToString();
 				return sResult;
 			}
 
 			/// <summary>Возвращает строки из REG_MULTI_SZ (где каждая строка отделена [0] а в конце [00])</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			[Obsolete("!!!  e_ReadMiltiStringZUni НАДО ПРОВЕРИТЬ РАБОТОСПОСОБНОСТЬ!!!")]
-			internal static string[] e_ReadMiltiStringZUni(this IntPtr Ptr)
+			[Obsolete("!!!  eReadMiltiStringZUni НАДО ПРОВЕРИТЬ РАБОТОСПОСОБНОСТЬ!!!")]
+			internal static string[] eReadMiltiStringZUni(this IntPtr Ptr)
 			{
 				const int UNICODE_CHAR_SIZE = 2;
 				List<string> aData = new List<string>(100);
@@ -6010,53 +6111,61 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static int[] e_AllIndexesOfAsArray(this string? str, string? searchString)
-				=> str.e_AllIndexesOf(searchString).ToArray();
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static IEnumerable<int> e_AllIndexesOf(this string? str, string? searchString)
+			internal static IEnumerable<int> eAllIndexesOf(this string? source, string search, StringComparison comparison = DEFAULT_STRING_COMPARSION)
 			{
-				if (null == str || null == searchString) yield break;
-				int minIndex = str.IndexOf(searchString);
+				if (null == source) yield break;
+
+				int minIndex = source.IndexOf(search!, comparison);
 				while (minIndex != -1)
 				{
 					yield return minIndex;
-					minIndex = str.IndexOf(searchString, minIndex + searchString.Length);
+					minIndex = source.IndexOf(search, minIndex + search.Length, comparison);
 				}
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static int[] e_AllIndexesOfAsArray(this string? str, char? c)
-				=> str.e_AllIndexesOf(c).ToArray();
+			internal static int[] eAllIndexesOfAsArray(this string? source, string searchString, StringComparison comparison = DEFAULT_STRING_COMPARSION)
+				=> [..
+					source.eAllIndexesOf(searchString, comparison)
+					];
+
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static IEnumerable<int> e_AllIndexesOf(this string? str, char? c)
+			internal static IEnumerable<int> eAllIndexesOf(this string? source, char c)
 			{
-				if (null == str || null == c) yield break;
+				if (null == source) yield break;
 
-				var result2 = str?
+				var result2 = source?
 					.Select((b, i) => b.Equals(c) ? i : -1)?
 					.Where(i => i != -1);
 
-				int minIndex = str!.IndexOf(c.Value);
+				int minIndex = source!.IndexOf(c);
 				while (minIndex != -1)
 				{
 					yield return minIndex;
-					minIndex = str.IndexOf(c.Value, minIndex + 1);
+					minIndex = source.IndexOf(c, minIndex + 1);
 				}
 			}
 
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static int[] eAllIndexesOfAsArray(this string? source, char c)
+				=> [..
+					source.eAllIndexesOf(c)
+					];
+
+
+
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static int e_CountOfChar(this string source, char charToCount)
-				=> source.Count(t => t == charToCount);
+			internal static int eCount(this string source, char charToCount)
+				=> source.Count(c => c.Equals(charToCount));
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_CountOfCharIsAtLeast(this string str, char c, int countAtLeast)
+			internal static bool eCountOfCharIsAtLeast(this string source, char c, int countAtLeast)
 			{
-				char[] cc = str.ToCharArray();
+				char[] cc = source.ToCharArray();
 
 				int iCharCount = 0;
 				int iCharOld = -1;
@@ -6076,7 +6185,7 @@ namespace uom
 			/// <param name="encloseString">Строка добавляемая перед и после строки</param>
 			/// <param name="notEncloseIfExist">Если строка уже окружена, то не окружать повторно</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_Enclose(
+			internal static string eEnclose(
 				this string source,
 				string encloseString = constants.CS_QUOTE,
 				bool notEncloseIfExist = true,
@@ -6092,13 +6201,13 @@ namespace uom
 			/// <param name="encloseChar">Строка добавляемая перед и после строки</param>
 			/// <param name="notEncloseIfExist">Если строка уже окружена, то не окружать повторно</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_EncloseC(
+			internal static string eEncloseC(
 				this string source,
 				char encloseChar = constants.CC_QUOTE,
 				bool notEncloseIfExist = true,
 				bool atStart = true,
 				bool atEnd = true)
-				=> source.e_Enclose(encloseChar.ToString(), notEncloseIfExist, atStart, atEnd);
+				=> source.eEnclose(encloseChar.ToString(), notEncloseIfExist, atStart, atEnd);
 
 
 			/// <summary>Удаляет окружающие строку кавычки или иной окружающий текст</summary>
@@ -6106,20 +6215,20 @@ namespace uom
 			/// <param name="encloseChar"></param>
 			/// <param name="onlyOnePass">Только один проход</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_Exclose(
+			internal static string eExclose(
 				this string sourceText,
 				char encloseChar = constants.CC_QUOTE,
 				bool onlyOnePass = false)
 			{
-				while (sourceText.e_IsNOTNullOrWhiteSpace() && sourceText.StartsWith(Convert.ToString(encloseChar)))
+				while (sourceText.eIsNotNullOrWhiteSpace() && sourceText.StartsWith(Convert.ToString(encloseChar)))
 				{
-					sourceText = sourceText.e_TrimStartOne(encloseChar);
+					sourceText = sourceText.eTrimStart(encloseChar);
 					if (onlyOnePass) break;
 				}
 
-				while (sourceText.e_IsNOTNullOrWhiteSpace() && sourceText.EndsWith(Convert.ToString(encloseChar)))
+				while (sourceText.eIsNotNullOrWhiteSpace() && sourceText.EndsWith(Convert.ToString(encloseChar)))
 				{
-					sourceText = sourceText.e_TrimEndOne(encloseChar);
+					sourceText = sourceText.eTrimEnd(encloseChar);
 					if (onlyOnePass) break;
 				}
 				return sourceText;
@@ -6127,9 +6236,9 @@ namespace uom
 
 			/// <summary>Возрвщвем количество одинаковых символов с начла строки, пока они совпадают с заданными</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static int e_TakeWhile_Count(this string sourceText, char firstCharToSelect)
+			internal static int eTakeWhile_Count(this string sourceText, char firstCharToSelect)
 			{
-				if (sourceText.e_IsNullOrWhiteSpace() || !sourceText.StartsWith(firstCharToSelect.ToString())) return 0;
+				if (sourceText.eIsNullOrWhiteSpace() || !sourceText.StartsWith(firstCharToSelect.ToString())) return 0;
 				int iCount = 0;
 				foreach (char C in sourceText)
 				{
@@ -6140,65 +6249,13 @@ namespace uom
 				return iCount;
 			}
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_TrimStartOne(this string sourceText, char trimmedChar)
-			{
-				if (sourceText.e_IsNOTNullOrWhiteSpace() && sourceText.StartsWith(trimmedChar.ToString()))
-				{
-					if (sourceText.Length > 1)
-					{
-						sourceText = sourceText.Substring(1);
-					}
-					else
-					{
-						sourceText = "";
-					}
-				}
 
-				return sourceText;
-			}
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_TrimEndOne(this string sourceText, char trimmedChar)
-			{
-				if (sourceText.e_IsNOTNullOrWhiteSpace() && sourceText.EndsWith(trimmedChar.ToString()))
-				{
-					if (sourceText.Length > 1)
-					{
-						sourceText = sourceText.Substring(0, sourceText.Length - 1);
-					}
-					else
-					{
-						sourceText = "";
-					}
-				}
-
-				return sourceText;
-			}
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_TrimEndOne(this string sourceText, string trimmedSuffix)
-			{
-				if (sourceText.e_IsNOTNullOrWhiteSpace() && sourceText.EndsWith(trimmedSuffix))
-				{
-					if (sourceText.Length > trimmedSuffix.Length)
-					{
-						return sourceText.Substring(0, sourceText.Length - trimmedSuffix.Length);
-					}
-					else
-					{
-						sourceText = "";
-					}
-				}
-
-				return sourceText;
-			}
 
 			/// <summary>Добавляет в конце строки указанный символ</summary>
 			/// <param name="sourceText">Исходная строка</param>
 			/// <param name="appendix">Строка добавляемая в конце исходной</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_Append(this string sourceText, string appendix = "")
+			internal static string eAppend(this string sourceText, string appendix = "")
 				=> sourceText.EndsWith(appendix)
 				? sourceText
 				: sourceText + appendix;
@@ -6207,15 +6264,15 @@ namespace uom
 			// uom.Comparers.Instances.StringIEqualityComparer_OrdinalIgnoreCase.Value
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_ContainsOrdinalIgnoreCase(this IEnumerable<string> sources, string target)
+			internal static bool eContainsOrdinalIgnoreCase(this IEnumerable<string> sources, string target)
 				=> sources.Contains(target, StringComparer.OrdinalIgnoreCase);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_ContainsCurrentCultureIgnoreCase(this IEnumerable<string> sources, string target)
+			internal static bool eContainsCurrentCultureIgnoreCase(this IEnumerable<string> sources, string target)
 				=> sources.Contains(target, StringComparer.CurrentCultureIgnoreCase);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_ContainsInvariantCultureIgnoreCase(this IEnumerable<string> sources, string target)
+			internal static bool eContainsInvariantCultureIgnoreCase(this IEnumerable<string> sources, string target)
 				=> sources.Contains(target, StringComparer.InvariantCultureIgnoreCase);
 
 
@@ -6237,40 +6294,41 @@ namespace uom
 			/// В примере ниже каждая строка из массива передается в метод TextInfo.ToTitleCase. 
 			/// Среди строк есть как строки заголовков, так и сокращения. Строки преобразуются в последовательности слов, начинающихся с заглавных букв, согласно соглашениям об использовании регистров для языка и региональных параметров Английский (США). </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ToTitleCase(this string source)
+			internal static string eToTitleCase(this string source)
 				=> CultureInfo.CurrentCulture.TextInfo.ToTitleCase(source);
 
 
 			/// <summary>Добавляет пробелы перед заглавными буквами</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_InsertSpacesBeforeUpperCaseChars(this string source)
+			internal static string eInsertSpacesBeforeUpperCaseChars(this string source)
 			{
-				if (source.e_IsNullOrWhiteSpace() || source.Length < 2) return source;
-				return source.Select(c => char.IsUpper(c) ? (" " + c.ToString()) : c.ToString()).ToArray().e_Join("")!.TrimStart();
+				if (source.eIsNullOrWhiteSpace() || source.Length < 2) return source;
+				return source.Select(c => char.IsUpper(c) ? (" " + c.ToString()) : c.ToString()).ToArray().eJoin("")!.TrimStart();
 
-
-				var sbResult = new StringBuilder(source.Length * 2);
-				//var aWordChars = source.ToCharArray();
-				bool bFirst = true;
-				foreach (char C in source)
-				{
-					if (!bFirst && char.IsUpper(C)) sbResult.Append(' ');
-					sbResult.Append(C);
-					bFirst = false;
-				}
-				return sbResult.ToString();
+				/*
+			 var sbResult = new StringBuilder(source.Length * 2);
+			 //var aWordChars = source.ToCharArray();
+			 bool bFirst = true;
+			 foreach (char C in source)
+			 {
+				 if (!bFirst && char.IsUpper(C)) sbResult.Append(' ');
+				 sbResult.Append(C);
+				 bFirst = false;
+			 }
+			 return sbResult.ToString();
+				 */
 			}
 
 			/// <summary>Проверяет строку на (Is Nothing) и (String.IsNullOrEmpty) и (SourceString.Length>0) и возвращает либо исходную строку, либо пустую</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_CheckNullChar(this char SourceChar, string DefaultValue = "")
+			internal static string eCheckNullChar(this char SourceChar, string DefaultValue = "")
 				=> (SourceChar == constants.vbNullChar) ? DefaultValue : SourceChar.ToString();
 
 
 			/// <summary>If string is null or WhiteSpace - returns defaultValue, Else leave source string</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_CheckNullOrWhiteSpace(this string? src, string defaultValue = "")
-				=> src.e_IsNullOrWhiteSpace()
+			internal static string eCheckNullOrWhiteSpace(this string? src, string defaultValue = "")
+				=> src.eIsNullOrWhiteSpace()
 				? defaultValue
 				: src!;
 
@@ -6279,20 +6337,20 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] e_TakeReadableChars(this IEnumerable<byte> abData, byte NotReadableMinValue = 31)
+			internal static byte[] eTakeReadableChars(this IEnumerable<byte> abData, byte NotReadableMinValue = 31)
 				=> abData.Where(B => B > NotReadableMinValue).ToArray();
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static char[] e_GetDigitChars(this IEnumerable<char> aPhoneChars)
+			internal static char[] eGetDigitChars(this IEnumerable<char> aPhoneChars)
 				=> aPhoneChars.Where(C => char.IsDigit(C)).ToArray();
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string? e_GetDigitChars(this string S)
+			internal static string? eGetDigitChars(this string S)
 			{
-				if (S.e_IsNullOrWhiteSpace()) return null;
-				var AB = S.ToArray().e_GetDigitChars();
+				if (S.eIsNullOrWhiteSpace()) return null;
+				var AB = S.ToArray().eGetDigitChars();
 				return (!AB.Any())
 					? null
 					: new string(AB);
@@ -6308,9 +6366,9 @@ namespace uom
 
 			/// <summary>Взвращает строку слева до символа с кодом 0 (ноль)</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_NString(this string sourceText)
+			internal static string eNString(this string sourceText)
 			{
-				string sText = sourceText.e_CheckNullOrWhiteSpace();
+				string sText = sourceText.eCheckNullOrWhiteSpace();
 				int iZeroPos = sText.IndexOf(constants.vbNullChar);
 				switch (iZeroPos)
 				{
@@ -6355,7 +6413,7 @@ namespace uom
 
 			// ''' <summary>Перевод строки в DOS кодировку</summary>
 			// ''' <param name="Строка_в_WIN_кодировке"></param>
-			// Friend Function  e_CharToOem(ByVal Строка_в_WIN_кодировке As String) As Byte()
+			// Friend Function  eCharToOem(ByVal Строка_в_WIN_кодировке As String) As Byte()
 			// Dim abDOS(Строка_в_WIN_кодировке.Length - 1) As Byte
 			// Call CharToOemBuff(Строка_в_WIN_кодировке, abDOS, abDOS.Length)
 			// Dim WEX As New System.ComponentModel.Win32Exception
@@ -6366,7 +6424,7 @@ namespace uom
 			// Return abDOS
 			// End Function
 
-			// 'Friend Overloads Shared Function  e_CharToOemBuff(ByVal Строка_в_WIN_кодировке As String) As String
+			// 'Friend Overloads Shared Function  eCharToOemBuff(ByVal Строка_в_WIN_кодировке As String) As String
 			// '    Dim sDos As String = Строка_в_WIN_кодировке
 			// '    Call CharToOemBuff(Строка_в_WIN_кодировке, sDos, Len(Строка_в_WIN_кодировке))
 			// '    Return sDos
@@ -6378,7 +6436,7 @@ namespace uom
 			// <MarshalAs(UnmanagedType.LPTStr)> ByVal lpszDst As String,
 			// ByVal cchDstLength As Integer) As Integer
 			// End Function
-			// Friend Function  e_OemToChar(ByVal Строка_в_DOS_кодировке As String) As String
+			// Friend Function  eOemToChar(ByVal Строка_в_DOS_кодировке As String) As String
 			// Dim sWin As String = Строка_в_DOS_кодировке
 			// Call OemToCharBuff(Строка_в_DOS_кодировке, sWin, Строка_в_DOS_кодировке.Length)
 			// Return sWin
@@ -6386,16 +6444,16 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ConvertEncoding(this string TextToConvert, string FromEncoding, string ToEncoding)
+			internal static string eConvertEncoding(this string TextToConvert, string FromEncoding, string ToEncoding)
 			{
 				var encFrom = Encoding.GetEncoding(FromEncoding);
 				var encTo = Encoding.GetEncoding(ToEncoding);
-				return TextToConvert.e_ConvertEncoding(encFrom, encTo);
+				return TextToConvert.eConvertEncoding(encFrom, encTo);
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ConvertEncoding(this string TextToConvert, Encoding encFrom, Encoding encTo)
+			internal static string eConvertEncoding(this string TextToConvert, Encoding encFrom, Encoding encTo)
 			{
 
 				// #$OutputEncoding = [System.Text.Encoding]::GetEncoding("windows-1251")
@@ -6412,8 +6470,8 @@ namespace uom
 
 			/// <summary>Преобразование текста из cp866 в windows-1251</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ConvertEncoding_Dos_Windows_1251(this string TextToConvert)
-				=> TextToConvert.e_ConvertEncoding(constants.LEncoding_cp866.Value, constants.LEncoding_Windows1251.Value);
+			internal static string eConvertEncoding_Dos_Windows_1251(this string TextToConvert)
+				=> TextToConvert.eConvertEncoding(constants.LEncoding_cp866.Value, constants.LEncoding_Windows1251.Value);
 			#endregion
 
 			#endregion
@@ -6422,24 +6480,24 @@ namespace uom
 
 			/// <summary>Create string like '\\x.x.x.x\' or \\server\</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_CreateWinSharePrefix(this string host) => $@"\\{host}\";
+			internal static string eCreateWinSharePrefix(this string host) => $@"\\{host}\";
 
 
 			/// <summary>RegEx Words Count In String </summary>
 			private static readonly Lazy<Regex> _rexWordsInString = new Lazy<Regex>(() => new Regex(@"\w+"));
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static IEnumerable<Match> e_GetWords(this string s)
+			internal static IEnumerable<Match> eGetWords(this string s)
 				=> _rexWordsInString.Value.Matches(s).Cast<Match>();
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string[] e_GetWordsStrings(this string s)
-				=> s.e_GetWords().Select(m => m.Value).ToArray();
+			internal static string[] eGetWordsStrings(this string s)
+				=> s.eGetWords().Select(m => m.Value).ToArray();
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static int e_GetWordsCount(this string s) => _rexWordsInString.Value.Matches(s).Count;
-			//public static int e_GetWordsCount(this string str) => str.Split(new char[] { ' ', '.', '?' }, StringSplitOptions.RemoveEmptyEntries).Length;
+			internal static int eGetWordsCount(this string s) => _rexWordsInString.Value.Matches(s).Count;
+			//public static int eGetWordsCount(this string str) => str.Split(new char[] { ' ', '.', '?' }, StringSplitOptions.RemoveEmptyEntries).Length;
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -6451,15 +6509,15 @@ namespace uom
 				string[] TotalWordsInS2,
 				string[] UniqueWordsInBothStrings
 				)
-				e_GetEqualityMetrics(this string s1, string s2)
+				eGetEqualityMetrics(this string s1, string s2)
 			{
 				int minLen = Math.Min(s1.Length, s2.Length);
 				int equalChars = 0;
 				while ((equalChars < minLen) && (s1[equalChars] == s2[equalChars])) { equalChars++; }
 				string equalPrefix = s1.Substring(0, equalChars);
-				int wordsCountInPrefix = equalPrefix.e_GetWordsCount();
-				string[] totalWordsInS1 = s1.e_GetWordsStrings();
-				string[] totalWordsInS2 = s2.e_GetWordsStrings();
+				int wordsCountInPrefix = equalPrefix.eGetWordsCount();
+				string[] totalWordsInS1 = s1.eGetWordsStrings();
+				string[] totalWordsInS2 = s2.eGetWordsStrings();
 				string[] uniqueWordsInBothStrings = totalWordsInS1
 					.Distinct()
 					.Where(w => s2.IndexOf(w) >= 0)
@@ -6479,7 +6537,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static int e_CompareTo(this IPAddress x, IPAddress y)
+			internal static int eCompareTo(this IPAddress x, IPAddress y)
 			{
 
 				var abX = x.GetAddressBytes();
@@ -6502,7 +6560,9 @@ namespace uom
 		internal static class Extensions_Dictionary
 		{
 
-			public static bool e_IsDictionaryEqualTo<TKey, TValue>(this Dictionary<TKey, TValue> dic1, Dictionary<TKey, TValue> dic2) where TKey : notnull
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool eIsDictionaryEqualTo<TKey, TValue>(this Dictionary<TKey, TValue> dic1, Dictionary<TKey, TValue> dic2) where TKey : notnull
 				=> dic1
 				.OrderBy(x => x.Key)
 				.SequenceEqual(dic2.OrderBy(x => x.Key));
@@ -6544,11 +6604,11 @@ namespace uom
 		{
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static int e_IndexOfComparableElement<T>(this IEnumerable<T>? objList, T itemToSearch) where T : IComparable<T>
+			public static int eIndexOfComparableElement<T>(this IEnumerable<T>? objList, T itemToSearch) where T : IComparable<T>
 			{
 				//if (objList == null || itemToSearch == null) return -1;
 				int index = 0;
-				foreach (T item in objList.e_OrEmptyIfNull())
+				foreach (T item in objList.eOrEmptyIfNull())
 				{
 					if (item.CompareTo(itemToSearch!) == 0) return index;
 					index++;
@@ -6557,11 +6617,11 @@ namespace uom
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static int e_IndexOfElement<T>(this IEnumerable<T>? objList, T itemToSearch) where T : class
+			public static int eIndexOfElement<T>(this IEnumerable<T>? objList, T itemToSearch) where T : class
 			{
 				//if (objList == null || itemToSearch == null) return -1;
 				int index = 0;
-				foreach (T item in objList.e_OrEmptyIfNull())
+				foreach (T item in objList.eOrEmptyIfNull())
 				{
 					if (item.Equals(itemToSearch)) return index;
 					index++;
@@ -6571,14 +6631,14 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_ForEach<T>(this IEnumerable<T>? objList, Action<T>? action)
+			public static void eForEach<T>(this IEnumerable<T>? objList, Action<T>? action)
 			{
-				foreach (T item in objList?.e_OrEmptyIfNull()!) action?.Invoke(item);
+				foreach (T item in objList?.eOrEmptyIfNull()!) action?.Invoke(item);
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<T> e_Sort<T>(this IEnumerable<T> source) where T : System.IComparable<T>
+			public static IEnumerable<T> eSort<T>(this IEnumerable<T> source) where T : System.IComparable<T>
 			{
 				_ = source ?? throw new ArgumentNullException(nameof(source));
 				return (from N in source orderby N select N).ToArray();
@@ -6586,7 +6646,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string[] e_SortArrayOfStrings(this string[] source)
+			public static string[] eSortArrayOfStrings(this string[] source)
 			{
 				Array.Sort(source, StringComparer.InvariantCultureIgnoreCase);
 				return source;
@@ -6594,28 +6654,51 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T[] e_SortAsArray<T>(this IEnumerable<T> source) where T : System.IComparable<T>
-				=> source.e_Sort().ToArray();
+			public static T[] eSortAsArray<T>(this IEnumerable<T> source) where T : System.IComparable<T>
+				=> source.eSort().ToArray();
 
-			public static List<T> e_SortAsList<T>(this IEnumerable<T> source) where T : System.IComparable<T>
-				=> source.e_Sort().ToList();
+			public static List<T> eSortAsList<T>(this IEnumerable<T> source) where T : System.IComparable<T>
+				=> source.eSort().ToList();
 
 			/// <summary>Return string that contains in source text</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<string> e_Contains(this string? source, IEnumerable<string>? aWhatToFind)
+			public static IEnumerable<string> eContains(this string? source, IEnumerable<string>? aWhatToFind)
 				=> (null == source || null == aWhatToFind) ? Array.Empty<string>() : aWhatToFind!.Where(S => source!.Contains(S));
 
 			/// <summary>Return true if any string contains in source text</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_ContainsAny(this string? source, IEnumerable<string>? aWhatToFind) => source.e_Contains(aWhatToFind).Any();
+			public static bool eContainsAny(this string? source, IEnumerable<string>? aWhatToFind) => source.eContains(aWhatToFind).Any();
 
 			/// <summary>Creates 1 element array with specifed item</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T[] e_ToArrayOf<T>(this T? source) => (null == source) ? System.Array.Empty<T>() : new T[] { source };
+			public static T[] eToArrayOf<T>(this T? source) => (null == source) ? System.Array.Empty<T>() : new T[] { source };
+
+
+
+			/// <summary>Creates 1 element array with specifed item</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static IEnumerable<T> eAsIEnumerableOf<T>(this IList<T> source)
+			{
+				foreach (T item in source)
+				{
+					yield return item;
+				}
+			}
+
+			/// <summary>Creates 1 element array with specifed item</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static IEnumerable eAsIEnumerable(this IList source)
+			{
+				foreach (var item in source)
+				{
+					yield return item;
+				}
+			}
+
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T? e_FirstIfContains<T>(this IEnumerable<T> A, Func<T, bool> ContainCheck)
+			internal static T? eFirstIfContains<T>(this IEnumerable<T> A, Func<T, bool> ContainCheck)
 			{
 				/*
 				If (Not A.Any) Then Return Nothing
@@ -6637,20 +6720,20 @@ namespace uom
 
 			/// <summary>Return source or Empty {source} if source is null</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static IEnumerable<T> e_OrEmptyIfNull<T>(this IEnumerable<T>? source) => source ?? Enumerable.Empty<T>();
+			internal static IEnumerable<T> eOrEmptyIfNull<T>(this IEnumerable<T>? source) => source ?? Enumerable.Empty<T>();
 
 			/// <summary>Return source or Empty {source} if source is null</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T[] e_OrEmptyArrayIfNull<T>(this IEnumerable<T>? source) => source.e_OrEmptyIfNull().ToArray();
+			internal static T[] eOrEmptyArrayIfNull<T>(this IEnumerable<T>? source) => source.eOrEmptyIfNull().ToArray();
 
 
 
 			/// <summary>Checks source to null or not ANY()</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsEmptyOrNull<T>(this IEnumerable<T>? items) => ((null == items) || !items.Any());
+			internal static bool eIsEmptyOrNull<T>(this IEnumerable<T>? items) => ((null == items) || !items.Any());
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsNotEmptyOrNull<T>(this IEnumerable<T>? items) => !items.e_IsEmptyOrNull();
+			internal static bool eIsNotEmptyOrNull<T>(this IEnumerable<T>? items) => !items.eIsEmptyOrNull();
 
 
 
@@ -6660,27 +6743,39 @@ namespace uom
 			/// <param name="nullValuesDisplayName"></param>
 			/// <returns></returns>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string[] e_ToArrayOfString<T>(
+			internal static string[] eToArrayOfString<T>(
 				this Dictionary<string, T> dic,
 				bool skipNullValues = true,
+				string nameValueSeperator = " = ",
 				string nullValuesDisplayName = "[NULL]")
 				=> dic
-				.Select<KeyValuePair<string, T>, string?>(kvp
-					=> ((null == kvp.Value) && skipNullValues)
-					? null
-					: $"{kvp.Key} = {kvp.Value?.ToString() ?? nullValuesDisplayName}")
+				.Select<KeyValuePair<string, T>, string?>(kvp =>
+				{
+					if (kvp.Value == null && skipNullValues) return null;
+					object val = kvp.Value!;
+
+					var vt = val.GetType();
+					if (vt.IsGenericType && vt.GetGenericTypeDefinition() == typeof(Nullable<>))
+					{
+						int dddd = 5;
+						//…
+					}
+
+					return $"{kvp.Key}{nameValueSeperator}{val.ToString() ?? nullValuesDisplayName}";
+
+				})
 				.Where(s => (null != s))
 				.ToArray()!;
 
 
 			/// <summary>Make string.Format(sFormatString, Args)</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string[]? e_ToArrayOfString(this System.Collections.Specialized.StringCollection? sc)
+			public static string[]? eToArrayOfString(this System.Collections.Specialized.StringCollection? sc)
 				=> sc?.Cast<string>()?.ToArray();
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T[] e_CreateArray<T>(this T fillWith, int iCount)
+			internal static T[] eCreateArray<T>(this T fillWith, int iCount)
 			{
 				T[] arr = new T[iCount];
 
@@ -6695,13 +6790,13 @@ namespace uom
 			// ''' <summary>Очень медленно!</summary>
 			// <DebuggerNonUserCode, DebuggerStepThrough>
 			// <MethodImpl(MethodImplOptions.AggressiveInlining), System.Runtime.CompilerServices.Extension()>
-			// Friend Function  e_CreateArray2(Of T)(tFillWithItems As T, ItemsCount As Integer) As T()
+			// Friend Function  eCreateArray2(Of T)(tFillWithItems As T, ItemsCount As Integer) As T()
 			// Dim aResult = Enumerable.Range(1, ItemsCount).Select(Function(X) tFillWithItems).ToArray
 			// Return aResult
 			// End Function
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T[] e_AddRange<T>(this T[] arr, T[] arrAppend)
+			internal static T[] eAddRange<T>(this T[] arr, T[] arrAppend)
 			{
 				var lData = arr.ToList();
 				lData.AddRange(arrAppend);
@@ -6710,11 +6805,11 @@ namespace uom
 
 			/// <summary>Null Safe ANY implementation</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_Any<T>(this IEnumerable<T>? a) => null != a && a.Any();
+			internal static bool eAny<T>(this IEnumerable<T>? a) => null != a && a.Any();
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_ContainsAnyOf<T>(this IEnumerable<T> Arr1, IEnumerable<T> Arr2)
+			internal static bool eContainsAnyOf<T>(this IEnumerable<T> Arr1, IEnumerable<T> Arr2)
 			{
 				foreach (var Element2 in Arr2)
 					if (Arr1.Contains(Element2)) return true;
@@ -6726,12 +6821,12 @@ namespace uom
 			/// <summary>Возвращает элементы массива начиная с заданного</summary>
 			/// <param name="iStartTakeIndex">Zero-based start char index</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_TakeFrom(this string S, int iStartTakeIndex) => S.Substring(iStartTakeIndex);
+			internal static string eTakeFrom(this string S, int iStartTakeIndex) => S.Substring(iStartTakeIndex);
 
 
 			/// <summary>Возвращает элементы массива начиная с заданного</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T[] e_TakeFrom<T>(this T[] A, int iStartTakeIndex)
+			internal static T[] eTakeFrom<T>(this T[] A, int iStartTakeIndex)
 			{
 				if (A.Length <= iStartTakeIndex) return Array.Empty<T>();
 				var L = A.Length - iStartTakeIndex;
@@ -6743,7 +6838,7 @@ namespace uom
 
 			///// <summary>Возвращает первые элементы набора в виде массива</summary>
 			//[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			//internal static T[] e_TakeFirst<T>(this IEnumerable<T> A, int iCount)
+			//internal static T[] eTakeFirst<T>(this IEnumerable<T> A, int iCount)
 			//{
 			//    if (A.Count() <= iCount) return A.ToArray();
 			//    var B = A.Take(iCount).ToArray();
@@ -6751,7 +6846,7 @@ namespace uom
 			//}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T[] e_RemoveFirst<T>(this IEnumerable<T> ie, int countOfRemodevFirstItems = 1)
+			internal static T[] eRemoveFirst<T>(this IEnumerable<T> ie, int countOfRemodevFirstItems = 1)
 			{
 				/*
 				List<T> l = ie.ToList();
@@ -6767,7 +6862,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T[] e_RemoveLast<T>(this IEnumerable<T> ie, int countOfRemodevFirstItems = 1)
+			internal static T[] eRemoveLast<T>(this IEnumerable<T> ie, int countOfRemodevFirstItems = 1)
 			{
 				List<T> l = ie.ToList();
 				if (countOfRemodevFirstItems > l.Count) countOfRemodevFirstItems = l.Count;
@@ -6776,10 +6871,10 @@ namespace uom
 			}
 
 			//[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			//public static void e_RemoveRange<T>(this List<T> L, IEnumerable<T> ItemsToRemove)				=> ItemsToRemove.e_ForEach(rItem => L.Remove(rItem));
+			//public static void eRemoveRange<T>(this List<T> L, IEnumerable<T> ItemsToRemove)				=> ItemsToRemove.eForEach(rItem => L.Remove(rItem));
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T[] e_RemoveRange<T>(this IEnumerable<T> ie, int index, int count)
+			public static T[] eRemoveRange<T>(this IEnumerable<T> ie, int index, int count)
 			{
 				List<T> l = ie.ToList();
 				l.RemoveRange(index, count);
@@ -6787,7 +6882,7 @@ namespace uom
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_RemoveRange<T>(this List<T> l, IEnumerable<T> whatToRemove)
+			public static void eRemoveRange<T>(this List<T> l, IEnumerable<T> whatToRemove)
 			{
 				foreach (T i in whatToRemove)
 				{
@@ -6798,17 +6893,17 @@ namespace uom
 
 			/// <summary>Объединяет двумерный массив в одномерный. !!!БЕЗ СОРТИРОВКИ!!!</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T[] e_Merge2Dto1D<T>(this IEnumerable<IEnumerable<T>> Array2D)
+			public static T[] eMerge2Dto1D<T>(this IEnumerable<IEnumerable<T>> Array2D)
 			{
 				var lResult = new List<T>();
-				Array2D.e_ForEach(arrSecondLevel => lResult.AddRange(arrSecondLevel.ToArray()));
+				Array2D.eForEach(arrSecondLevel => lResult.AddRange(arrSecondLevel.ToArray()));
 				return lResult.ToArray();
 			}
 
 
 			/// <summary>Считываем первый элемент списка, и удаляем его из списка (как в стеке)</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T? e_PeekFirstOrDefault<T>(this List<T> L)
+			internal static T? ePeekFirstOrDefault<T>(this List<T> L)
 			{
 				var firstItem = L.FirstOrDefault();
 				if (firstItem != null) L.RemoveAt(0);
@@ -6817,7 +6912,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T e_SelectSwitch<T>(this int ReturnIndex, params T[] ReturnValues) => ReturnValues[ReturnIndex];
+			internal static T eSelectSwitch<T>(this int ReturnIndex, params T[] ReturnValues) => ReturnValues[ReturnIndex];
 
 
 
@@ -6836,7 +6931,7 @@ namespace uom
 
 			/// <summary>Находит индекс в массиве ближайшего меньшего или большего числа</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static int e_GetNearestIndex(this int[] aSource, int NearValue, NEAREST_SEARCH_MODES eMode)
+			internal static int eGetNearestIndex(this int[] aSource, int NearValue, NEAREST_SEARCH_MODES eMode)
 			{
 				switch (eMode)
 				{
@@ -6877,7 +6972,7 @@ namespace uom
 
 			///// <summary>Сдвиг на 1 элемент влево (удаление первого элемента)</summary>
 			//[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			//internal static IEnumerable<T> e_Shift<T>(this IEnumerable<T> ArrayToShift)
+			//internal static IEnumerable<T> eShift<T>(this IEnumerable<T> ArrayToShift)
 			//{
 			//    _ = ArrayToShift ?? throw new ArgumentNullException(nameof(ArrayToShift));
 			//    if (!ArrayToShift.Any()) return Array.Empty<T>();
@@ -6895,11 +6990,11 @@ namespace uom
 			/// The best results is for arrays of Int16, Int32, Int64, float,double.
 			/// <br/>
 			/// <c>
-			/// !!! For compare binary arrays - the fastest methos is to use e_CompareArrays_MemCmp !!!"
+			/// !!! For compare binary arrays - the fastest methos is to use eCompareArrays_MemCmp !!!"
 			/// </c>
 			/// </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_CompareArrays_SIMD<T>(this Span<T> a, Span<T> b) where T : unmanaged, IComparable<T>
+			public static bool eCompareArrays_SIMD<T>(this Span<T> a, Span<T> b) where T : unmanaged, IComparable<T>
 			{
 				if (a.Length != b.Length) return false;
 
@@ -6928,12 +7023,12 @@ namespace uom
 			/// The best results is for arrays of Int16, Int32, Int64, float,double.
 			/// <br/>
 			/// <c>
-			/// !!! For compare binary arrays - the fastest methos is to use e_CompareArrays_MemCmp !!!"
+			/// !!! For compare binary arrays - the fastest methos is to use eCompareArrays_MemCmp !!!"
 			/// </c>
 			/// </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_CompareArrays_SIMD<T>(this Memory<T> a, Memory<T> b) where T : unmanaged, IComparable<T>
-				=> a.Span.e_CompareArrays_SIMD<T>(b.Span);
+			public static bool eCompareArrays_SIMD<T>(this Memory<T> a, Memory<T> b) where T : unmanaged, IComparable<T>
+				=> a.Span.eCompareArrays_SIMD<T>(b.Span);
 #endif
 
 
@@ -6943,18 +7038,18 @@ namespace uom
 #if NET6_0_OR_GREATER
 
 			//Use this only in net.Core's and also....
-			//For compare byte arrays in Win32/64 use most fastest e_CompareArrays_MemCmp instead !
+			//For compare byte arrays in Win32/64 use most fastest eCompareArrays_MemCmp instead !
 
 
 			/// <summary>Compare Arrays using processor SIMD acceleration and direct memory pointers
 			/// The best results is for arrays of Int16, Int32, Int64, float,double.
 			/// <br/>
 			/// <c>
-			/// !!! For compare binary arrays - the fastest methos is to use e_CompareArrays_MemCmp !!!"
+			/// !!! For compare binary arrays - the fastest methos is to use eCompareArrays_MemCmp !!!"
 			/// </c>
 			/// </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_CompareArrays_SIMD_Byte(this ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
+			public static bool eCompareArrays_SIMD_Byte(this ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
 			{
 				if (a.Length != b.Length) return false;
 
@@ -6985,17 +7080,17 @@ namespace uom
 			/// The best results is for arrays of Int16, Int32, Int64, float,double.
 			/// <br/>
 			/// <c>
-			/// !!! For compare binary arrays - the fastest methos is to use e_CompareArrays_MemCmp !!!"
+			/// !!! For compare binary arrays - the fastest methos is to use eCompareArrays_MemCmp !!!"
 			/// </c>
 			/// </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_CompareArrays_SIMD_Byte(this ReadOnlyMemory<byte> a, ReadOnlyMemory<byte> b)
-				=> a.Span.e_CompareArrays_SIMD_Byte(b.Span);
+			public static bool eCompareArrays_SIMD_Byte(this ReadOnlyMemory<byte> a, ReadOnlyMemory<byte> b)
+				=> a.Span.eCompareArrays_SIMD_Byte(b.Span);
 #endif
 
 			/// <summary>Поэлементное сравнение массивов</summary>'
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_CompareArrays_ByElements<T>(this T[] arrA, T[] arrB, int iCompareCount = 0) where T : IComparable<T>
+			internal static bool eCompareArrays_ByElements<T>(this T[] arrA, T[] arrB, int iCompareCount = 0) where T : IComparable<T>
 			{
 				if (arrA.Length != arrB.Length) return false;
 				if (!arrA.Any()) return true;
@@ -7011,7 +7106,7 @@ namespace uom
 			/// <summary>uses Enumerable.SequenceEqual() 
 			/// This is most long-running method. Use it only for Unmanaged</summary>'
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_CompareArrays_Linq<T>(this T[] arrA, T[] arrB) where T : class //, IComparable<T>
+			internal static bool eCompareArrays_Linq<T>(this T[] arrA, T[] arrB) where T : class //, IComparable<T>
 			{
 				if (arrA.Length != arrB.Length) return false;
 				if (!arrA.Any()) return true;
@@ -7023,7 +7118,7 @@ namespace uom
 
 			/// <summary>Использование интерфейса <see cref="System.Collections.IStructuralEquatable"/> - Это новый способ, появился только в NET_4</summary>'
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_CompareArrays_StructuralEquatable<T>(this T[] arrA, T[] arrB) where T : IStructuralEquatable, IComparable<T>
+			internal static bool eCompareArrays_StructuralEquatable<T>(this T[] arrA, T[] arrB) where T : IStructuralEquatable, IComparable<T>
 			{
 				if (arrA.Length != arrB.Length) return false;
 				if (!arrA.Any()) return true;
@@ -7035,7 +7130,7 @@ namespace uom
 
 			/// <summary>Использование интерфейса <see cref="System.Collections.IStructuralEquatable"/> - Это новый способ, появился только в NET_4</summary>'
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_Any<T>(this T arr) where T : IList, ICollection, IEnumerable
+			internal static bool eAny<T>(this T arr) where T : IList, ICollection, IEnumerable
 				=> (arr != null) && (arr.Count > 0);
 
 
@@ -7054,7 +7149,7 @@ namespace uom
 			/// Теоретически должно работать с аппаратным ускорением, но надо чтобы размер массива был не менее системного размера вектора)
 			/// https://docs.microsoft.com/ru-ru/dotnet/api/system.numerics.vector-1?view=net-6.0
 			/// </summary>'
-			internal static bool e_CompareArrays_Vector<T>(this T[] arrA, T[] arrB) where T : struct
+			internal static bool eCompareArrays_Vector<T>(this T[] arrA, T[] arrB) where T : struct
 			{
 				if (arrA.Length != arrB.Length) return false;
 
@@ -7094,7 +7189,7 @@ namespace uom
 
 			/*
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_ShiftL(this ref int[] arr, int steps = 1, int fillEmpty = default)
+			internal static void eShiftL(this ref int[] arr, int steps = 1, int fillEmpty = default)
 			{
 				Array.Copy(arr, 0 + steps, arr, 0, arr.Length - steps);
 				Span<int> sp = new(arr, arr.Length - steps, steps);
@@ -7108,7 +7203,7 @@ namespace uom
 
 		}
 
-		internal static void e_SwapWith<T>(this ref T x, ref T y)
+		internal static void eSwapWith<T>(this ref T x, ref T y)
 		{
 			T tmp = x; x = y; y = tmp;
 		}
@@ -7141,7 +7236,7 @@ namespace uom
 			/// <param name="OnItemObsolete">Элемент старого списка отсутствует в новом. Его можно удалить или пометить, как старый</param>
 			/// <param name="OnNewItemNeedToAdd">New item need to be added to old list</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_Sync<TCurrent, TNew>(
+			internal static void eSync<TCurrent, TNew>(
 				this IEnumerable<TCurrent> OldList,
 				IEnumerable<TNew> NewList,
 				IsEqualDelegate<TCurrent, TNew> CompareFunc,
@@ -7160,7 +7255,7 @@ namespace uom
 					{
 						// New list contains any elements as in Old list
 						if (UpdateOldItemCallback != null)
-							OldRecordsNeedToBeUpdated.e_ForEach(rNewItem => UpdateOldItemCallback?.Invoke(rOld, rNewItem));// Обновляем элемент старого списка новыми значениями
+							OldRecordsNeedToBeUpdated.eForEach(rNewItem => UpdateOldItemCallback?.Invoke(rOld, rNewItem));// Обновляем элемент старого списка новыми значениями
 					}
 					else // В новом списке нет этого старого элемента
 						OnItemObsolete?.Invoke(rOld);// Сообщаем что элемент устарел (РЕШИТЬ ВОПРОС С ВОЗМОЖНОСТЬЮ УДАЛЕНИЯ!!!) Внутри вызова можно удалять элемент, т.к. щас смотрим array-копию старого списка и это безопасно
@@ -7190,14 +7285,21 @@ namespace uom
 		{
 
 
-			//public static bool e_Has<T>(this System.Enum type, T value)
+			//public static bool eHas<T>(this System.Enum type, T value)
 			//{
 			//    try { return (((int)(object)type & (int)(object)value!) == (int)(object)value); }
 			//    catch { return false; }
 			//}
 
+
+
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T e_BuildFromFlags<T>(this T initialValue, params (bool flagCondition, T flagToSet)[] flags) where T : Enum
+			public static bool eEqualsOneOf<TEnum>(this TEnum value, params TEnum[] values) where TEnum : Enum
+				=> values.FirstOrDefault(e => e.Equals(value)) != null;
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static T eBuildFromFlags<T>(this T initialValue, params (bool flagCondition, T flagToSet)[] flags) where T : Enum
 			{
 				Int64 val = Convert.ToInt64(initialValue);
 				foreach (var item in flags)
@@ -7209,7 +7311,7 @@ namespace uom
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T1 e_BuildFromFlags<T1, T2>(this T1 initialValue, params (T2 value, T2 flagToCheck, T1 flagToSet)[] flags) where T1 : Enum where T2 : Enum
+			public static T1 eBuildFromFlags<T1, T2>(this T1 initialValue, params (T2 value, T2 flagToCheck, T1 flagToSet)[] flags) where T1 : Enum where T2 : Enum
 			{
 				Int64 val = Convert.ToInt64(initialValue);
 				foreach (var item in flags)
@@ -7221,21 +7323,21 @@ namespace uom
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_Is<T>(this System.Enum type, T value)
+			public static bool eIs<T>(this System.Enum type, T value)
 			{
 				try { return (int)(object)type == (int)(object)value!; }
 				catch { return false; }
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T e_Add<T>(this System.Enum type, T value)
+			public static T eAdd<T>(this System.Enum type, T value)
 			{
 				try { return (T)(object)(((int)(object)type | (int)(object)value!)); }
 				catch (Exception ex) { throw new ArgumentException($"Could not append value from enumerated type '{typeof(T).Name}'", ex); }
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T e_Remove<T>(this System.Enum type, T value)
+			public static T eRemove<T>(this System.Enum type, T value)
 			{
 				try { return (T)(object)(((int)(object)type & ~(int)(object)value!)); }
 				catch (Exception ex) { throw new ArgumentException($"Could not remove value from enumerated type '{typeof(T).Name}'", ex); }
@@ -7244,7 +7346,7 @@ namespace uom
 
 #if !ANDROID
 
-			public static Int32 e_MixFlagsAsInt32<T>(this T flag, params T[] flagsToExclude) where T : Enum
+			public static Int32 eMixFlagsAsInt32<T>(this T flag, params T[] flagsToExclude) where T : Enum
 			{
 				if (flag == null) throw new ArgumentNullException(nameof(flag));
 
@@ -7270,7 +7372,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static (bool IsDirectDefinedEnumValue, FieldInfo? DirectDefinedEnumFieldInfo, bool IsMaskedEnumValue, Enum[] MaskValues, FieldInfo[] MasksFieldInfos) e_GetEnumValueInfo(this Enum eValue)
+			public static (bool IsDirectDefinedEnumValue, FieldInfo? DirectDefinedEnumFieldInfo, bool IsMaskedEnumValue, Enum[] MaskValues, FieldInfo[] MasksFieldInfos) eGetEnumValueInfo(this Enum eValue)
 			{
 				Type T = eValue.GetType();
 				bool isDefinedEnumField = (Enum.IsDefined(T, eValue));
@@ -7299,9 +7401,9 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T[] e_GetEnumFieldCustomAttributes<T>(this Enum eValue, bool inherit = true) where T : System.Attribute
+			public static T[] eGetEnumFieldCustomAttributes<T>(this Enum eValue, bool inherit = true) where T : System.Attribute
 			{
-				(bool isDirectDefinedEnumValue, FieldInfo? efi, _, _, _) = eValue.e_GetEnumValueInfo();
+				(bool isDirectDefinedEnumValue, FieldInfo? efi, _, _, _) = eValue.eGetEnumValueInfo();
 				if (!isDirectDefinedEnumValue || efi == null) throw new ArgumentOutOfRangeException(nameof(eValue));
 
 				var attrs = efi!.GetCustomAttributes<T>(inherit);
@@ -7313,7 +7415,7 @@ namespace uom
 
 			///<summary>Return value of <see cref="System.ComponentModel.DescriptionAttribute"/></summary>    
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_GetDescriptionValue(this Enum value, bool ignoreZerroFlagInMultiValue = true, bool ignoreNegativeFlagsInMultiValue = true, string multiFlagsSeparator = ", ")
+			public static string eGetDescriptionValue(this Enum value, bool ignoreZerroFlagInMultiValue = true, bool ignoreNegativeFlagsInMultiValue = true, string multiFlagsSeparator = ", ")
 			{
 				static string cbGetEnumFiledDescr(Type enumType, Enum enumValue)
 				{
@@ -7344,7 +7446,7 @@ namespace uom
 					.Where(v => value.HasFlag(v))
 					.Select(v => cbGetEnumFiledDescr(T, v))
 					.ToArray()
-					.e_Join(multiFlagsSeparator)!;
+					.eJoin(multiFlagsSeparator)!;
 
 				/*
 		  var aAllEnumValues = Enum.GetValues(T).Cast<Enum>().ToArray();
@@ -7362,7 +7464,7 @@ namespace uom
 				lDescriptionsList.Add(sFieldName);
 			}
 		}
-		var S = lDescriptionsList.e_Join(", ");
+		var S = lDescriptionsList.eJoin(", ");
 				return S;
 				   */
 
@@ -7370,9 +7472,49 @@ namespace uom
 			}
 
 
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static TEnum eToEnumValue<TEnum>(this string valueName, TEnum defaultValue) where TEnum : Enum
+			{
+				var et = typeof(TEnum);
+				var values = Enum.GetValues(et).Cast<TEnum>();
+
+				var found = Enum
+					.GetValues(et)
+					.Cast<TEnum>()
+					.FirstOrDefault(v => v.ToString()!.Equals(valueName, StringComparison.InvariantCultureIgnoreCase));
+
+				if (found != null) return found;
+				return defaultValue;
+			}
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static TEnum eToEnumValue<TEnum>(this string valueName) where TEnum : Enum
+				=> valueName.eToEnumValue<TEnum>((TEnum)(object)0);
+
+
+			/// <returns>
+			/// Returns "{EnumTypeName}.{ValueName}"
+			/// </returns>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static string eGetFullName(this Enum e, bool fullName)
+			{
+				Type t = e.GetType();
+				string n = fullName
+					? t.FullName!
+					: t.Name;
+
+				return $"{n}.{e}";
+			}
+
+
+
+
+
+
 			/*
-
-
 
 
 		////// <summary>Возвращает значение атрибута <see cref="My.UOM.EnumTools.Description2Attribute"/> </summary>    
@@ -7410,7 +7552,7 @@ namespace uom
 		var bIsDefinedInEnum = [Enum].IsDefined(VT, EnumValue)
 		if(Not bIsDefinedInEnum) {
 		if(Not bTrowErrorIfCommentAttributeNotFound) { return sEnumValue
-		var sErr = "Enum {0} не содержит элемента = {1}!". e_Format(VT.ToString, sEnumValue)
+		var sErr = "Enum {0} не содержит элемента = {1}!". eFormat(VT.ToString, sEnumValue)
 		return sEnumValue
 		}
 
@@ -7418,11 +7560,11 @@ namespace uom
 		var aProperties = OT.GetMember(EnumValueFieldName).ToArray
 		if(Not aProperties.Any) {
 		//if (Not bTrowError) { return sEnumValue
-		var sErr = "Класс //{0}// не содержит поля или свойства //{1}//!". e_Format(OT.ToString, EnumValueFieldName)
+		var sErr = "Класс //{0}// не содержит поля или свойства //{1}//!". eFormat(OT.ToString, EnumValueFieldName)
 		Throw New ArgumentOutOfRangeException(EnumValueFieldName, sErr)
 		ElseIf(aProperties.Count<> 1) {
 		//if (Not bTrowError) { return sEnumValue
-		var sErr = "Класс //{0}// содержит БОЛЕЕ ОДГОГО поля или свойства //{1}//!". e_Format(OT.ToString, EnumValueFieldName)
+		var sErr = "Класс //{0}// содержит БОЛЕЕ ОДГОГО поля или свойства //{1}//!". eFormat(OT.ToString, EnumValueFieldName)
 		Throw New ArgumentOutOfRangeException(EnumValueFieldName, sErr)
 		}
 
@@ -7432,7 +7574,7 @@ namespace uom
 		var aAttrs2 = aAttrs.Cast(Of My.UOM.EnumTools.Description2Attribute).ToArray
 		if Not aAttrs2.Any { //Не найден  ни один аттрибут
 		if(Not bTrowErrorIfCommentAttributeNotFound) { return sEnumValue
-		var sErr = "У свойства //{0}.{1}// не задан ни один аттрибут //{2}!". e_Format(OT.ToString, EnumValueFieldName, ECAT.ToString)
+		var sErr = "У свойства //{0}.{1}// не задан ни один аттрибут //{2}!". eFormat(OT.ToString, EnumValueFieldName, ECAT.ToString)
 		Throw New ArgumentException(sErr)
 		}
 
@@ -7467,7 +7609,7 @@ namespace uom
 
 		var iEnumValue = System.Convert.ToInt32(rEnumValue)
 		var iEnumFlag = System.Convert.ToInt32(EnumFlag)
-		return iEnumValue. e_IsBitsSetByMask(iEnumFlag)
+		return iEnumValue. eIsBitsSetByMask(iEnumFlag)
 		End Function
 
 		<DebuggerNonUserCode, DebuggerStepThrough>
@@ -7479,7 +7621,7 @@ namespace uom
 		var iEnumValue = System.Convert.ToInt32(rEnumValue)
 		var iEnumFlag = System.Convert.ToInt32(EnumFlagToSet)
 
-		iEnumValue = iEnumValue. e_SetBitsByMask(iEnumFlag)
+		iEnumValue = iEnumValue. eSetBitsByMask(iEnumFlag)
 		var objValue As Object = iEnumValue
 		return DirectCast(objValue, TEnum)
 		End Function
@@ -7694,7 +7836,7 @@ namespace uom
 
 							//Сначала пытаемся прочитать System.ComponentModel.DescriptionAttribute
 							var sDescription = E.ExtEnum_GetDescriptionValue(null)
-							if (sDescription. e_IsNullOrWhiteSpace) { //DescriptionAttribute не найден!
+							if (sDescription. eIsNullOrWhiteSpace) { //DescriptionAttribute не найден!
 								//Читаем EnumCommentAttribute
 								sDescription = ExtEnum_GetDescription2Value(E)
 							}
@@ -7766,7 +7908,7 @@ namespace uom
 
 						Catch ex As Exception
 		#if DEBUG {
-							ex.e_LogError(true)
+							ex.eLogError(true)
 		#}
 						End Try
 						return MyBase.ConvertFrom(context, culture, value)
@@ -7806,7 +7948,7 @@ namespace uom
 										Let S = ExtEnum_GetDescription2Value(E)
 										 Select S).ToArray
 
-								var B = A. e_Join(MultiEnumSplitter)
+								var B = A. eJoin(MultiEnumSplitter)
 								return B
 							}
 
@@ -7859,7 +8001,7 @@ namespace uom
 			internal const string C_FMT_DATETIME_LONGFILEDATETIMESTAMP = "yyyy-MM-dd__HH-mm-ss-fff";
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_ReplaceDateTimePattern(this string SourceString, DateTime DateToInsert)
+			public static string eReplaceDateTimePattern(this string SourceString, DateTime DateToInsert)
 			{
 				SourceString = SourceString.Replace(CS_DATETIME_YEAR, DateToInsert.Year.ToString().PadLeft(CS_DATETIME_YEAR.Length, '0'));
 				SourceString = SourceString.Replace(CS_DATETIME_MONTH_NUM, DateToInsert.Month.ToString().PadLeft(CS_DATETIME_MONTH_NUM.Length, '0'));
@@ -7872,32 +8014,32 @@ namespace uom
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static DateTime e_RemoveSeconds(this DateTime DT) => new(DT.Year, DT.Month, DT.Day, DT.Hour, DT.Minute, 0);
+			public static DateTime eRemoveSeconds(this DateTime DT) => new(DT.Year, DT.Month, DT.Day, DT.Hour, DT.Minute, 0);
 
 
 			/// <summary>Следующий День</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static DateTime e_NextDay(this DateTime DT) => DT.Date.AddDays(1d);
+			public static DateTime eNextDay(this DateTime DT) => DT.Date.AddDays(1d);
 
 
 			/// <summary>"dd MMM yyyy, HH:mm:ss"</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_ToLongDateTimeString(this DateTime DT) => DT.ToString(C_FMT_DATETIME_LONG);
+			public static string eToLongDateTimeString(this DateTime DT) => DT.ToString(C_FMT_DATETIME_LONG);
 
 
 			/// <summary>"dd MMM yyyy, HH:mm:ss.fff"</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_ToLongDateTimeStamp(this DateTime DT) => DT.ToString(C_FMT_DATETIME_LONGDATETIMESTAMP);
+			public static string eToLongDateTimeStamp(this DateTime DT) => DT.ToString(C_FMT_DATETIME_LONGDATETIMESTAMP);
 
 
 			/// <summary>"HH:mm:ss.fff"</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_ToLongTimeStamp(this DateTime DT) => DT.ToString(C_FMT_DATETIME_LONGTIMESTAMP);
+			public static string eToLongTimeStamp(this DateTime DT) => DT.ToString(C_FMT_DATETIME_LONGTIMESTAMP);
 
 
 			/// <summary>"yyyy-MM-dd__HH-mm-ss-fff"</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_ToFileName(this DateTime DT) => DT.ToString(C_FMT_DATETIME_LONGFILEDATETIMESTAMP).Trim();
+			public static string eToFileName(this DateTime DT) => DT.ToString(C_FMT_DATETIME_LONGFILEDATETIMESTAMP).Trim();
 
 
 			#region To MS Access Format
@@ -7909,7 +8051,7 @@ namespace uom
 				КонецПериода
 			}
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_ToAccessFormat(this DateTime SourceData, AccessTimeModes Mode = AccessTimeModes.ВзятьИзДаты)
+			public static string eToAccessFormat(this DateTime SourceData, AccessTimeModes Mode = AccessTimeModes.ВзятьИзДаты)
 			{
 				SourceData = Mode switch
 				{
@@ -7943,9 +8085,9 @@ namespace uom
 			/// <summary>Just test file exist to throw error if not.</summary>
 			/// <exception cref="System.IO.FileNotFoundException"></exception>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_throwIfNotExist(this string path)
+			public static void ethrowIfNotExist(this string path)
 			{
-				var fsi = path.e_ToFileSystemInfo();
+				var fsi = path.eToFileSystemInfo();
 				if (!fsi!.Exists) throw new System.IO.FileNotFoundException(null, path);
 				//var atr = System.IO.File.GetAttributes(path);
 				//return !(atr.HasFlag(FileAttributes.Directory));
@@ -7953,7 +8095,7 @@ namespace uom
 
 			/// <summary>"Add \\?\ to start of string</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_PathAddLongPathPrefix(this string sPath)
+			public static string ePathAddLongPathPrefix(this string sPath)
 			{
 				if (OSInfo.IsOSPlatform_Windows && sPath != null && !sPath.StartsWith(uom.I_O.CS_PATH_PREFIX_WIN_LONG_PATH)) sPath = uom.I_O.CS_PATH_PREFIX_WIN_LONG_PATH + sPath;
 				return sPath!;
@@ -7962,7 +8104,7 @@ namespace uom
 
 			/// <summary>"Remove \\?\ from start of string</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_PathRemoveLongPathPrefix(this string sPath)
+			public static string ePathRemoveLongPathPrefix(this string sPath)
 			{
 				if (OSInfo.IsOSPlatform_Windows && (sPath != null) && sPath!.StartsWith(uom.I_O.CS_PATH_PREFIX_WIN_LONG_PATH)) sPath = sPath.Substring(I_O.CS_PATH_PREFIX_WIN_LONG_PATH.Length);
 				return sPath!;
@@ -7970,20 +8112,20 @@ namespace uom
 
 			/// <summary>"Remove \\?\ from start of string</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_FullName_RemoveLongPathPrefix(this FileSystemInfo fsiPath) => fsiPath.FullName.e_PathRemoveLongPathPrefix();
+			public static string eFullName_RemoveLongPathPrefix(this FileSystemInfo fsiPath) => fsiPath.FullName.ePathRemoveLongPathPrefix();
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static DirectoryInfo e_ToDirectoryInfo(this string sPath, bool AddLongPathSupportIfNeed = false)
+			public static DirectoryInfo eToDirectoryInfo(this string sPath, bool AddLongPathSupportIfNeed = false)
 			{
-				if (AddLongPathSupportIfNeed) sPath = sPath.e_PathAddLongPathPrefix();
+				if (AddLongPathSupportIfNeed) sPath = sPath.ePathAddLongPathPrefix();
 				return new DirectoryInfo(sPath);
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static FileInfo e_ToFileInfo(this string sPath, bool AddLongPathSupportIfNeed = false)
+			public static FileInfo eToFileInfo(this string sPath, bool AddLongPathSupportIfNeed = false)
 			{
-				if (AddLongPathSupportIfNeed) sPath = sPath.e_PathAddLongPathPrefix();
+				if (AddLongPathSupportIfNeed) sPath = sPath.ePathAddLongPathPrefix();
 				return new FileInfo(sPath);
 			}
 
@@ -7997,15 +8139,15 @@ namespace uom
 			/// ReparsePoint is supported on Windows, Linux, and macOS.
 			/// </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_IsNTFS_SymLinkMP(this FileSystemInfo fsi) => fsi.Attributes.HasFlag(FileAttributes.ReparsePoint) && !fsi.Attributes.HasFlag(FileAttributes.SparseFile);
+			public static bool eIsNTFS_SymLinkMP(this FileSystemInfo fsi) => fsi.Attributes.HasFlag(FileAttributes.ReparsePoint) && !fsi.Attributes.HasFlag(FileAttributes.SparseFile);
 
 #if NET6_0
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_SymLinkToString(this FileSystemInfo fsi)
+			public static string eSymLinkToString(this FileSystemInfo fsi)
 			{
-				if (!fsi.e_IsNTFS_SymLinkMP()) return fsi.ToString();
-				var sMsg = $"SymLink '{fsi.e_FullName_RemoveLongPathPrefix()}'";
+				if (!fsi.eIsNTFS_SymLinkMP()) return fsi.ToString();
+				var sMsg = $"SymLink '{fsi.eFullName_RemoveLongPathPrefix()}'";
 				try
 				{
 					if (fsi.LinkTarget != null) sMsg += $" => '{fsi.LinkTarget}'";
@@ -8018,12 +8160,12 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Uri e_ToURI(this string sourceText) => new(sourceText);
+			internal static Uri eToURI(this string sourceText) => new(sourceText);
 
 
 			/// <summary>Replaces sample: 'c:\windows\system23' -> 'c_windows_system23'</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ToFlatFileSystemString(this string src, char cReplaceWith = '_', bool replaceDots = false)
+			internal static string eToFlatFileSystemString(this string src, char cReplaceWith = '_', bool replaceDots = false)
 			{
 				var lInvalidChars = new List<char>();
 				lInvalidChars.AddRange(Path.GetInvalidPathChars());
@@ -8051,7 +8193,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static FileSystemInfo e_ToFileSystemInfo(this string path)
+			internal static FileSystemInfo eToFileSystemInfo(this string path)
 			{
 				if (File.Exists(path)) return new FileInfo(path);
 				if (Directory.Exists(path)) return new DirectoryInfo(path);
@@ -8062,35 +8204,35 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static FileInfo e_ToFileInfo(this string sPath) => new(sPath);
+			internal static FileInfo eToFileInfo(this string sPath) => new(sPath);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static DirectoryInfo e_ToDirectoryInfo(this string sPath) => new(sPath);
+			internal static DirectoryInfo eToDirectoryInfo(this string sPath) => new(sPath);
 
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static DirectoryInfo e_Parent(this FileSystemInfo fsi)
+			internal static DirectoryInfo eParent(this FileSystemInfo fsi)
 				=> (fsi is DirectoryInfo di)
 				? di.Parent!
-				: fsi.e_ToFileInfo().Directory!;
+				: fsi.eToFileInfo().Directory!;
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string? e_GetFileSystemParent(this string path)
+			internal static string? eGetFileSystemParent(this string path)
 			{
 				//Find last dir separator from the end
-				string pathRev = path.e_ReverseString();
+				string pathRev = path.eReverseString();
 				int sepIndex = pathRev.IndexOf(System.IO.Path.PathSeparator);
 				if (sepIndex < 1 || sepIndex >= pathRev.Length) return null;
 				pathRev = pathRev.Substring(sepIndex + 1);
-				return pathRev.e_ReverseString();
+				return pathRev.eReverseString();
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static FileSystemInfo? e_FindFirstExistingFileSystemInfo(this string path)
+			internal static FileSystemInfo? eFindFirstExistingFileSystemInfo(this string path)
 			{
 				//First think this is file
 				if (File.Exists(path)) return new FileInfo(path);
@@ -8100,23 +8242,23 @@ namespace uom
 
 				//Not exist!
 
-				string? parentDir = path.e_GetFileSystemParent();
+				string? parentDir = path.eGetFileSystemParent();
 				while (parentDir != null)
 				{
 					if (Directory.Exists(parentDir)) return new DirectoryInfo(path);
-					parentDir = parentDir!.e_GetFileSystemParent();
+					parentDir = parentDir!.eGetFileSystemParent();
 				}
 				return null;
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string[] e_GetFullNames(this IEnumerable<FileSystemInfo> efsi) => efsi.Select(fsi => fsi.FullName).ToArray();
+			internal static string[] eGetFullNames(this IEnumerable<FileSystemInfo> efsi) => efsi.Select(fsi => fsi.FullName).ToArray();
 
 
 
 			/// <summary>Checks by Attributes.HasFlag(FileAttributes.Directory)</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_ExistAndIsDirectory(this FileSystemInfo fsi) => fsi.Exists && fsi.Attributes.HasFlag(FileAttributes.Directory);
+			internal static bool eExistAndIsDirectory(this FileSystemInfo fsi) => fsi.Exists && fsi.Attributes.HasFlag(FileAttributes.Directory);
 
 			/* 			 
 			/// <summary>
@@ -8129,7 +8271,7 @@ namespace uom
 			/// <param name="path"></param>
 			/// <returns></returns>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_PathIsDirectorySafe(this string path)
+			internal static bool ePathIsDirectorySafe(this string path)
 			{
 				//https://stackoverflow.com/questions/1395205/better-way-to-check-if-a-path-is-a-file-or-a-directory
 
@@ -8154,11 +8296,11 @@ namespace uom
 
 			/// <summary>Create Backup copy of file. (COPY or MOVE) Return BackUp File</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static FileInfo? e_MakeBackUpIfExist(this FileInfo fi, bool moveInsteadOfCopy = false)
+			public static FileInfo? eMakeBackUpIfExist(this FileInfo fi, bool moveInsteadOfCopy = false)
 			{
 				if (!fi.Exists) return null;
-				FileInfo fiBak = new($"{fi.FullName}.{DateTime.Now.e_ToFileName()}.bak.");
-				fiBak.e_DeleteIfExist();
+				FileInfo fiBak = new($"{fi.FullName}.{DateTime.Now.eToFileName()}.bak.");
+				fiBak.eDeleteIfExist();
 
 				if (moveInsteadOfCopy)
 					fi.MoveTo(fiBak.FullName);
@@ -8173,10 +8315,10 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static FileInfo e_MoveToArhive_Core(this FileInfo file, string arhiveFilesExt = BAK_EXT)
+			private static FileInfo eMoveToArhive_Core(this FileInfo file, string arhiveFilesExt = BAK_EXT)
 			{
-				FileInfo fiBackup = new($"{file.FullName}.{DateTime.Now.e_ToFileName()}{arhiveFilesExt}");
-				fiBackup.e_DeleteIfExist();
+				FileInfo fiBackup = new($"{file.FullName}.{DateTime.Now.eToFileName()}{arhiveFilesExt}");
+				fiBackup.eDeleteIfExist();
 
 				FileInfo fileToMove = new(file.FullName);
 				fileToMove.MoveTo(fiBackup.FullName);
@@ -8184,44 +8326,47 @@ namespace uom
 			}
 
 
+			/// <returns>Arhived FileInfo if file backup success or null if source file not exist</returns>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static DirectoryInfo e_MoveToArhive(this FileInfo file, int maxArhiveFileCount = 10, string arhiveFilesExt = BAK_EXT)
+			public static FileInfo? eMoveToArhive(this FileInfo source, int maxArhiveFileCount = 10, string arhiveFilesExt = BAK_EXT)
 			{
-				FileInfo fiBackup = file.e_MoveToArhive_Core(arhiveFilesExt);
+				if (!source.Exists) return null;
+
+				FileInfo fiBackup = source.eMoveToArhive_Core(arhiveFilesExt);
 
 				//Clearing Arhive dir
-				//Get All arhive files in dir
-				string arhiveFilePrefix = $"{file.Name}.";
+				string arhiveFilePrefix = $"{source.Name}.";
 				FileInfo[] arhiveFiles = [..
-					file.Directory!.GetFiles()
+					source.Directory!.GetFiles()
 					.Where(fi => fi.Name.EndsWith(arhiveFilesExt, StringComparison.InvariantCultureIgnoreCase))
 					.Where(fi => fi.Name.StartsWith(arhiveFilePrefix, StringComparison.InvariantCultureIgnoreCase))
 					.OrderBy(fi => fi.Name, StringComparer.InvariantCultureIgnoreCase)
 					];
 
-				int iFilesToKill = arhiveFiles.Length - maxArhiveFileCount;
-				if (iFilesToKill > 0)
+				int filesToKillCount = arhiveFiles.Length - maxArhiveFileCount;
+				if (filesToKillCount > 0)
 				{
-					FileInfo[] filesToKill = [.. arhiveFiles.Take(iFilesToKill)];
+					FileInfo[] filesToKill = [.. arhiveFiles.Take(filesToKillCount)];
 					try
 					{
-						filesToKill.AsParallel().ForAll(fi => fi.e_DeleteIfExistSafe());
+						filesToKill.AsParallel().ForAll(fi => fi.eDeleteIfExistSafe());
 					}
 					catch { }
 				}
 
-				return file.Directory!;
+				return fiBackup;
 			}
 
 
+			/// <returns>Arhived FileInfo if file backup success or null if source file not exist</returns>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static DirectoryInfo e_MoveToArhive(this FileInfo file, DateTime killBefore, string arhiveFilesExt = BAK_EXT)
+			public static FileInfo? eMoveToArhive(this FileInfo file, DateTime killBefore, string arhiveFilesExt = BAK_EXT)
 			{
-				FileInfo fiBackup = file.e_MoveToArhive_Core(arhiveFilesExt);
+				if (!file.Exists) return null;
 
-				//Clearing Arhive dir
+				FileInfo fiBackup = file.eMoveToArhive_Core(arhiveFilesExt);
 
-				//Get All arhive files in dir
+				//Clearing Arhive dir				
 				FileInfo[] filesToKill = [..
 					file.Directory!.GetFiles()
 					.Where(fi => fi.Extension.Equals(arhiveFilesExt, StringComparison.InvariantCultureIgnoreCase))
@@ -8230,8 +8375,9 @@ namespace uom
 					.OrderByDescending(fi => fi.Name, StringComparer.InvariantCultureIgnoreCase)
 					];
 
-				filesToKill.e_ForEach(fi => fi.e_DeleteIfExistSafe());
-				return file.Directory!;
+				filesToKill.eForEach(fi => fi.eDeleteIfExistSafe());
+
+				return fiBackup;
 			}
 
 
@@ -8240,7 +8386,7 @@ namespace uom
 			 * 
 			 * 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_ClearArhiveOldFiles(this DirectoryInfo arhive, string arhiveFilesExt = BAK_EXT, int maxArhiveFileCount = 10)
+			public static void eClearArhiveOldFiles(this DirectoryInfo arhive, string arhiveFilesExt = BAK_EXT, int maxArhiveFileCount = 10)
 			{
 				//Get All arhive files in dir
 				FileInfo[] filesInDir = [.. (from fi in arhive.GetFiles($"*.{arhiveFilesExt}")
@@ -8256,7 +8402,7 @@ namespace uom
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_ClearArhiveOldFiles(this DirectoryInfo arhive, DateTime killBefore, string arhiveFilesExt = BAK_EXT)
+			public static void eClearArhiveOldFiles(this DirectoryInfo arhive, DateTime killBefore, string arhiveFilesExt = BAK_EXT)
 			{
 				//Get All arhive files in dir
 				FileInfo[] filesToKill = [.. (from fi in arhive.GetFiles($"*.{arhiveFilesExt}")
@@ -8265,13 +8411,13 @@ namespace uom
 
 				if (filesToKill.Any())
 				{
-					filesToKill.e_ForEach(fi => fi.Delete());
+					filesToKill.eForEach(fi => fi.Delete());
 				}
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_ClearArhiveOldFiles(this DirectoryInfo arhive, TimeSpan maxAge, string arhiveFilesExt = BAK_EXT)
-				=> arhive.e_ClearArhiveOldFiles(DateTime.Now - maxAge, arhiveFilesExt);
+			public static void eClearArhiveOldFiles(this DirectoryInfo arhive, TimeSpan maxAge, string arhiveFilesExt = BAK_EXT)
+				=> arhive.eClearArhiveOldFiles(DateTime.Now - maxAge, arhiveFilesExt);
 
 
 			 */
@@ -8279,24 +8425,24 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_CreateIfNotExist(this DirectoryInfo di) { if (!di.Exists) di.Create(); }
+			internal static void eCreateIfNotExist(this DirectoryInfo di) { if (!di.Exists) di.Create(); }
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_DeleteIfExist(this FileSystemInfo fsi) { if (fsi.Exists) fsi.Delete(); }
+			internal static void eDeleteIfExist(this FileSystemInfo fsi) { if (fsi.Exists) fsi.Delete(); }
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_DeleteIfExistSafe(this FileSystemInfo? fsi)
-				=> uom.Extensions.Extensions_DebugAndErrors.e_tryCatch(() => fsi?.e_DeleteIfExist());
+			internal static void eDeleteIfExistSafe(this FileSystemInfo? fsi)
+				=> uom.Extensions.Extensions_DebugAndErrors.etryCatch(() => fsi?.eDeleteIfExist());
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static FileInfo e_GetFileIn_SpecialFolder(this string FileName, Environment.SpecialFolder SF)
+			internal static FileInfo eGetFileIn_SpecialFolder(this string FileName, Environment.SpecialFolder SF)
 				=> new(Path.Combine(Environment.GetFolderPath(SF), FileName));
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static FileInfo e_GetFileIn_TempDir(this string FileName)
+			internal static FileInfo eGetFileIn_TempDir(this string FileName)
 				=> new(Path.Combine(Path.GetTempPath(), FileName));
 
 
@@ -8311,38 +8457,38 @@ namespace uom
 			#region Create Readers
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static FileStream e_CreateStreamR(this string file,
+			public static FileStream eCreateStreamR(this string file,
 				FileMode fm = FileMode.Open, FileAccess fa = FileAccess.Read, FileShare fs = FileShare.ReadWrite)
 					=> new(file, fm, fa, fs);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static FileStream e_CreateStreamR(this FileInfo fi, FileMode fm = FileMode.Open, FileAccess fa = FileAccess.Read, FileShare fs = FileShare.ReadWrite)
+			public static FileStream eCreateStreamR(this FileInfo fi, FileMode fm = FileMode.Open, FileAccess fa = FileAccess.Read, FileShare fs = FileShare.ReadWrite)
 					=> new(fi.FullName, fm, fa, fs);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static StreamReader e_CreateReader(this Stream S, bool detectEncodingFromByteOrderMarks = true)
+			public static StreamReader eCreateReader(this Stream S, bool detectEncodingFromByteOrderMarks = true)
 				=> new(S, detectEncodingFromByteOrderMarks);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static StreamReader e_CreateReader(
+			public static StreamReader eCreateReader(
 				this string file,
 				FileMode fm = FileMode.Open,
 				FileAccess fa = FileAccess.Read,
 				FileShare fs = FileShare.ReadWrite,
 				bool detectEncodingFromByteOrderMarks = true)
-					=> file.e_CreateStreamR(fm, fa, fs).e_CreateReader(detectEncodingFromByteOrderMarks);
+					=> file.eCreateStreamR(fm, fa, fs).eCreateReader(detectEncodingFromByteOrderMarks);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static StreamReader e_CreateReader(
+			public static StreamReader eCreateReader(
 				this FileInfo fi,
 				FileMode fm = FileMode.Open,
 				FileAccess fa = FileAccess.Read,
 				FileShare fs = FileShare.ReadWrite,
 				bool detectEncodingFromByteOrderMarks = true)
-					=> fi.FullName.e_CreateReader(fm, fa, fs, detectEncodingFromByteOrderMarks);
+					=> fi.FullName.eCreateReader(fm, fa, fs, detectEncodingFromByteOrderMarks);
 
 
 			#endregion
@@ -8350,7 +8496,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static (byte[] Buffer, int ReadBytesCount) e_Read(this Stream sm, int iCount, int Offset = 0)
+			internal static (byte[] Buffer, int ReadBytesCount) eRead(this Stream sm, int iCount, int Offset = 0)
 			{
 				byte[] abBuffer = new byte[iCount];
 				int iRead = sm.Read(abBuffer, Offset, iCount);
@@ -8359,11 +8505,11 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] e_ReadAllBytes(this FileInfo fi) => File.ReadAllBytes(fi.FullName);
+			internal static byte[] eReadAllBytes(this FileInfo fi) => File.ReadAllBytes(fi.FullName);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] e_ReadAllBytes(this Stream s)
+			internal static byte[] eReadAllBytes(this Stream s)
 			{
 				if (s.Length < 1L) return Array.Empty<byte>();
 				s.Seek(0L, SeekOrigin.Begin);
@@ -8373,7 +8519,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static MemoryStream e_ReadToMemory(this FileInfo fi) => new(fi.e_ReadAllBytes());
+			internal static MemoryStream eReadToMemory(this FileInfo fi) => new(fi.eReadAllBytes());
 
 
 
@@ -8383,7 +8529,7 @@ namespace uom
 			#region ReadLine
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<string> e_ReadLines(this TextReader src, bool skipEmptyLines = false)
+			public static IEnumerable<string> eReadLines(this TextReader src, bool skipEmptyLines = false)
 			{
 				string? sLine = src.ReadLine();
 				while (sLine != null)
@@ -8396,24 +8542,24 @@ namespace uom
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static IEnumerable<string> e_ReadLines(this string src, bool skipEmptyLines = false)
+			public static string[] eReadLines(this string src, bool skipEmptyLines = false)
 			{
 				using var sr = new StringReader(src);
-				return sr.e_ReadLines(skipEmptyLines);
+				return sr.eReadLines(skipEmptyLines).ToArray();
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string[] e_ReadLines(this FileInfo fi, Encoding? encoding = null, bool skipEmptyLines = false)
+			internal static string[] eReadLines(this FileInfo fi, Encoding? encoding = null, bool skipEmptyLines = false)
 			{
-				using FileStream fs = fi.e_CreateStreamR();
+				using FileStream fs = fi.eCreateStreamR();
 				using StreamReader sr = new(fs, encoding ?? Encoding.Unicode);
-				return sr.e_ReadLines(skipEmptyLines).ToArray();
+				return sr.eReadLines(skipEmptyLines).ToArray();
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static async Task<string[]> e_ReadLinesAsync(this FileInfo fi, Encoding? encoding = null, bool skipEmptyLines = false)
-				=> await Task.Factory.StartNew(() => fi.e_ReadLines(encoding, skipEmptyLines), TaskCreationOptions.LongRunning);
+			internal static async Task<string[]> eReadLinesAsync(this FileInfo fi, Encoding? encoding = null, bool skipEmptyLines = false)
+				=> await Task.Factory.StartNew(() => fi.eReadLines(encoding, skipEmptyLines), TaskCreationOptions.LongRunning);
 
 			#endregion
 
@@ -8423,18 +8569,18 @@ namespace uom
 			/// <summary>If rhe file is not exist return null</summary>
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string? e_ReadAsText(this FileInfo fi, System.Text.Encoding? @encoding = null, bool detectEncodingFromByteOrderMarks = false)
+			internal static string? eReadAsText(this FileInfo fi, System.Text.Encoding? @encoding = null, bool detectEncodingFromByteOrderMarks = false)
 			{
 				if (!fi.Exists) return null;
 				if (!detectEncodingFromByteOrderMarks || @encoding != null) return File.ReadAllText(fi.FullName, @encoding ?? Encoding.Unicode);
 
-				using FileStream fs = fi.e_CreateStreamR(FileMode.Open, FileAccess.Read, FileShare.Read);
+				using FileStream fs = fi.eCreateStreamR(FileMode.Open, FileAccess.Read, FileShare.Read);
 				using StreamReader sr = new(fs, true);
 				return sr.ReadToEnd();
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static async Task<string?> e_ReadAsTextAsync(this FileInfo fi, System.Text.Encoding? @encoding = null, bool detectEncodingFromByteOrderMarks = false)
+			internal static async Task<string?> eReadAsTextAsync(this FileInfo fi, System.Text.Encoding? @encoding = null, bool detectEncodingFromByteOrderMarks = false)
 			{
 				if (!fi.Exists) return null;
 				if (!detectEncodingFromByteOrderMarks || @encoding != null)
@@ -8442,16 +8588,16 @@ namespace uom
 					return await Task.Factory.StartNew(() => File.ReadAllText(fi.FullName, @encoding ?? Encoding.Unicode));
 				}
 
-				using FileStream fs = fi.e_CreateStreamR(FileMode.Open, FileAccess.Read, FileShare.Read);
+				using FileStream fs = fi.eCreateStreamR(FileMode.Open, FileAccess.Read, FileShare.Read);
 				using StreamReader sr = new(fs, true);
 				return await sr.ReadToEndAsync();
 			}
 
 			/*
 		   [MethodImpl(MethodImplOptions.AggressiveInlining)]
-		   internal static async Task<string> e_ReadToEndAsync(this FileInfo f, System.Text.Encoding? enc = null, bool detectEncodingFromByteOrderMarks = false)
+		   internal static async Task<string> eReadToEndAsync(this FileInfo f, System.Text.Encoding? enc = null, bool detectEncodingFromByteOrderMarks = false)
 		   {
-			   using (FileStream fs = f.e_CreateStreamR(FileMode.Open, FileAccess.Read, FileShare.Read))
+			   using (FileStream fs = f.eCreateStreamR(FileMode.Open, FileAccess.Read, FileShare.Read))
 			   {
 				   StreamReader sr;
 				   if (detectEncodingFromByteOrderMarks)
@@ -8476,7 +8622,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static char[] e_ReadAllChars(this StreamReader sr)
+			internal static char[] eReadAllChars(this StreamReader sr)
 			{
 				List<char> lBuffer = new();
 				char[] cBuffer = new char[1024];
@@ -8496,7 +8642,7 @@ namespace uom
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_ReadAllCharsAsString(this StreamReader SR) => new(SR.e_ReadAllChars());
+			internal static string eReadAllCharsAsString(this StreamReader SR) => new(SR.eReadAllChars());
 
 
 
@@ -8507,7 +8653,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_Truncate(this Stream fs, Int64 newLen = 0L)
+			public static void eTruncate(this Stream fs, Int64 newLen = 0L)
 			{
 				fs.SetLength(newLen);
 				fs.Flush();
@@ -8517,13 +8663,13 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_WriteAllBytes(this FileInfo fi, byte[] data) => File.WriteAllBytes(fi.FullName, data);
+			internal static void eWriteAllBytes(this FileInfo fi, byte[] data) => File.WriteAllBytes(fi.FullName, data);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_WriteAllBytes(this Stream s, byte[] data, bool truncateBeforeWrite = true)
+			internal static void eWriteAllBytes(this Stream s, byte[] data, bool truncateBeforeWrite = true)
 			{
-				if (truncateBeforeWrite) s.e_Truncate();
+				if (truncateBeforeWrite) s.eTruncate();
 				if (data.Any())
 				{
 					s.Seek(0L, SeekOrigin.Begin);
@@ -8541,11 +8687,11 @@ namespace uom
 			/// If file already exist - opens it, truncates to zero and wrires it.
 			/// </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_WriteAllText(this FileInfo fi, string text, Encoding? @encoding = null)
+			public static void eWriteAllText(this FileInfo fi, string text, Encoding? @encoding = null)
 			{
 				if (!fi.Directory!.Exists) fi.Directory.Create();
-				using StreamWriter sw = fi.e_CreateWriter(FileMode.OpenOrCreate, encoding: @encoding ?? Encoding.Unicode);
-				sw.BaseStream.e_Truncate();
+				using StreamWriter sw = fi.eCreateWriter(FileMode.OpenOrCreate, encoding: @encoding ?? Encoding.Unicode);
+				sw.BaseStream.eTruncate();
 				if (!string.IsNullOrEmpty(text)) sw.Write(text);
 				sw.Flush();
 			}
@@ -8555,47 +8701,47 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static FileStream e_CreateStreamW(this string file,
+			public static FileStream eCreateStreamW(this string file,
 				FileMode fm = FileMode.CreateNew, FileAccess fa = FileAccess.Write, FileShare fs = FileShare.ReadWrite)
 					=> new(file, fm, fa, fs);
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static FileStream e_CreateStreamW(this FileInfo fi,
+			public static FileStream eCreateStreamW(this FileInfo fi,
 				FileMode fm = FileMode.CreateNew, FileAccess fa = FileAccess.Write, FileShare fs = FileShare.ReadWrite)
-					=> fi.FullName.e_CreateStreamW(fm, fa, fs);
+					=> fi.FullName.eCreateStreamW(fm, fa, fs);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static StreamWriter e_CreateWriter(this FileStream fs,
+			public static StreamWriter eCreateWriter(this FileStream fs,
 				Encoding? @encoding = null,
 				bool? autoFlush = true)
 			{
 				@encoding ??= Encoding.Unicode;
 				var sw = new StreamWriter(fs, @encoding);
-				if (null != autoFlush) sw.AutoFlush = autoFlush.e_ToBool();
+				if (null != autoFlush) sw.AutoFlush = autoFlush.eToBool();
 				return sw;
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static StreamWriter e_CreateWriter(this string file,
+			public static StreamWriter eCreateWriter(this string file,
 				FileMode fm = FileMode.CreateNew,
 				FileAccess fa = FileAccess.Write,
 				FileShare fs = FileShare.ReadWrite,
 				Encoding? @encoding = null,
 				bool? autoFlush = true)
-				=> file.e_CreateStreamW(fm, fa, fs)
-				.e_CreateWriter(@encoding, autoFlush);
+				=> file.eCreateStreamW(fm, fa, fs)
+				.eCreateWriter(@encoding, autoFlush);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static StreamWriter e_CreateWriter(this FileInfo fi,
+			public static StreamWriter eCreateWriter(this FileInfo fi,
 				FileMode fm = FileMode.CreateNew,
 				FileAccess fa = FileAccess.Write,
 				FileShare fs = FileShare.ReadWrite,
 				Encoding? @encoding = null,
 				bool? autoFlush = true)
-					=> fi.FullName.e_CreateWriter(fm, fa, fs, @encoding, autoFlush);
+					=> fi.FullName.eCreateWriter(fm, fa, fs, @encoding, autoFlush);
 
 			#endregion
 
@@ -8618,25 +8764,25 @@ namespace uom
 
 			/// <summary>Check (TypeOf FSI Is DirectoryInfo)</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsDirectoryInfo(this FileSystemInfo fsi) => fsi is DirectoryInfo;
+			internal static bool eIsDirectoryInfo(this FileSystemInfo fsi) => fsi is DirectoryInfo;
 
 
 			/// <summary>Check (TypeOf FSI Is DirectoryInfo)</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsFileInfo(this FileSystemInfo fsi) => fsi is FileInfo;
+			internal static bool eIsFileInfo(this FileSystemInfo fsi) => fsi is FileInfo;
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static FileInfo e_ToFileInfo(this FileSystemInfo fsi) => (FileInfo)fsi;
+			internal static FileInfo eToFileInfo(this FileSystemInfo fsi) => (FileInfo)fsi;
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static DirectoryInfo? e_GetFirstChildDir(this DirectoryInfo diParent, string childDirName)
+			internal static DirectoryInfo? eGetFirstChildDir(this DirectoryInfo diParent, string childDirName)
 				=> diParent.GetDirectories(childDirName).FirstOrDefault();
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static FileInfo[] e_GetFilesSorted(this DirectoryInfo di, string? searchPattern = null, SearchOption searchOption = SearchOption.TopDirectoryOnly)
+			internal static FileInfo[] eGetFilesSorted(this DirectoryInfo di, string? searchPattern = null, SearchOption searchOption = SearchOption.TopDirectoryOnly)
 				=> di
 					.GetFiles(searchPattern ??= "*.*", searchOption)
 					.OrderBy(fi => fi.Name)
@@ -8647,7 +8793,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static async Task e_CopyAsync(this Stream source, Stream target)
+			internal static async Task eCopyAsync(this Stream source, Stream target)
 			{
 				using Task tskCopy = new(() => source.CopyTo(target), TaskCreationOptions.LongRunning);
 				tskCopy.Start();
@@ -8665,17 +8811,17 @@ namespace uom
 		{
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IzSero(this PhysicalAddress mac)
+			internal static bool eIzSero(this PhysicalAddress mac)
 				=> mac.Equals(new PhysicalAddress([0, 0, 0, 0, 0, 0]));
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Network.IP4AddressWithMask e_ToIP4AddressWithMask(this UnicastIPAddressInformation uai)
+			internal static Network.IP4AddressWithMask eToIP4AddressWithMask(this UnicastIPAddressInformation uai)
 				=> new(uai.Address, uai.IPv4Mask);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static BitArray e_ToBitArray(this IPAddress ip)
+			internal static BitArray eToBitArray(this IPAddress ip)
 			{
 				byte[] ipBytes = [.. ip.GetAddressBytes().Reverse()];
 				BitArray baTest = new(ipBytes);
@@ -8683,7 +8829,7 @@ namespace uom
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static IPAddress e_ToIPAddress(this BitArray ba)
+			internal static IPAddress eToIPAddress(this BitArray ba)
 			{
 				byte[] ipBytes = [0, 0, 0, 0];
 				ba.CopyTo(ipBytes, 0);
@@ -8699,42 +8845,42 @@ namespace uom
 			/// <code>
 			/// !!! Don't use for any arifmetic calculations! Wrong Byte Order! Use only for Saving/Restoring IP.
 			/// </code>
-			/// For Math calculations with IP use <see cref="e_ToUInt32CalculableOrder"/> instead!!!
+			/// For Math calculations with IP use <see cref="eToUInt32CalculableOrder"/> instead!!!
 			/// </example>
 			/// </summary>
 			/// <returns>for 192.168.1.1 => [192,168,1,1]</returns>
 			[Obsolete("!!! Don't use for any arifmetic calculations! Wrong Byte Order! Use only for Saving/Restoring IP")]
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static UInt32 e_ToUInt32(this IPAddress ip)
+			internal static UInt32 eToUInt32(this IPAddress ip)
 				=> (uom._Int32)ip.GetAddressBytes();//return System.BitConverter.ToUInt32(ip.GetAddressBytes());
 
-			////			/// <inheritdoc cref="e_ToUInt32CalculableOrder" />
+			////			/// <inheritdoc cref="eToUInt32CalculableOrder" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static UInt32 e_ToUInt32CalculableOrder(this IPAddress ip)
+			internal static UInt32 eToUInt32CalculableOrder(this IPAddress ip)
 				=> (uom._Int32)ip.GetAddressBytes().Reverse().ToArray();
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static IPAddress e_FromIPCalculableOrderToIP4Address(this UInt32 ip)
-				=> new(ip.e_ReverseBytes());
+			internal static IPAddress eFromIPCalculableOrderToIP4Address(this UInt32 ip)
+				=> new(ip.eReverseBytes());
 
 			/// <summary>Returns string like '192.168.0.1/24'</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_FormatCIDR(this IPAddress ip, uint prefixLen, string separator = "/")
+			internal static string eFormatCIDR(this IPAddress ip, uint prefixLen, string separator = "/")
 				=> $"{ip}{separator}{prefixLen}";
 
 
 			/// <summary>Returns (0-32) part like 192.196.5.0/[24], calculated by specifed Mask like 255.255.255.0</summary>
 			/// <param name="ipMask">Mask like '255.255.255.0'</param>			
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static uint e_GetIP4SubnetPrefixSizeFromMask(this IPAddress ipMask)
+			internal static uint eGetIP4SubnetPrefixSizeFromMask(this IPAddress ipMask)
 			{
 #if NET7_0_OR_GREATER
-				uint uMask = ipMask.e_ToUInt32CalculableOrder();
-				//var sss = uMask.e_ToBitArray().e_ToBitsString();
+				uint uMask = ipMask.eToUInt32CalculableOrder();
+				//var sss = uMask.eToBitArray().eToBitsString();
 				uint tlz = (uint)BitOperations.TrailingZeroCount(uMask);
 				return 32u - tlz;
 #else
-				BitArray bits = ipMask.e_ToBitArray();
+				BitArray bits = ipMask.eToBitArray();
 				return (uint)(bits.Cast<bool>().Reverse().TakeWhile(b => b).Count());
 #endif
 			}
@@ -8743,56 +8889,65 @@ namespace uom
 			/// <summary>Generates Subnet Mask like '255.255.255.0' from specifed maskPrefix (192.168.1.0/[24])</summary>
 			/// <param name="maskPrefix">MaskPrefixSize (0-32) like '24' from 192.168.1.0/[24]</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static IPAddress e_GetIP4SubnetMask(this uint maskPrefix)
+			internal static IPAddress eGetIP4SubnetMask(this uint maskPrefix)
 			{
 				BitArray bits = new(32, true);
 				if (maskPrefix < 32)
 				{
-					bits.e_SetBitsFromStart(0, (int)(32u - maskPrefix), false);
+					bits.eSetBitsFromStart(0, (int)(32u - maskPrefix), false);
 				}
-				//var BitsString = bits.e_ToBitsString();
-				IPAddress m = bits.e_ToIPAddress();
+				//var BitsString = bits.eToBitsString();
+				IPAddress m = bits.eToIPAddress();
 				return m;
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static IEnumerable<IPAddress> e_GetAllIP4List(this IPAddress ipStart, IPAddress ipEnd)
+			internal static IEnumerable<IPAddress> eGetAllIP4List(this IPAddress ipStart, IPAddress ipEnd)
 			{
-				uint @start = ipStart.e_ToUInt32CalculableOrder();
-				uint @end = ipEnd.e_ToUInt32CalculableOrder();
+				uint @start = ipStart.eToUInt32CalculableOrder();
+				uint @end = ipEnd.eToUInt32CalculableOrder();
 				for (uint ip = @start; ip <= @end; ip++)
 				{
-					IPAddress ipa = new(ip.e_ReverseBytes());
+					IPAddress ipa = new(ip.eReverseBytes());
 					yield return ipa;
 				}
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static (IPAddress FirstIP, IPAddress LastIP, IPAddress BroadcastIP, uint HostCount, IEnumerable<IPAddress>? SubnetHosts) e_CalculateIP4Subnet(this IPAddress ipa, IPAddress subnetMask)
+			internal static (
+				IPAddress SubnetZeroIP,
+				IPAddress FirstIP,
+				IPAddress LastIP,
+				IPAddress BroadcastIP,
+				uint HostCount,
+				IEnumerable<IPAddress>? SubnetHosts
+				) eCalculateIP4Subnet(this IPAddress ipa, IPAddress subnetMask)
 			{
 				IPAddress ipaFirst = ipa, ipaLast = ipa, ipaBroadcast = ipa;
 				uint uSubnetIPCount = 1u;
-				if (subnetMask.Equals(IPAddress.Broadcast)) return (ipaFirst, ipaLast, ipaBroadcast, uSubnetIPCount, null);
 
-				uint uMask = subnetMask.e_ToUInt32CalculableOrder();
+				uint uMask = subnetMask.eToUInt32CalculableOrder();
 				//if (uMask == 0xFF_FF_FF_FF) return (ipaFirst, ipaLast, ipaBroadcast, uSubnetIPCount);
-				uint uIP = ipa.e_ToUInt32CalculableOrder();
+				uint uIP = ipa.eToUInt32CalculableOrder();
+				uint uSubnetZeroIP = uIP & uMask;
+				IPAddress ipaSubnetZeroIP = uSubnetZeroIP.eFromIPCalculableOrderToIP4Address();
+				if (subnetMask.Equals(IPAddress.Broadcast)) return (ipaSubnetZeroIP, ipaFirst, ipaLast, ipaBroadcast, uSubnetIPCount, null);
+
+
 				{
 					uint uMaskNot = ~uMask;
 					uint uBroadcastIP = uIP | uMaskNot;
-					ipaBroadcast = uBroadcastIP.e_FromIPCalculableOrderToIP4Address();
+					ipaBroadcast = uBroadcastIP.eFromIPCalculableOrderToIP4Address();
 				}
 
-				uint uPrefixLen = subnetMask.e_GetIP4SubnetPrefixSizeFromMask();
-				uint uSubnetZeroIP = uIP & uMask;
-				//IPAddress ipaSubnetZeroIP = uSubnetZeroIP.e_FromCalculableOrderToIPAddress();
-
 				uint uFirstIP = uSubnetZeroIP | 0x00_00_00_01;
-				ipaFirst = uFirstIP.e_FromIPCalculableOrderToIP4Address();
+				ipaFirst = uFirstIP.eFromIPCalculableOrderToIP4Address();
 				ipaLast = ipaFirst;
-				if (uPrefixLen >= 31) return (ipaFirst, ipaLast, ipaBroadcast, uSubnetIPCount, ipaFirst.e_ToArrayOf());
+
+				uint uPrefixLen = subnetMask.eGetIP4SubnetPrefixSizeFromMask();
+				if (uPrefixLen >= 31) return (ipaSubnetZeroIP, ipaFirst, ipaLast, ipaBroadcast, uSubnetIPCount, ipaFirst.eToArrayOf());
 
 				uint uChangeableBits = 32u - uPrefixLen;
 				uSubnetIPCount = 0;
@@ -8804,58 +8959,81 @@ namespace uom
 				uSubnetIPCount--;//Now uSubnetIPCount includes BROADCAST_IP, therefore decreasing it to 1 = last valid IP
 
 				uint uLastIP = uSubnetIPCount | uSubnetZeroIP;
-				ipaLast = uLastIP.e_FromIPCalculableOrderToIP4Address();
-				var ipList = ipaFirst.e_GetAllIP4List(ipaLast);
+				ipaLast = uLastIP.eFromIPCalculableOrderToIP4Address();
+				var ipList = ipaFirst.eGetAllIP4List(ipaLast);
 
-				return (ipaFirst, ipaLast, ipaBroadcast, uSubnetIPCount, ipList);
+				return (ipaSubnetZeroIP, ipaFirst, ipaLast, ipaBroadcast, uSubnetIPCount, ipList);
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static (IPAddress FirstIP, IPAddress LastIP, IPAddress BroadcastIP, uint HostCount, IEnumerable<IPAddress>? SubnetHosts) e_CalculateIP4Subnet(this Network.IP4AddressWithMask IP4)
-				=> IP4.Address.e_CalculateIP4Subnet(IP4.Mask);
+			internal static (
+				IPAddress SubnetZeroIP,
+				IPAddress FirstIP,
+				IPAddress LastIP,
+				IPAddress BroadcastIP,
+				uint HostCount,
+				IEnumerable<IPAddress>? SubnetHosts
+				) eCalculateIP4Subnet(this Network.IP4AddressWithMask IP4)
+				=> IP4.Address.eCalculateIP4Subnet(IP4.Mask);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static (IPAddress FirstIP, IPAddress LastIP, IPAddress BroadcastIP, uint HostCount, IEnumerable<IPAddress>? SubnetHosts) e_CalculateIP4Subnet(this IPAddress ipa, uint subnetPrefix)
-				=> ipa.e_CalculateIP4Subnet(subnetPrefix.e_GetIP4SubnetMask());
+			internal static (
+				IPAddress SubnetZeroIP,
+				IPAddress FirstIP,
+				IPAddress LastIP,
+				IPAddress BroadcastIP,
+				uint HostCount,
+				IEnumerable<IPAddress>? SubnetHosts)
+				eCalculateIP4Subnet(this IPAddress ipa, uint subnetPrefix)
+				=> ipa.eCalculateIP4Subnet(subnetPrefix.eGetIP4SubnetMask());
+
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsInSubnet(this uom.Network.IP4AddressWithMask host, uom.Network.IP4AddressWithMask targetSubnet)
+			internal static bool eIsInSubnet(this uom.Network.IP4AddressWithMask host, uom.Network.IP4AddressWithMask targetSubnet)
 			{
-				var localSubnet = host.e_CalculateIP4Subnet();
-				var remoteSubnet = targetSubnet.e_CalculateIP4Subnet();
+				var localSubnet = host.eCalculateIP4Subnet();
+				var remoteSubnet = targetSubnet.eCalculateIP4Subnet();
 
 				if (localSubnet.BroadcastIP.Equals(remoteSubnet.BroadcastIP)) return true;
 				return false;
 			}
 
 
-
-
+			/// <summary>Checks if host is in subnet of any local network adapter</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsInLocalSubnet(this Network.IP4AddressWithMask remote)
+			internal static bool eIsInLocalSubnet(this Network.IP4AddressWithMask ip)
 			{
-				foreach (UnicastIPAddressInformation uaLocal in uom.NetInfo
-					.GelLocalIPList()
-					.Where(ua => (ua.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)))
+				foreach (UnicastIPAddressInformation uaLocal in uom.Network.Helpers.GelLocalIP4())
 				{
-					uom.Network.IP4AddressWithMask subnetLocal = uaLocal.e_ToIP4AddressWithMask();
-					if (remote.e_IsInSubnet(subnetLocal)) return true;
+					uom.Network.IP4AddressWithMask subnetLocal = uaLocal.eToIP4AddressWithMask();
+					if (ip.eIsInSubnet(subnetLocal)) return true;
 				}
 				return false;
 			}
 
+
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsInLocalSubnet(this IPAddress remoteIP, uint remotePrefix)
+			internal static bool eIsInLocalSubnet(this IPAddress ip, uint ipPrefixLen)
+				=> new uom.Network.IP4AddressWithMask(ip, ipPrefixLen).eIsInLocalSubnet();
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static bool eIsInSubnet(this IPAddress ip, uom.Network.IP4AddressWithMask subnet)
 			{
-				uom.Network.IP4AddressWithMask remote = new Network.IP4AddressWithMask(remoteIP, remotePrefix);
-				return remote.e_IsInLocalSubnet();
+				var ipaZerro = subnet.eCalculateIP4Subnet().SubnetZeroIP;
+
+				uint uZerro = ipaZerro.eToUInt32();
+				uint uIP = ip.eToUInt32();
+
+				bool inSubNet = (uZerro & uIP) == uZerro;
+				return inSubNet;
 			}
 
 
 
-			public static async void e_DownloadFile(this string FileUrl,
+			public static async void eDownloadFile(this string FileUrl,
 				Action<System.IO.Stream> cbNetworkStreamAction,
 				int iTimeout = 30000)
 			{
@@ -8900,10 +9078,10 @@ namespace uom
 
 			/// <summary>Download File From Remote Using 'HttpWebRequest'</summary>
 			/// <param name="Target">Local File Path To Save File</param>        
-			public static System.IO.FileInfo? e_DownloadFile(this string FileUrl, System.IO.FileInfo? Target = null)
+			public static System.IO.FileInfo? eDownloadFile(this string FileUrl, System.IO.FileInfo? Target = null)
 			{
 				FileInfo? fiDownloaded = null;
-				FileUrl.e_DownloadFile(stDownload =>
+				FileUrl.eDownloadFile(stDownload =>
 				{
 					FileInfo fiTMP = Target ?? new FileInfo(System.IO.Path.GetTempFileName());
 					try
@@ -8925,7 +9103,7 @@ namespace uom
 			/// <summary>Download File From Remote Using 'WebClient'</summary>
 			/// <param name="Target">Local File Path To Save File</param>        
 			public static (System.IO.FileInfo? DownloadedFile, AsyncCompletedEventArgs? AsyncDownloadResult)
-				e_DownloadFile(
+				eDownloadFile(
 				this string FileUrl,
 				System.IO.FileInfo? Target = null,
 				Action<DownloadProgressChangedEventArgs>? downloadProgress = null)
@@ -8979,7 +9157,7 @@ namespace uom
 			/// <summary>Download File From Remote Using 'WebClient' and displaying progress bar</summary>
 			/// <param name="Target">Local File Path To Save File</param>        
 			public static (System.IO.FileInfo? DownloadedFile, AsyncCompletedEventArgs? AsyncDownloadResult)
-				e_DownloadFileConsole(this string FileUrl,
+				eDownloadFileConsole(this string FileUrl,
 				System.IO.FileInfo? Target = null,
 				int ProgressBarLenght = 30,
 				char cProgressBarFillChar = '#',
@@ -8990,10 +9168,10 @@ namespace uom
 				try { Console.CursorVisible = false; } catch { }//Just Ignore Error bc not all platforms support Show/Hide cursor.
 				try
 				{
-					(0).e_WriteConsoleProgress(ProgressBarLenght, cProgressBarFillChar, cProgressBarEmptyChar, ProgressPrefixString);//Display Zero Progress
-					var dlResult = FileUrl.e_DownloadFile(
+					(0).eWriteConsoleProgress(ProgressBarLenght, cProgressBarFillChar, cProgressBarEmptyChar, ProgressPrefixString);//Display Zero Progress
+					var dlResult = FileUrl.eDownloadFile(
 						Target,
-						e => e.ProgressPercentage.e_WriteConsoleProgress(ProgressBarLenght, cProgressBarFillChar, cProgressBarEmptyChar, ProgressPrefixString));
+						e => e.ProgressPercentage.eWriteConsoleProgress(ProgressBarLenght, cProgressBarFillChar, cProgressBarEmptyChar, ProgressPrefixString));
 
 					return (dlResult.DownloadedFile, dlResult.AsyncDownloadResult);
 				}
@@ -9018,7 +9196,7 @@ namespace uom
 		{
 			/// <summary>Compares Classes via ReferenceEquals, and unmanaged via Equals</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_EqualsUniversal<T>(this T? A, T? B)
+			public static bool eEqualsUniversal<T>(this T? A, T? B)
 			{
 				if (A == null && B == null) return true;
 				if ((A == null && B != null) || (B == null && A != null)) return false;
@@ -9039,14 +9217,14 @@ namespace uom
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_DisposeAndSetNothing<T>(this T ObjToDispose, bool ThrowExceptionOnError = false) where T : IDisposable
+			internal static void eDisposeAndSetNothing<T>(this T ObjToDispose, bool ThrowExceptionOnError = false) where T : IDisposable
 			{
 				try { ObjToDispose?.Dispose(); }
 				catch { if (ThrowExceptionOnError) throw; }
 			}
 
 			//[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			//internal static void  e_DisposeAll([In()] this IEnumerable<IDisposable> T, bool ThrowExceptionOnError = false)
+			//internal static void  eDisposeAll([In()] this IEnumerable<IDisposable> T, bool ThrowExceptionOnError = false)
 			//{
 			//    if (T !=null)
 			//    {
@@ -9072,7 +9250,7 @@ namespace uom
 
 			///// <summary>Clean up the COM variables</summary>
 			//[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			//internal static void  e_DisposeAndSetNothingCOMObject([MarshalAs(UnmanagedType.IUnknown)][In] this out object rCOMObject, bool ThrowExceptionOnError = false)
+			//internal static void  eDisposeAndSetNothingCOMObject([MarshalAs(UnmanagedType.IUnknown)][In] this out object rCOMObject, bool ThrowExceptionOnError = false)
 			//{
 			//    try
 			//    {
@@ -9094,11 +9272,11 @@ namespace uom
 		internal static partial class Extensions_Async_MT
 		{
 
-			public static void e_Invoke(this SynchronizationContext sc, Action a)
+			public static void eInvoke(this SynchronizationContext sc, Action a)
 				=> sc.Send(_ => a.Invoke(), null);
 
 
-			public static Task e_WhenCanceled(this CancellationToken cancellationToken)
+			public static Task eWhenCanceled(this CancellationToken cancellationToken)
 			{
 				var tcs = new TaskCompletionSource<bool>();
 				cancellationToken.Register(s => ((TaskCompletionSource<bool>)s!).SetResult(true), tcs);
@@ -9107,13 +9285,13 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static async Task e_WaitAsync(this Task t, CancellationTokenSource cancel)
+			internal static async Task eWaitAsync(this Task t, CancellationTokenSource cancel)
 			{
 #if NET
 				await t.WaitAsync(cancel.Token);
 #else
-				//await Task.WhenAny(t, cancel.Token.WaitHandle.e_AsTask());
-				await Task.WhenAny(t, cancel.Token.e_WhenCanceled());
+				//await Task.WhenAny(t, cancel.Token.WaitHandle.eAsTask());
+				await Task.WhenAny(t, cancel.Token.eWhenCanceled());
 #endif
 			}
 
@@ -9121,20 +9299,20 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static async Task e_StartAndWaitAsync(this Action a)
+			internal static async Task eStartAndWaitAsync(this Action a)
 				=> await Task.Run(a);
 
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static async Task e_StartAndWaitAsync(this Task t)
+			internal static async Task eStartAndWaitAsync(this Task t)
 			{
 				t.Start();
 				await t;
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static async Task<T> e_StartAndWaitAsync<T>(this Task<T> tsk)
+			internal static async Task<T> eStartAndWaitAsync<T>(this Task<T> tsk)
 			{
 				tsk.Start();
 				return await tsk;
@@ -9143,31 +9321,31 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static async Task e_StartAndWaitLongAsync(this Action a)
+			internal static async Task eStartAndWaitLongAsync(this Action a)
 			{
 				using Task tsk = new(a.Invoke, TaskCreationOptions.LongRunning);
-				await tsk.e_StartAndWaitAsync();
+				await tsk.eStartAndWaitAsync();
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static async Task<T> e_StartAndWaitLongAsync<T>(this Func<T> a)
+			internal static async Task<T> eStartAndWaitLongAsync<T>(this Func<T> a)
 			{
 				using Task<T> tsk = new(a.Invoke, TaskCreationOptions.LongRunning);
-				return await tsk.e_StartAndWaitAsync();
+				return await tsk.eStartAndWaitAsync();
 			}
 
 
 			/// <summary>Exec FUNC. Return result</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T e_RunSyncLock<T>(this object rLockObject, Func<T> f)
+			internal static T eRunSyncLock<T>(this object rLockObject, Func<T> f)
 			{
 				lock (rLockObject) return f.Invoke();
 			}
 
 
 
-			public static void e_RunAssert_0(
+			public static void eRunAssert_0(
 				this Func<uint> operation,
 				string messageTemplate,
 				params object[] messageArgs)
@@ -9180,7 +9358,7 @@ namespace uom
 				}
 			}
 
-			public static void e_RunAssert_true(
+			public static void eRunAssert_true(
 				this Func<bool> operation,
 				string messageTemplate,
 				params object[] messageArgs)
@@ -9201,7 +9379,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static async Task e_WhenAll<T>(this IEnumerable<Task<T?>> aTasks, bool startTasks, Action<T?> onEachTaskCompleted)
+			internal static async Task eWhenAll<T>(this IEnumerable<Task<T?>> aTasks, bool startTasks, Action<T?> onEachTaskCompleted)
 			{
 				List<Task<T?>> lTasks = aTasks.ToList();
 				if (startTasks) lTasks.ForEach(TSK => TSK.Start()); // Start All Tasks
@@ -9218,7 +9396,7 @@ namespace uom
 
 			/// <summary>Check event Flag</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsSet(this EventWaitHandle Evt)
+			internal static bool eIsSet(this EventWaitHandle Evt)
 				=> (null != Evt) && Evt.WaitOne(0, false);
 
 
@@ -9231,14 +9409,14 @@ namespace uom
 		{
 
 
-			#region e_tryCatch
+			#region etryCatch
 
 
-			/// <inheritdoc cref="e_tryCatch" />
+			/// <inheritdoc cref="etryCatch" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Exception? e_tryCatch(
+			internal static Exception? etryCatch(
 				this Action a,
-				bool onErrorShowUI = true,
+				bool errorUI = true,
 				[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0)
 			{
 				try
@@ -9249,7 +9427,7 @@ namespace uom
 				catch (Exception ex)
 				{
 #if !ANDROID
-					ex.e_LogError(onErrorShowUI, supressAnyModalPopEvenInDEBUG: true, callerName: callerName, callerFile: callerFile, callerLine: callerLine);
+					ex.eLogError(errorUI, debugErrorUI: false, callerName: callerName, callerFile: callerFile, callerLine: callerLine);
 #endif
 					return ex;
 				}
@@ -9258,28 +9436,28 @@ namespace uom
 
 			/// <summary>Exec FUNC. Return result</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static (T? Result, Exception? Error) e_tryCatch<T>(this Func<T?> func, T? defaultValue = default,
-				bool onErrorShowUI = true,
+			public static (T? Result, Exception? Error) etryCatch<T>(this Func<T?> func, T? defaultValue = default,
+				bool errorUI = true,
 				[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0)
 			{
 				try { return (func.Invoke(), null); }
 				catch (Exception ex)
 				{
 #if !ANDROID
-					ex.e_LogError(onErrorShowUI, supressAnyModalPopEvenInDEBUG: true, callerName: callerName, callerFile: callerFile, callerLine: callerLine);
+					ex.eLogError(errorUI, debugErrorUI: false, callerName: callerName, callerFile: callerFile, callerLine: callerLine);
 #endif
 					return (defaultValue, ex);
 				}
 			}
 
 
-			#region e_tryCatchAsync
+			#region etryCatchAsync
 
 
-			/// <inheritdoc cref="e_tryCatch" />
+			/// <inheritdoc cref="etryCatch" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static async Task<(bool Result, Exception? Error)> e_tryCatchAsync(this Task tsk,
-				bool onErrorShowUI = true,
+			internal static async Task<(bool Result, Exception? Error)> etryCatchAsync(this Task tsk,
+				bool errorUI = true,
 				[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0)
 			{
 				try
@@ -9296,7 +9474,7 @@ namespace uom
 						default:
 							{
 #if !ANDROID
-								ex.e_LogError(onErrorShowUI, supressAnyModalPopEvenInDEBUG: true, callerName: callerName, callerFile: callerFile, callerLine: callerLine);
+								ex.eLogError(errorUI, debugErrorUI: false, callerName: callerName, callerFile: callerFile, callerLine: callerLine);
 #endif
 								break;
 							}
@@ -9306,10 +9484,10 @@ namespace uom
 			}
 
 
-			/// <inheritdoc cref="e_tryCatch" />
+			/// <inheritdoc cref="etryCatch" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static async Task<(T? Result, Exception? Error)> e_tryCatchAsync<T>(this Task<T> tsk, T? defaultValue = default,
-				bool onErrorShowUI = true,
+			internal static async Task<(T? Result, Exception? Error)> etryCatchAsync<T>(this Task<T> tsk, T? defaultValue = default,
+				bool errorUI = true,
 				[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0)
 			{
 				try { return (await tsk, null); }
@@ -9322,7 +9500,7 @@ namespace uom
 						default:
 							{
 #if !ANDROID
-								ex.e_LogError(onErrorShowUI, supressAnyModalPopEvenInDEBUG: true, callerName: callerName, callerFile: callerFile, callerLine: callerLine);
+								ex.eLogError(errorUI, debugErrorUI: false, callerName: callerName, callerFile: callerFile, callerLine: callerLine);
 #endif
 								break;
 							}
@@ -9332,10 +9510,10 @@ namespace uom
 			}
 
 
-			/// <inheritdoc cref="e_tryCatch" />
+			/// <inheritdoc cref="etryCatch" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static async Task<(T? Result, Exception? Error)> e_tryCatchStartAsync<T>(this Func<T> func, T? defaultValue = default, CancellationTokenSource? cancel = null,
-				bool onErrorShowUI = true,
+			internal static async Task<(T? Result, Exception? Error)> etryCatchStartAsync<T>(this Func<T> func, T? defaultValue = default, CancellationTokenSource? cancel = null,
+				bool errorUI = true,
 				[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0)
 			{
 				try
@@ -9353,11 +9531,11 @@ namespace uom
 
 						default:
 							{
-								//			ex.e_LogError(onErrorShowUI, supressAnyModalPopEvenInDEBUG: true, callerName: callerName, callerFile: callerFile, callerLine: callerLine);
+								//			ex.eLogError(onErrorShowUI, supressAnyModalPopEvenInDEBUG: true, callerName: callerName, callerFile: callerFile, callerLine: callerLine);
 								if (cancel == null || !cancel.IsCancellationRequested)
 								{
 #if !ANDROID
-									ex.e_LogError(onErrorShowUI, supressAnyModalPopEvenInDEBUG: true, callerName: callerName, callerFile: callerFile, callerLine: callerLine);
+									ex.eLogError(errorUI, debugErrorUI: false, callerName: callerName, callerFile: callerFile, callerLine: callerLine);
 #endif
 								}
 								break;
@@ -9376,9 +9554,9 @@ namespace uom
 
 
 			/*
-			/// <inheritdoc cref="e_tryCatch" />
+			/// <inheritdoc cref="etryCatch" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static (bool result, Exception? ex) e_tryCatchWithErrorUI(
+			internal static (bool result, Exception? ex) etryCatchWithErrorUI(
 				this Action a,
 				[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0)
 			{
@@ -9389,7 +9567,7 @@ namespace uom
 				}
 				catch (Exception ex)
 				{
-					ex.e_LogError(true, callerName: callerName, callerFile: callerFile, callerLine: callerLine);
+					ex.eLogError(true, callerName: callerName, callerFile: callerFile, callerLine: callerLine);
 					return (false, ex);
 				}
 			}
@@ -9405,11 +9583,11 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_DebugWriteLine(this string sMessage) => $"{sMessage}\n".e_DebugWrite();
+			public static void eDebugWriteLine(this string sMessage) => $"{sMessage}\n".eDebugWrite();
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_DebugWrite(this string sMessage)
+			public static void eDebugWrite(this string sMessage)
 			{
 #if DEBUG
 				Debug.Write(sMessage);
@@ -9425,19 +9603,19 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsValid(this IntPtr h) => ((h != IntPtr.Zero) && (h != uom.constants.HANDLE_INVALID));
+			internal static bool eIsValid(this IntPtr h) => ((h != IntPtr.Zero) && (h != uom.constants.HANDLE_INVALID));
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsNotValid(this IntPtr h) => !h.e_IsValid();
+			internal static bool eIsNotValid(this IntPtr h) => !h.eIsValid();
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsValid(this SafeHandle? sh) => (sh != null) && (!sh!.IsInvalid);
+			internal static bool eIsValid(this SafeHandle? sh) => (sh != null) && (!sh!.IsInvalid);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsValid(this HandleRef HR) => HR.Handle.e_IsValid();
+			internal static bool eIsValid(this HandleRef HR) => HR.Handle.eIsValid();
 
 
 
@@ -9471,16 +9649,16 @@ namespace uom
 			/// для Ru-Ru будет RU,
 			/// для EN-US будет EN</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static CultureInfo e_GetTopParent(this CultureInfo Cult)
+			internal static CultureInfo eGetTopParent(this CultureInfo Cult)
 			{
-				while (Cult.Parent != null && Cult.Parent.Name.e_IsNOTNullOrWhiteSpace()) Cult = Cult.Parent;
+				while (Cult.Parent != null && Cult.Parent.Name.eIsNotNullOrWhiteSpace()) Cult = Cult.Parent;
 				return Cult;
 			}
 
 			/// <summary>Это российское дерево языков. 
 			/// Любой язык, где корневой элемент = RU</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_IsRussianTree(this CultureInfo Cult) => Cult.e_GetTopParent().LCID == 25;
+			public static bool eIsRussianTree(this CultureInfo Cult) => Cult.eGetTopParent().LCID == 25;
 
 		}
 
@@ -9493,7 +9671,8 @@ namespace uom
 			// Usage
 			//string resourceText = await Assembly.GetExecutingAssembly().ReadResourceAsync("myResourceName");
 
-			public static string e_ReadResourceFileAsString(this Assembly assembly, string resourceFileName)
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string eReadResourceFileAsString(this Assembly assembly, string resourceFileName)
 			{
 				// Determine path
 				//string resourcePath = name;
@@ -9507,10 +9686,14 @@ namespace uom
 				return reader.ReadToEnd();
 			}
 
-			public static string e_ReadResourceFileAsString(this string name)
-				=> Assembly.GetExecutingAssembly().e_ReadResourceFileAsString(name);
 
-			public static async Task<string> e_ReadResourceFileAsStringAsync(this Assembly assembly, string resourceFileName)
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string eReadResourceFileAsString(this string name)
+				=> Assembly.GetExecutingAssembly().eReadResourceFileAsString(name);
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static async Task<string> eReadResourceFileAsStringAsync(this Assembly assembly, string resourceFileName)
 			{
 				// Determine path
 				//string resourcePath = name;
@@ -9525,8 +9708,21 @@ namespace uom
 				return await reader.ReadToEndAsync();
 			}
 
-			public static async Task<string> e_ReadResourceFileAsStringAsync(this string name)
-				=> await Assembly.GetExecutingAssembly().e_ReadResourceFileAsStringAsync(name);
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static async Task<string> eReadResourceFileAsStringAsync(this string name)
+				=> await Assembly.GetExecutingAssembly().eReadResourceFileAsStringAsync(name);
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string[] eGetManifestResourceNames(this Assembly asm, Func<string, bool> predicate)
+			{
+				var aaa = asm.GetManifestResourceNames()
+				.Where(resFileName => predicate.Invoke(resFileName))
+				.ToArray();
+
+				return aaa;
+			}
+
 
 
 		}
@@ -9570,7 +9766,7 @@ namespace uom
 
 
 			/// <summary>Generates a CTRL+C signal</summary>
-			internal static bool e_Console_SendCtrlEvent(this Process p, CtrlEvents e, bool wait)
+			internal static bool eConsole_SendCtrlEvent(this Process p, CtrlEvents e, bool wait)
 			{
 				if (AttachConsole((uint)p.Id))
 				{
@@ -9600,7 +9796,7 @@ namespace uom
 		{
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static TypeCode e_GetTypeCode(this Type typ) => Type.GetTypeCode(typ);
+			internal static TypeCode eGetTypeCode(this Type typ) => Type.GetTypeCode(typ);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -9696,27 +9892,27 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static object e_CreateInstance(this Type classType) => Activator.CreateInstance(classType)!;
+			internal static object eCreateInstance(this Type classType) => Activator.CreateInstance(classType)!;
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T e_CreateInstance<T>(this Type classType) => (T)classType.e_CreateInstance()!;
+			internal static T eCreateInstance<T>(this Type classType) => (T)classType.eCreateInstance()!;
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static object e_CreateInstanceParametrized(this Type t, object[] ConstructorArgs)
+			internal static object eCreateInstanceParametrized(this Type t, object[] ConstructorArgs)
 			{
 				// Dim rConstructor = rT.GetConstructor(Type.EmptyTypes)
 				// Dim rConstructor = rT.GetConstructor(New Type() {BTSD.GetType})
 				// If (rConstructor Is Nothing) Then
-				// Dim sErr = "Запуск фонового задания '{0}' не удался, не найден конструктор с параметрами '{1}'!".Trim. e_FormatWrap(rT.FullName,
+				// Dim sErr = "Запуск фонового задания '{0}' не удался, не найден конструктор с параметрами '{1}'!".Trim. eFormatWrap(rT.FullName,
 				// BTSD.GetType.FullName)
 				// Throw New System.Reflection.AmbiguousMatchException(sErr)
 				// End If
 				// Dim rInst = rConstructor.Invoke(New Object() {BTSD})
 
 
-				if (ConstructorArgs.Length < 1) throw new Exception("use Typed e_CreateInstance(Of XXX) instead!");
+				if (ConstructorArgs.Length < 1) throw new Exception("use Typed eCreateInstance(Of XXX) instead!");
 
 				var aParamsTypes = (from rArg in ConstructorArgs
 									let tArg = rArg.GetType()
@@ -9731,36 +9927,105 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T e_CreateInstanceParametrized<T>(this Type t, object[] ConstructorArgs)
-				=> (T)t.e_CreateInstanceParametrized(ConstructorArgs);
+			internal static T eCreateInstanceParametrized<T>(this Type t, object[] ConstructorArgs)
+				=> (T)t.eCreateInstanceParametrized(ConstructorArgs);
 
 
-
-			private const BindingFlags DEFAULT_BF = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.IgnoreCase;
-
-
-			internal static Dictionary<string, string> e_DumpPropertiesAsDictionary(this object obj)
+			[Flags]
+			public enum MemberTypes : int
 			{
-				Dictionary<string, string> props = [];
-				if (obj == null) return props;
-
-				var type = obj.GetType();
-				foreach (var prop in type.GetProperties())
-				{
-					object? val = prop.GetValue(obj, new object[] { });
-#pragma warning disable CS8600, CS8604 // Converting null literal or possible null value to non-nullable type.
-					string valStr = (val ?? "null").ToString();
-					props.Add(prop.Name, valStr);
-#pragma warning restore CS8600, CS8604 // Converting null literal or possible null value to non-nullable type.
-				}
-				return props;
+				Property = 1,
+				Field = 2,
+				Method = 4
 			}
 
 
+			//public delegate string ValueToString
 
+			internal static Dictionary<string, string> eDumpMembersAsDictionary(
+				this object obj,
+				string nullValuePlaceholder = "null",
+				bool skipNullValuedPropertiesAndFields = false,
+				BindingFlags bindingAttr = BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public | BindingFlags.FlattenHierarchy | BindingFlags.DeclaredOnly,
+				MemberTypes memberType = MemberTypes.Property,
+				Func<object?, MemberInfo, string?>? valueToStringConverter = null
+
+				)
+			{
+				Dictionary<string, string> dicMembers = [];
+				if (obj == null) return dicMembers;
+
+				var t = obj.GetType();
+				var members = t.GetMembers(bindingAttr);
+
+				foreach (var mi in members)
+				{
+					string valStr = mi.MemberType.ToString();
+					switch (mi)
+					{
+						case PropertyInfo pi:
+							{
+								if (!memberType.HasFlag(MemberTypes.Property)) continue;
+								if (pi.CanRead)
+								{
+									object? val = pi.GetValue(obj, []);
+									if (val == null && skipNullValuedPropertiesAndFields) continue;
+
+									/*
+									if (val != null)
+									{
+										var vt = val.GetType();
+										if (vt.IsGenericType && vt.GetGenericTypeDefinition() == typeof(Nullable<>))
+										{
+											int dddd = 5;
+											//…
+										}
+
+									}
+									 */
+
+									valStr = valueToStringConverter?.Invoke(val, mi)
+										?? (val ?? nullValuePlaceholder).ToString()
+										?? nullValuePlaceholder;
+								}
+								else
+								{
+									valStr = "[!CanRead!]";
+								}
+							}
+							break;
+
+						case FieldInfo fi:
+							{
+								if (!memberType.HasFlag(MemberTypes.Field)) continue;
+								object? val = fi.GetValue(obj);
+								if (val == null && skipNullValuedPropertiesAndFields) continue;
+
+								valStr = valueToStringConverter?.Invoke(val, mi)
+										?? (val ?? nullValuePlaceholder).ToString()
+										?? nullValuePlaceholder;
+							}
+							break;
+
+						case MethodInfo:
+							{
+								if (!memberType.HasFlag(MemberTypes.Method)) continue;
+							}
+							break;
+
+						default:
+							break;
+					}
+					dicMembers.Add(mi.Name, valStr);
+				}
+				return dicMembers;
+			}
+
+
+			private const BindingFlags DEFAULT_BF = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.IgnoreCase | BindingFlags.FlattenHierarchy;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static object? e_GetPropertyValue(this object obj, string propertyName, object? defaultValue = null, BindingFlags bf = DEFAULT_BF)
+			public static object? eGetPropertyValue(this object obj, string propertyName, object? defaultValue = null, BindingFlags bf = DEFAULT_BF)
 			{
 				PropertyInfo? piID = obj.GetType().GetProperty(propertyName, bf);
 				if (null == piID) return defaultValue; //throw new ArgumentOutOfRangeException($"Object '{obj.GetType()}' does not have property '{propertyName}' or wrong BindingFlags!");
@@ -9769,19 +10034,19 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T? e_GetPropertyValueAs<T>(this object obj, string propertyName, T? defaultValue = default, BindingFlags bf = DEFAULT_BF)
-				=> (T?)obj.e_GetPropertyValue(propertyName, defaultValue, bf);
+			public static T? eGetPropertyValueAs<T>(this object obj, string propertyName, T? defaultValue = default, BindingFlags bf = DEFAULT_BF)
+				=> (T?)obj.eGetPropertyValue(propertyName, defaultValue, bf);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static Int32? e_GetPropertyValue_Int32(this object obj, string propertyName, Int32? defaultValue = default, BindingFlags bf = DEFAULT_BF)
-				=> obj.e_GetPropertyValueAs<Int32?>(propertyName, defaultValue, bf);
+			public static Int32? eGetPropertyValue_Int32(this object obj, string propertyName, Int32? defaultValue = default, BindingFlags bf = DEFAULT_BF)
+				=> obj.eGetPropertyValueAs<Int32?>(propertyName, defaultValue, bf);
 
 
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_SetPrivateFieldValue<T>(
+			public static void eSetPrivateFieldValue<T>(
 				this T obj,
 				string fieldNameStartWith,
 				object newValue,
@@ -9798,41 +10063,82 @@ namespace uom
 
 			#region Копирование свойств объектов
 
+#if NET
 
 
 
+			private const BindingFlags DEF_BINDING = BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase | BindingFlags.FlattenHierarchy;
 
 			/// <summary>Копируем значения всех свойств</summary>
-			/// <param name="Destination">У этого свойства заполняются данными</param>
+			/// <param name="target">У этого свойства заполняются данными</param>
 			/// <param name="source">У этого объекта берутся значения свойств.</param>
-			/// <param name="ThrowErrorIfFieldNotFound">Вызываеть ошибку если необходимое свойство не найдено в источнике данных</param>
+			/// <param name="throwIfNotFound">Вызываеть ошибку если необходимое свойство не найдено в источнике данных</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_CopyPropertyValuesFrom(this object Destination, object source, IEnumerable<string> PropertyNames, bool ThrowErrorIfFieldNotFound)
+			internal static void eCopyPropertyValuesFrom(
+				this object target,
+				object source,
+				IEnumerable<string> propertyNames,
+				BindingFlags bf = DEF_BINDING,
+				bool throwIfNotFound = true)
 			{
-				var aPropsSrc = TypeDescriptor.GetProperties(source);
-				var aPropsDest = TypeDescriptor.GetProperties(Destination);
-				$"*** Copy Properties From {source.GetType()} to {Destination.GetType()}".e_DebugWriteLine();
+				/*
+				PropertyDescriptor[] srcProps = [.. TypeDescriptor.GetProperties(source).Cast<PropertyDescriptor>()];
+				PropertyDescriptor[] trgProps = [.. TypeDescriptor.GetProperties(target).Cast<PropertyDescriptor>()];
+				$"*** Copy Properties From '{source.GetType()}' to '{target.GetType()}'".eDebugWriteLine();
+				 */
 
-				foreach (var sPropertyName in PropertyNames)
+				PropertyInfo[] srcProps = [..
+					source.GetType()
+					.GetProperties(bf)
+					.Where(p => p.CanRead)
+					.IntersectBy(propertyNames, pd => pd.Name)];
+
+				PropertyInfo[] trgProps = [..
+					target.GetType()
+					.GetProperties(bf)
+					.Where(p => p.CanWrite)
+					.IntersectBy(propertyNames, pd => pd.Name)];
+
+				/*
+				string[] srcPropNames = [.. srcProps.Select(p => p.Name)];
+				string[] trgPropNames = [.. trgProps.Select(p => p.Name)];
+				if (!Enumerable.SequenceEqual(srcPropNames, trgPropNames))
 				{
-					var aTarpetProperties = (from P in aPropsDest.Cast<PropertyDescriptor>()
-											 where (P.Name.ToLower() ?? "") == (sPropertyName.ToLower() ?? "")
-											 select P).ToArray();
-					if (aTarpetProperties.Any())
+					//throw new Exception("The source and target propertieslist is not Equal!");
+				}
+				 */
+
+				var srcPropsDic = srcProps.ToDictionary(p => p.Name);
+				foreach (var propTarget in trgProps)
+				{
+					if (!srcPropsDic.TryGetValue(propTarget.Name, out var propSource) || propSource == null)
 					{
-						var rTarpetProperty = aTarpetProperties.First();
-						if (!rTarpetProperty.IsReadOnly)
+						if (throwIfNotFound) throw new ArgumentOutOfRangeException(nameof(source), $"Property '{propTarget.Name}' was not found in '{source}' object!");
+					}
+
+					object? val = propSource!.GetValue(source);
+					propTarget.SetValue(target, val);
+
+					/*
+					var foundProp = trgProps
+						.Where(p => p.Name.Equals(propName, StringComparison.InvariantCultureIgnoreCase))
+						.FirstOrDefault();
+
+					if (foundProp != null)
+					{
+						var tarpetProp = foundProp;
+						if (!tarpetProp.IsReadOnly)
 						{
-							var aSoupceProperty = (from P in aPropsSrc.Cast<PropertyDescriptor>()
-												   where (P.Name.ToLower() ?? "") == (sPropertyName.ToLower() ?? "")
+							var aSoupceProperty = (from P in srcProps.Cast<PropertyDescriptor>()
+												   where (P.Name.ToLower() ?? "") == (propName.ToLower() ?? "")
 												   select P).ToArray();
 							if (aSoupceProperty.Any())
 							{
 								var rFirstProp = aSoupceProperty.First();
 								var objVal = rFirstProp.GetValue(source);
-								rTarpetProperty.SetValue(Destination, objVal);
+								tarpetProp.SetValue(target, objVal);
 
-#if DEBUG
+		#if DEBUG
 								var sVal = "[Nothing]".ToUpper();
 								var sType = sVal;
 								if (null != objVal)
@@ -9840,45 +10146,66 @@ namespace uom
 									sType = objVal.GetType().ToString();
 									sVal = objVal.ToString();
 								}
-								$"Copied '{sPropertyName}' = {sType}:('{sVal}')".e_DebugWriteLine();
-#endif
+								$"Copied '{propName}' = {sType}:('{sVal}')".eDebugWriteLine();
+		#endif
 							}
 							else
 							{
 								// Свойство с таким именем не найдено в объекте-источнике
-								string sError = string.Format("Свойство '{0}' не найдено в объекте-источнике!", sPropertyName);
-#if DEBUG
-								sError.e_DebugWriteLine();
-#endif
-								if (ThrowErrorIfFieldNotFound) throw new Exception(sError);
+								string err = $"Свойство '{propName}' не найдено в объекте-источнике!";
+		#if DEBUG
+								err.eDebugWriteLine();
+		#endif
+								if (throwIfNotFound) throw new ArgumentOutOfRangeException(nameof(propertyNames), err);
 							}
 						}
 					}
+					 */
 				}
 			}
 
-			internal enum PROPERTIES_SOURCES : int
+
+			internal enum PROPERTY_LIST_SOURCES : int
 			{
-				/// <summary>Список свойств берётся у объекта-назначения</summary>
-				DestinationObject = 0,
-				/// <summary>Список свойств берётся у объекта-источника</summary>
-				SourceObject
+				/// <summary>Take property list from Target object</summary>
+				Target = 0,
+				/// <summary>Take property list from Source object</summary>
+				Source
 			}
 			/// <summary>Копируем значения всех свойств</summary>
-			/// <param name="Destination">У этого объекта берётся список свойств и его свойства заполняются данными</param>
-			/// <param name="source">У этого объекта берутся только значения свойств.</param>
-			/// <param name="ThrowErrorIfFieldNotFound">Вызываеть ошибку если необходимое свойство не найдено в источнике данных</param>
+			/// <param name="target">set property values to</param>
+			/// <param name="source">get property values from</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_CopyPropertyValuesFrom(this object Destination, object source, PROPERTIES_SOURCES PropertyNamesSource, bool ThrowErrorIfFieldNotFound)
+			internal static void eCopyPropertyValuesFrom(this object target,
+				object source,
+				PROPERTY_LIST_SOURCES propertyListSource,
+				BindingFlags bf = DEF_BINDING,
+				bool throwIfNotFound = true)
 			{
-				var aPropNames = PropertyNamesSource switch
+				/*
+				var propList = propertyListSource switch
 				{
-					PROPERTIES_SOURCES.SourceObject => (from P in TypeDescriptor.GetProperties(source).Cast<PropertyDescriptor>() where !P.IsReadOnly select P.Name),
-					PROPERTIES_SOURCES.DestinationObject => (from P in TypeDescriptor.GetProperties(Destination).Cast<PropertyDescriptor>() where !P.IsReadOnly select P.Name),
-					_ => throw new ArgumentException("PropertyNamesSource")
+					PROPERTIES_SOURCES.Source => TypeDescriptor.GetProperties(source).Cast<PropertyDescriptor>(),
+					PROPERTIES_SOURCES.Target => TypeDescriptor.GetProperties(target).Cast<PropertyDescriptor>(),
+					_ => throw new ArgumentOutOfRangeException(nameof(propertyListSource))
 				};
-				Destination.e_CopyPropertyValuesFrom(source, aPropNames.ToArray(), ThrowErrorIfFieldNotFound);
+				 */
+
+				var propList = propertyListSource switch
+				{
+					PROPERTY_LIST_SOURCES.Source => source.GetType().GetProperties(bf),
+					PROPERTY_LIST_SOURCES.Target => target.GetType().GetProperties(bf),
+					_ => throw new ArgumentOutOfRangeException(nameof(propertyListSource))
+				};
+
+				var propNames = propList
+					.Select(p => p.Name);
+
+				target.eCopyPropertyValuesFrom(source, propNames.ToArray(), bf, throwIfNotFound);
 			}
+
+#endif
+
 			#endregion
 
 
@@ -9903,35 +10230,35 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T? e_GetAttributeOf<T>(this PropertyDescriptor pd) where T : System.Attribute
+			public static T? eGetAttributeOf<T>(this PropertyDescriptor pd) where T : System.Attribute
 				=> (T?)pd.Attributes[typeof(T)];
 
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_SetAttributeValueOf<TAttr>(
+			public static void eSetAttributeValueOf<TAttr>(
 				this PropertyDescriptor pd,
 				string attributeInternalFiledStartWith,
 				object newValue,
 				BindingFlags bFlags = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.GetField | BindingFlags.FlattenHierarchy
 				) where TAttr : Attribute
-					=> pd.e_GetAttributeOf<TAttr>()?.e_SetPrivateFieldValue(attributeInternalFiledStartWith, newValue, bFlags);
+					=> pd.eGetAttributeOf<TAttr>()?.eSetPrivateFieldValue(attributeInternalFiledStartWith, newValue, bFlags);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_SetAttribute_Browsable(this PropertyDescriptor pd, bool browsable)
-				=> pd.e_SetAttributeValueOf<BrowsableAttribute>("<Browsable", browsable);
+			public static void eSetAttribute_Browsable(this PropertyDescriptor pd, bool browsable)
+				=> pd.eSetAttributeValueOf<BrowsableAttribute>("<Browsable", browsable);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_SetAttribute_ReadOnly(this PropertyDescriptor pd, bool readOnly)
-				=> pd.e_SetAttributeValueOf<ReadOnlyAttribute>("<isReadOnly", readOnly);
+			public static void eSetAttribute_ReadOnly(this PropertyDescriptor pd, bool readOnly)
+				=> pd.eSetAttributeValueOf<ReadOnlyAttribute>("<isReadOnly", readOnly);
 
 
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_SetPropertiyAttribute<TAttr>(this object targetObject, object propertyValue, object newAttributeValue,
+			public static void eSetPropertiyAttribute<TAttr>(this object targetObject, object propertyValue, object newAttributeValue,
 				 [CallerArgumentExpression(nameof(propertyValue))] string propName = ""
 				) where TAttr : System.Attribute
 			{
@@ -9947,11 +10274,11 @@ namespace uom
 				if (pd == null) throw new ArgumentOutOfRangeException(nameof(propertyValue));
 
 				string attrPrefix = @"<" + typeof(TAttr).Name;
-				//pd.e_SetAttributeValueOf<TAttribute>(attrPrefix, attributeValue);
-				var a = pd.e_GetAttributeOf<TAttr>();
+				//pd.eSetAttributeValueOf<TAttribute>(attrPrefix, attributeValue);
+				var a = pd.eGetAttributeOf<TAttr>();
 
 				BindingFlags bFlags = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.GetField | BindingFlags.FlattenHierarchy;
-				a.e_SetPrivateFieldValue(attrPrefix, newAttributeValue, bFlags);
+				a.eSetPrivateFieldValue(attrPrefix, newAttributeValue, bFlags);
 			}
 
 
@@ -9966,7 +10293,7 @@ namespace uom
 			{
 				PropertyDescriptor[] aProps = [.. TypeDescriptor.GetProperties(o!.GetType()).Cast<PropertyDescriptor>()];
 				if (wherePredicate != null) aProps = [.. aProps.Where(pd => wherePredicate(pd))];
-				aProps.e_ForEach(pd => pd.e_SetAttribute_Browsable(browsable));
+				aProps.eForEach(pd => pd.eSetAttribute_Browsable(browsable));
 			}
 
 
@@ -9988,8 +10315,14 @@ namespace uom
 				PropertyDescriptor[] aProps = TypeDescriptor.GetProperties(o!.GetType()).Cast<PropertyDescriptor>().ToArray();
 				if (wherePredicate != null) aProps = aProps.Where(pd => wherePredicate(pd)).ToArray();
 
-				aProps.e_ForEach(pd => pd.e_SetAttribute_ReadOnly(readOnly));
+				aProps.eForEach(pd => pd.eSetAttribute_ReadOnly(readOnly));
 			}
+
+
+
+
+
+
 
 		}
 
@@ -10004,7 +10337,7 @@ namespace uom
 			#region Serialize
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_WriteCSV<T>(this TextWriter TW, string[] aColumnHeadersArray, IEnumerable<T> aRows, Func<T, string[]> cbGetRowValuesArray, string C_CSV_SEPARATOR = ";", bool MakeSafeChars = false)
+			internal static void eWriteCSV<T>(this TextWriter TW, string[] aColumnHeadersArray, IEnumerable<T> aRows, Func<T, string[]> cbGetRowValuesArray, string C_CSV_SEPARATOR = ";", bool MakeSafeChars = false)
 			{
 
 				//</summary> C_CSV_SEPARATOR = ";"
@@ -10012,7 +10345,7 @@ namespace uom
 
 				static string cbPrepareValue(string sSourceValue)
 				{
-					sSourceValue = sSourceValue.e_CheckNullOrWhiteSpace();
+					sSourceValue = sSourceValue.eCheckNullOrWhiteSpace();
 					sSourceValue = sSourceValue.Replace("\"", "\"\"").Replace(",", @"\,").Replace(";", @"\;").Replace(Environment.NewLine, @"\" + Environment.NewLine).Replace(@"\", @"\\");
 					return sSourceValue;
 				};
@@ -10021,7 +10354,7 @@ namespace uom
 														  let S = cbPrepareValue(sColumnValue)
 														  select S).ToArray();
 
-				var sHeaderLine = aColumnHeadersArray.e_Join(C_CSV_SEPARATOR);
+				var sHeaderLine = aColumnHeadersArray.eJoin(C_CSV_SEPARATOR);
 				TW.WriteLine(sHeaderLine);
 				foreach (var CP in aRows)
 				{
@@ -10036,7 +10369,7 @@ namespace uom
 							.ToArray();
 					}
 
-					string sLine = aValuesArray.e_Join(C_CSV_SEPARATOR)!;
+					string sLine = aValuesArray.eJoin(C_CSV_SEPARATOR)!;
 					TW.WriteLine(sLine);
 				}
 			}
@@ -10045,25 +10378,25 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_SerializeXML(this object SerializableObject, string FileName)
-				=> SerializableObject.e_SerializeXML(FileName, Encoding.Unicode);
+			internal static void eSerializeXML(this object SerializableObject, string FileName)
+				=> SerializableObject.eSerializeXML(FileName, Encoding.Unicode);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_SerializeXML(this object SerializableObject, string file, Encoding? enc = null)
-				=> SerializableObject.e_SerializeXML(file.e_ToFileInfo()!, enc ??= Encoding.Unicode);
+			internal static void eSerializeXML(this object SerializableObject, string file, Encoding? enc = null)
+				=> SerializableObject.eSerializeXML(file.eToFileInfo()!, enc ??= Encoding.Unicode);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_SerializeXML(this object SerializableObject, FileInfo f, Encoding? enc = null)
+			internal static void eSerializeXML(this object SerializableObject, FileInfo f, Encoding? enc = null)
 			{
 				using FileStream fs = f.Create();
-				SerializableObject.e_SerializeXML(fs, enc ??= Encoding.Unicode);
+				SerializableObject.eSerializeXML(fs, enc ??= Encoding.Unicode);
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_SerializeXML(this object SerializableObject, Stream s, Encoding? enc = null)
+			internal static void eSerializeXML(this object SerializableObject, Stream s, Encoding? enc = null)
 			{
 				using StreamWriter sw = new(s, enc ??= Encoding.Unicode, 2048, true);
 				System.Xml.Serialization.XmlSerializer XS = new(SerializableObject.GetType());
@@ -10073,7 +10406,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_SerializeAsXML(this object SerializableObject)
+			internal static string eSerializeAsXML(this object SerializableObject)
 			{
 				StringBuilder sb = new();
 				using (StringWriter sw = new(sb))
@@ -10085,33 +10418,33 @@ namespace uom
 			}
 
 			/*
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	internal static string e_SerializeAsXML(this System.Collections.IList SerializableObject)
-	{
-	StringBuilder sb = new();
-	using (StringWriter sw = new(sb))
-	{
-	System.Xml.Serialization.XmlSerializer xs = new(SerializableObject.GetType());
-	xs.Serialize(sw, SerializableObject);
-	}
-	return sb.ToString();
-	}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static string eSerializeAsXML(this System.Collections.IList SerializableObject)
+		{
+		StringBuilder sb = new();
+		using (StringWriter sw = new(sb))
+		{
+		System.Xml.Serialization.XmlSerializer xs = new(SerializableObject.GetType());
+		xs.Serialize(sw, SerializableObject);
+		}
+		return sb.ToString();
+		}
 			 */
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] e_SerializeAsXML(this System.Data.DataSet dts)
+			internal static byte[] eSerializeAsXML(this System.Data.DataSet dts)
 			{
 				using MemoryStream ms = new();
 				dts.WriteXml(ms, System.Data.XmlWriteMode.IgnoreSchema);
-				return ms.e_ReadAllBytes();
+				return ms.eReadAllBytes();
 			}
 
 
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static object? e_DeSerializeXMLAsObject(
+			internal static object? eDeSerializeXMLAsObject(
 				this string xmlString,
 				Type deserializeTo,
 				Object? defaultValue = null,
@@ -10134,15 +10467,15 @@ namespace uom
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static object? e_DeSerializeXMLAsObject(
+			internal static object? eDeSerializeXMLAsObject(
 				this FileInfo xmlFile,
 				Type deserializeTo,
 				Object? defaultValue = null,
 				bool throwOnError = false)
 			{
 				return xmlFile?
-					.e_ReadAsText(System.Text.Encoding.Unicode)?
-					.e_DeSerializeXMLAsObject(deserializeTo, defaultValue, throwOnError);
+					.eReadAsText(System.Text.Encoding.Unicode)?
+					.eDeSerializeXMLAsObject(deserializeTo, defaultValue, throwOnError);
 			}
 
 
@@ -10151,7 +10484,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T? e_DeSerializeXML<T>(this string xmlString, T? defaultValue = default, bool ThrowExceptionOnError = false)
+			internal static T? eDeSerializeXML<T>(this string xmlString, T? defaultValue = default, bool throwOnError = false)
 			{
 				try
 				{
@@ -10164,76 +10497,84 @@ namespace uom
 				}
 				catch
 				{
-					if (ThrowExceptionOnError) throw;
+					if (throwOnError) throw;
 					return defaultValue;
 				}
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T? e_DeSerializeXML<T>(
-				this Stream SerializedStream,
+			internal static T? eDeSerializeXML<T>(
+				this Stream sm,
 				T? defaultValue = default,
-				bool ThrowExceptionOnError = false)
+				Encoding? enc = null,
+				bool throwOnError = false)
 			{
 				try
 				{
+					enc ??= Encoding.Unicode;
+					StreamReader sr = new(sm, enc);
 					System.Xml.Serialization.XmlSerializer xs = new(typeof(T));
-					return (T?)xs.Deserialize(SerializedStream);
+					return (T?)xs.Deserialize(sr);
 				}
 				catch
 				{
-					if (ThrowExceptionOnError) throw;
+					if (throwOnError) throw;
 					return defaultValue;
 				}
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T? e_DeSerializeXMLFile<T>(
+			internal static T? eDeSerializeXMLFile<T>(
 				this string sFile,
 				T? defaultValue = default,
-				bool ThrowExceptionOnError = false)
+				Encoding? enc = null,
+				bool throwOnError = false)
 			{
+				enc ??= Encoding.Unicode;
+
 				try
 				{
-					return sFile.e_ToFileInfo()!.e_DeSerializeXML<T>(defaultValue, ThrowExceptionOnError);
+					return sFile.eToFileInfo()!.eDeSerializeXML<T>(defaultValue, enc, throwOnError);
 				}
 				catch
 				{
-					if (ThrowExceptionOnError) throw;
+					if (throwOnError) throw;
 					return defaultValue;
 				}
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T? e_DeSerializeXML<T>(
+			internal static T? eDeSerializeXML<T>(
 				this FileInfo File,
 				T? defaultValue = default,
-				bool ThrowExceptionOnError = false)
+				Encoding? enc = null,
+				bool throwOnError = false)
 			{
+				enc ??= Encoding.Unicode;
 				try
 				{
 					using FileStream fs = File.OpenRead();
-					return fs.e_DeSerializeXML<T>(ThrowExceptionOnError: ThrowExceptionOnError);
+					return fs.eDeSerializeXML<T>(defaultValue, throwOnError: throwOnError);
 				}
 				catch
 				{
-					if (ThrowExceptionOnError) throw;
+					if (throwOnError) throw;
 					return defaultValue;
 				}
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T[] e_DeSerializeXMLArrays<T>(this FileInfo[] fiFiles, bool ThrowExceptionOnError = false)
+			internal static T[] eDeSerializeXMLArrays<T>(this FileInfo[] fiFiles, bool ThrowExceptionOnError = false)
 			{
 				if (!fiFiles.Any()) return Array.Empty<T>();
 				var lTotalDeserializedObjects = new List<T>();
 				foreach (var fiFileToDeserialize in fiFiles)
 				{
-					var ArrayOfDeserializedObjects = fiFileToDeserialize.e_DeSerializeXML<T[]>(ThrowExceptionOnError: ThrowExceptionOnError);
+					var ArrayOfDeserializedObjects = fiFileToDeserialize.eDeSerializeXML<T[]>(throwOnError: ThrowExceptionOnError);
 					if (ArrayOfDeserializedObjects != null && ArrayOfDeserializedObjects.Any())
 					{
 						lTotalDeserializedObjects.AddRange(ArrayOfDeserializedObjects);
@@ -10246,13 +10587,13 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static List<T> e_DeSerializeXMLLists<T>(this FileInfo[] fiFiles, bool ThrowExceptionOnError = false)
+			internal static List<T> eDeSerializeXMLLists<T>(this FileInfo[] fiFiles, bool ThrowExceptionOnError = false)
 			{
 				var lTotalDeserializedObjects = new List<T>();
 				if (!fiFiles.Any()) return lTotalDeserializedObjects;
 				foreach (var fiFileToDeserialize in fiFiles)
 				{
-					var ListOfDeserializedObjects = fiFileToDeserialize.e_DeSerializeXML<List<T>>(ThrowExceptionOnError: ThrowExceptionOnError);
+					var ListOfDeserializedObjects = fiFileToDeserialize.eDeSerializeXML<List<T>>(throwOnError: ThrowExceptionOnError);
 					if (ListOfDeserializedObjects != null && ListOfDeserializedObjects.Any())
 					{
 						lTotalDeserializedObjects.AddRange(ListOfDeserializedObjects);
@@ -10267,24 +10608,24 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_SerializeXMLSettings(this object SerializableObject, string ParamName)
+			internal static void eSerializeXMLSettings(this object SerializableObject, string ParamName)
 			{
 				throw new NotImplementedException();
 
-				//string sXML = SerializableObject.e_SerializeXML();
+				//string sXML = SerializableObject.eSerializeXML();
 				//UOM.Settings.mAppSettings.SaveSetting(ParamName, sXML, ThrowExceptionIfError: true);
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T e_DeSerializeXMLSettings<T>(this string ParamName, T defaultValue)
+			internal static T eDeSerializeXMLSettings<T>(this string ParamName, T defaultValue)
 			{
 				throw new NotImplementedException();
 
 				//string sXML = UOM.Settings.mAppSettings.GetSetting_String(ParamName, null, ThrowExceptionIfError: false).Value;
-				//if (sXML.e_IsNOTNullOrWhiteSpace())
+				//if (sXML.eIsNotNullOrWhiteSpace())
 				//{
-				//    var Obj = sXML.e_DeSerializeXML(defaultValue);
+				//    var Obj = sXML.eDeSerializeXML(defaultValue);
 				//    return Obj;
 				//}
 				//else
@@ -10299,19 +10640,19 @@ namespace uom
 
 			/// <summary>Клонирует объект черех XML сериализацию в памяти</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T? e_CloneViaXMLSerialization<T>(this T O)
+			public static T? eCloneViaXMLSerialization<T>(this T O)
 			{
 				_ = O ?? throw new ArgumentNullException(nameof(O));
 				using MemoryStream ms = new();
-				O.e_SerializeXML(ms);
+				O.eSerializeXML(ms);
 				ms.Seek(0L, SeekOrigin.Begin);
-				return ms.e_DeSerializeXML<T>(ThrowExceptionOnError: true);
+				return ms.eDeSerializeXML<T>(throwOnError: true);
 			}
 
 
 			/// <summary>Клонирует объект системным методом CLONE, возвращая объект такого-же типа, что и исходный</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T e_CloneAsSomeType<T>(this T rSourceObject) where T : ICloneable
+			public static T eCloneAsSomeType<T>(this T rSourceObject) where T : ICloneable
 				=> (T)rSourceObject.Clone();
 
 
@@ -10347,8 +10688,8 @@ namespace uom
 			/// <param name="createSaltFromPassword"></param>
 			/// <param name="iterations">the iteration count must be greater than zero. The minimum recommended number of iterations is 1000</param>
 			/// <exception cref="ArgumentOutOfRangeException"></exception>
-			/// <seealso cref="https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.rfc2898derivebytes.-ctor?view=netframework-4.8#system-security-cryptography-rfc2898derivebytes-ctor(system-byte()-system-byte()-system-int32)"/>
-			public static byte[] e_Encrypt_AES(
+			/// <seealso href="https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.rfc2898derivebytes.-ctor?view=netframework-4.8#system-security-cryptography-rfc2898derivebytes-ctor(system-byte()-system-byte()-system-int32)"/>
+			public static byte[] eEncrypt_AES(
 				this byte[] bytesToBeEncrypted,
 				byte[] passwordBytes,
 				byte[]? saltBytes = null,
@@ -10392,8 +10733,8 @@ namespace uom
 				return ms.ToArray();
 			}
 
-			/// <inheritdoc cref="e_Encrypt_AES(byte[], byte[], byte[], bool, AES_KEY_SIZES, int)" />
-			public static byte[] e_Encrypt_AES(
+			/// <inheritdoc cref="eEncrypt_AES(byte[], byte[], byte[], bool, AES_KEY_SIZES, int)" />
+			public static byte[] eEncrypt_AES(
 				this string text,
 				string password,
 				byte[]? saltBytes = null,
@@ -10401,19 +10742,19 @@ namespace uom
 				AES_KEY_SIZES keySize = AES_KEY_SIZES.KEY_256,
 				int iterations = AES_DEFAULT_ITERATIONS)
 				=> text
-					.e_GetBytes_Unicode()
-					.e_Encrypt_AES(password.e_GetBytes_Unicode(), saltBytes, createSaltFromPassword, keySize, iterations);
+					.eGetBytes_Unicode()
+					.eEncrypt_AES(password.eGetBytes_Unicode(), saltBytes, createSaltFromPassword, keySize, iterations);
 
-			/// <inheritdoc cref="e_Encrypt_AES(byte[], byte[], byte[], bool, AES_KEY_SIZES, int)" />
-			public static string e_Encrypt_AES_ToBase64String(
+			/// <inheritdoc cref="eEncrypt_AES(byte[], byte[], byte[], bool, AES_KEY_SIZES, int)" />
+			public static string eEncrypt_AES_ToBase64String(
 				this string text,
 				string password,
 				byte[]? saltBytes = null,
 				bool createSaltFromPassword = true,
 				AES_KEY_SIZES keySize = AES_KEY_SIZES.KEY_256,
 				int iterations = AES_DEFAULT_ITERATIONS)
-					=> text.e_Encrypt_AES(password, saltBytes, createSaltFromPassword, keySize, iterations)
-						.e_ToBase64String();
+					=> text.eEncrypt_AES(password, saltBytes, createSaltFromPassword, keySize, iterations)
+						.eToBase64String();
 
 
 
@@ -10423,7 +10764,7 @@ namespace uom
 			/// <param name="iterations">the iteration count must be greater than zero. The minimum recommended number of iterations is 1000</param>
 			/// <exception cref="ArgumentOutOfRangeException"></exception>
 			/// <seealso href="https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.rfc2898derivebytes.-ctor"/>
-			public static byte[] e_Decrypt_AES(
+			public static byte[] eDecrypt_AES(
 				this byte[] bytesToBeDecrypted,
 				byte[] passwordBytes,
 				byte[]? saltBytes = null,
@@ -10467,7 +10808,7 @@ namespace uom
 				return ms.ToArray();
 			}
 
-			public static byte[] e_Decrypt_AES_FromBase64String(
+			public static byte[] eDecrypt_AES_FromBase64String(
 				this string base64String,
 				string password,
 				byte[]? saltBytes = null,
@@ -10475,8 +10816,8 @@ namespace uom
 				AES_KEY_SIZES keySize = AES_KEY_SIZES.KEY_256,
 				int iterations = AES_DEFAULT_ITERATIONS)
 				=> base64String
-					.e_FromBase64String()
-					.e_Decrypt_AES(password.e_GetBytes_Unicode(), saltBytes, createSaltFromPassword, keySize, iterations);
+					.eFromBase64String()
+					.eDecrypt_AES(password.eGetBytes_Unicode(), saltBytes, createSaltFromPassword, keySize, iterations);
 
 		}
 
@@ -10487,7 +10828,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static SecureString e_ToSecureString(this string src, bool makeReadOnly = true)
+			public static SecureString eToSecureString(this string src, bool makeReadOnly = true)
 			{
 				SecureString sec = new();
 				src.ToCharArray().ToList().ForEach(sec.AppendChar);
@@ -10502,14 +10843,17 @@ namespace uom
 			/// Data in the unmanaged memory temporarily used are freed up before the method returns.
 			/// </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static char[] e_FromSecureStringToCharArray(this SecureString secureString)
+			public static char[] eFromSecureStringToCharArray(this SecureString secureString)
 			{
 				var ptr = IntPtr.Zero;
 				try
 				{
-					//alloc unmanaged binary string  (BSTR) and copy contents of SecureString into this BSTR
+					// alloc unmanaged binary string  (BSTR) and copy contents of SecureString into this BSTR
+					// The code should use SecureStringToBSTR because SecureString can contain \0 as non-terminating characters,
+					// but SecureStringToGlobalAllocUnicode treat it as a null-terminated string.
 					ptr = Marshal.SecureStringToBSTR(secureString);
 					char[] bytes = new char[secureString.Length];
+
 					//copy to managed memory char array from unmanaged memory 
 					Marshal.Copy(ptr, bytes, 0, secureString.Length);
 					return bytes;
@@ -10519,22 +10863,8 @@ namespace uom
 
 			/// <summary>Returns an unsafe string in managed memory from SecureString. </summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_FromSecureStringToUnsafeString(this SecureString secureString)
-				=> new(secureString!.e_FromSecureStringToCharArray());
-
-			/* CAUSE APP CRASH!
-			//_ = secureString ?? throw new ArgumentNullException(nameof(secureString));
-			var unmanagedString = IntPtr.Zero;
-			try
-			{
-				//copy secure string into unmanaged memory
-				unmanagedString = Marshal.SecureStringToGlobalAllocUnicode(secureString);
-				//alloc managed string and copy contents of unmanaged string data into it
-				return Marshal.PtrToStringUni(unmanagedString);
-			}
-			finally { if (unmanagedString != IntPtr.Zero) Marshal.FreeBSTR(unmanagedString); }
-			 */
-
+			public static string eFromSecureStringToUnsafeString(this SecureString secureString)
+				=> new(secureString!.eFromSecureStringToCharArray());
 
 			/* ALTERNATIVE WAY
 		SecureString theSecureString = new NetworkCredential("", "myPass").SecurePassword;
@@ -10553,7 +10883,7 @@ namespace uom
 
 
 			/// <summary>
-			/// https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.hashalgorithm.create?f1url=%3FappId%3DDev16IDEF1%26l%3DEN-US%26k%3Dk(System.Security.Cryptography.HashAlgorithm.Create);k(DevLang-csharp)%26rd%3Dtrue&view=net-6.0
+			/// https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.hashalgorithm.create
 			/// </summary>
 			public enum HashNames : int
 			{
@@ -10563,12 +10893,13 @@ namespace uom
 				SHA384,
 				SHA512
 			}
-			/// <inheritdoc cref="HashAlgorithm.Create"/>
+
+			/// <inheritdoc cref="HashAlgorithm.Create(string)"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			private static HashAlgorithm? CreateHashAlgorithm(HashNames hn) => HashAlgorithm.Create(hn.ToString());
 
 			/// <summary>
-			/// https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.keyedhashalgorithm.create?view=netframework-4.8&f1url=%3FappId%3DDev16IDEF1%26l%3DEN-US%26k%3Dk(System.Security.Cryptography.KeyedHashAlgorithm.Create);k(TargetFrameworkMoniker-.NETFramework,Version%253Dv4.8);k(DevLang-csharp)%26rd%3Dtrue
+			/// https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.keyedhashalgorithm.create
 			/// </summary>
 			public enum KeyedHashNames : int
 			{
@@ -10580,37 +10911,38 @@ namespace uom
 				HMACSHA512,
 				MACTripleDES
 			}
-			/// <inheritdoc cref="KeyedHashAlgorithm.Create"/>
+
+			/// <inheritdoc cref="KeyedHashAlgorithm.Create(string)"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			private static KeyedHashAlgorithm? CreateKeyedHashAlgorithm(KeyedHashNames kha) => KeyedHashAlgorithm.Create(kha.ToString());
 
 
-			/// <inheritdoc cref="HashAlgorithm.ComputeHash"/>
+			/// <inheritdoc cref="HashAlgorithm.ComputeHash(byte[])"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static byte[] e_ComputeHash(this byte[] ab, HashNames ha)
+			public static byte[] eComputeHash(this byte[] ab, HashNames ha)
 			{
 				using HashAlgorithm? H = CreateHashAlgorithm(ha);
 				return H!.ComputeHash(ab);
 			}
 
-			/// <inheritdoc cref="e_ComputeHash"/>
+			/// <inheritdoc cref="eComputeHash"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static byte[] e_ComputeHashUni(this string str, HashNames ha)
-				=> str.e_GetBytes_Unicode().e_ComputeHash(ha);
+			public static byte[] eComputeHashUni(this string str, HashNames ha)
+				=> str.eGetBytes_Unicode().eComputeHash(ha);
 
-			/// <inheritdoc cref="KeyedHashAlgorithm.ComputeHash"/>
+			/// <inheritdoc cref="CreateKeyedHashAlgorithm"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static byte[] e_ComputeKeyedHash(this byte[] ab, KeyedHashNames kha)
+			public static byte[] eComputeKeyedHash(this byte[] ab, KeyedHashNames kha)
 			{
 				using KeyedHashAlgorithm? H = CreateKeyedHashAlgorithm(kha);
 				return H!.ComputeHash(ab);
 			}
 
 
-			/// <inheritdoc cref="e_ComputeKeyedHash"/>
+			/// <inheritdoc cref="eComputeKeyedHash"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static byte[] e_ComputeKeyedHashUni(this string str, KeyedHashNames kha)
-				=> str.e_GetBytes_Unicode().e_ComputeKeyedHash(kha);
+			public static byte[] eComputeKeyedHashUni(this string str, KeyedHashNames kha)
+				=> str.eGetBytes_Unicode().eComputeKeyedHash(kha);
 		}
 
 
@@ -10620,7 +10952,7 @@ namespace uom
 
 			/// <summary>Use a fast System.Random class, using a time-dependent default seed value.</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static byte[] e_GetRandomBytesOld(this int count)
+			public static byte[] eGetRandomBytesOld(this int count)
 			{
 				var bytes = new byte[count];
 				if (count > 0)
@@ -10634,11 +10966,11 @@ namespace uom
 			/// <summary>This is modern method in .Net Core
 			/// Uses RandomNumberGenerator.GetBytes</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static byte[] e_GetRandomBytes(this int count) => RandomNumberGenerator.GetBytes(count);
+			public static byte[] eGetRandomBytes(this int count) => RandomNumberGenerator.GetBytes(count);
 #else
 			/// <summary>Uses RandomNumberGenerator.GetBytes</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static byte[] e_GetRandomBytes(this int count)
+			public static byte[] eGetRandomBytes(this int count)
 			{
 				if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
 
@@ -10657,7 +10989,7 @@ namespace uom
 		{
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] e_PtrToBytes(this IntPtr lpBuffer, int nBytes)
+			internal static byte[] ePtrToBytes(this IntPtr lpBuffer, int nBytes)
 			{
 				var abData = new byte[nBytes];
 				Marshal.Copy(lpBuffer, abData, 0, nBytes);
@@ -10665,22 +10997,22 @@ namespace uom
 			}
 
 
-			/// <inheritdoc cref="Marshal.PtrToStructure"/>
+			/// <inheritdoc cref="Marshal.PtrToStructure(IntPtr)"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T e_ToStructure<T>(this IntPtr Ptr) where T : struct
+			internal static T eToStructure<T>(this IntPtr Ptr) where T : struct
 				=> Marshal.PtrToStructure<T>(Ptr);
 
 
 			/// <summary>Последовательно читаем с указателя в массив одинаковых структур</summary>
 			/// <param name="structCount">Количество структур для чтения</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static IEnumerable<T> e_ToStructuresSequential<T>(this IntPtr Ptr, int structCount, int initialOffset = 0) where T : struct
+			internal static IEnumerable<T> eToStructuresSequential<T>(this IntPtr Ptr, int structCount, int initialOffset = 0) where T : struct
 			{
 				if (initialOffset != 0) Ptr += initialOffset;
 				int structSize = Marshal.SizeOf(typeof(T));
 				for (int structIndex = 1, loopTo = structCount; structIndex <= loopTo; structIndex++)
 				{
-					T structInstance = Ptr.e_ToStructure<T>();
+					T structInstance = Ptr.eToStructure<T>();
 					yield return structInstance;
 					Ptr += structSize;
 				}
@@ -10689,7 +11021,7 @@ namespace uom
 
 			/// <inheritdoc cref="Marshal.StructureToPtr"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_StructureToPtr<T>(this T structureRef, IntPtr memoryPtr, bool deleteOld = false) where T : struct
+			internal static void eStructureToPtr<T>(this T structureRef, IntPtr memoryPtr, bool deleteOld = false) where T : struct
 				=> Marshal.StructureToPtr(structureRef, memoryPtr, deleteOld);
 
 
@@ -10704,7 +11036,7 @@ namespace uom
 				try
 				{
 					a.Invoke(mem, len);
-					return (TStruct)Marshal.PtrToStructure(mem, typeof(TStruct));
+					return (TStruct)Marshal.PtrToStructure(mem, typeof(TStruct))!;
 				}
 				finally
 				{
@@ -10720,9 +11052,9 @@ namespace uom
 		{
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static XmlNode[] e_ToArray(this XmlNodeList xnl) => xnl.Cast<XmlNode>().ToArray();
+			public static XmlNode[] eToArray(this XmlNodeList xnl) => xnl.Cast<XmlNode>().ToArray();
 
-			public static string e_AsString(this XmlDocument xmlDoc)
+			public static string eAsString(this XmlDocument xmlDoc)
 			{
 				using (StringWriter sw = new())
 				{
@@ -10734,14 +11066,14 @@ namespace uom
 				}
 			}
 
-			public static System.Xml.Linq.XDocument e_ToXDocument(this XmlDocument xd)
+			public static System.Xml.Linq.XDocument eToXDocument(this XmlDocument xd)
 			{
-				System.Xml.Linq.XDocument doc = System.Xml.Linq.XDocument.Parse(xd.e_AsString());
+				System.Xml.Linq.XDocument doc = System.Xml.Linq.XDocument.Parse(xd.eAsString());
 				return doc;
 			}
 
 
-			private static IEnumerable<System.Xml.Linq.XElement> e_GetElementsOrDescendants(this XContainer node, SearchOption so = SearchOption.TopDirectoryOnly)
+			private static IEnumerable<System.Xml.Linq.XElement> eGetElementsOrDescendants(this XContainer node, SearchOption so = SearchOption.TopDirectoryOnly)
 			{
 				//https://stackoverflow.com/questions/8460464/finding-element-in-xdocument
 				//Имейте в виду, что свойство Name возвращает объект, который имеет LocalName и Namespace. Вот почему вы должны использовать Name.LocalName, если хотите сравнить по имени.
@@ -10767,7 +11099,7 @@ namespace uom
 			private static Lazy<XElementToNameCompareDelegate> defaultXElementToNameComparer = new(() => new XElementToNameCompareDelegate((x, s) => x.Name.LocalName == s));
 
 
-			public static System.Xml.Linq.XElement[] e_FindNodes(
+			public static System.Xml.Linq.XElement[] eFindNodes(
 				this XContainer node,
 				string name,
 				SearchOption so = SearchOption.TopDirectoryOnly,
@@ -10777,28 +11109,28 @@ namespace uom
 				//Имейте в виду, что свойство Name возвращает объект, который имеет LocalName и Namespace. Вот почему вы должны использовать Name.LocalName, если хотите сравнить по имени.
 				//Мой опыт работы с большими и сложными файлами XML заключается в том, что иногда ни элементы, ни потомки не работают при извлечении определенного элемента (и я до сих пор не знаю, почему).
 
-				var elements = node.e_GetElementsOrDescendants(so);
+				var elements = node.eGetElementsOrDescendants(so);
 				return elements
 					.Where(x => (comparePredicate ?? defaultXElementToNameComparer.Value)!.Invoke(x, name))
 					.ToArray();
 			}
 
-			public static System.Xml.Linq.XElement? e_FindSingleOrDefaultNode(
+			public static System.Xml.Linq.XElement? eFindSingleOrDefaultNode(
 				this XContainer node,
 				string name, SearchOption so = SearchOption.TopDirectoryOnly,
 				XElementToNameCompareDelegate? comparePredicate = null)
 				=> node
-				.e_GetElementsOrDescendants(so)
+				.eGetElementsOrDescendants(so)
 				.SingleOrDefault(x => (comparePredicate ?? defaultXElementToNameComparer.Value)!.Invoke(x, name));
 
 
 			/// <summary>
 			/// Gets Last node in each tree path which corresponds to tree like 'nodeTreeNames1\nodeTreeNames2\nodeTreeNamesXXX'
-			/// SAMPLE: var xProps = Manifest.e_FindTree(null, "Package", "Properties").FirstOrDefault();
+			/// SAMPLE: var xProps = Manifest.eFindTree(null, "Package", "Properties").FirstOrDefault();
 			/// </summary>
 			/// <param name="comparePredicate">Custom node to name comparer, or NULL, to use default comparer</param>			
 			/// <returns> Last node in each tree path which corresponds to tree path 'nodeTreeNames1\nodeTreeNames2\nodeTreeNamesXXX'</returns>
-			public static System.Xml.Linq.XElement[] e_FindTree(
+			public static System.Xml.Linq.XElement[] eFindTree(
 				this XContainer node,
 				SearchOption startPointSearchOptions,
 				XElementToNameCompareDelegate? comparePredicate = null,
@@ -10808,7 +11140,7 @@ namespace uom
 
 				comparePredicate ??= defaultXElementToNameComparer.Value;
 
-				var treesBranches = node.e_FindNodes(nodeTreeNames[0], startPointSearchOptions);
+				var treesBranches = node.eFindNodes(nodeTreeNames[0], startPointSearchOptions);
 				List<XElement> lFoundLastNodes = new();
 
 
@@ -10828,14 +11160,14 @@ namespace uom
 					else
 					{
 						//We have to found next children
-						childrensToFind = childrensToFind.e_TakeFrom(1);
+						childrensToFind = childrensToFind.eTakeFrom(1);
 						foundChildrens
 							.ToList()
 							.ForEach(x => FindNextChildForNode(x, childrensToFind));
 					}
 				}
 
-				nodeTreeNames = nodeTreeNames.e_TakeFrom(1);
+				nodeTreeNames = nodeTreeNames.eTakeFrom(1);
 				treesBranches
 					.ToList()
 					.ForEach(x => FindNextChildForNode(x, nodeTreeNames));
@@ -10847,8 +11179,8 @@ namespace uom
 			}
 
 
-			public static System.Xml.Linq.XElement[] e_FindTree(this XContainer node, params string[] nodeTreeNames)
-				=> node.e_FindTree(SearchOption.AllDirectories, null, nodeTreeNames);
+			public static System.Xml.Linq.XElement[] eFindTree(this XContainer node, params string[] nodeTreeNames)
+				=> node.eFindTree(SearchOption.AllDirectories, null, nodeTreeNames);
 
 
 
@@ -10867,7 +11199,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_WriteConsole(
+			public static void eWriteConsole(
 				this string sText,
 				ConsoleColor? clrFore = null,
 				ConsoleColor? clrBack = null,
@@ -10912,7 +11244,7 @@ namespace uom
 				try { A.Invoke(); }
 				catch (Exception ex)
 				{
-					$"ERROR: {ex.Message}".Trim().e_WriteConsole(ConsoleColor.Yellow, ConsoleColor.DarkRed, false); Console.WriteLine();
+					$"ERROR: {ex.Message}".Trim().eWriteConsole(ConsoleColor.Yellow, ConsoleColor.DarkRed, false); Console.WriteLine();
 				}
 			}
 
@@ -10921,7 +11253,7 @@ namespace uom
 
 			/// <summary>Display progress bar</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_WriteConsoleProgress(
+			public static void eWriteConsoleProgress(
 				this float fProgress,
 				int iDecimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS,
 				int ProgressBarLenght = 30,
@@ -10929,7 +11261,7 @@ namespace uom
 				char cProgressBarEmptyChar = '-',
 				string ProgressPrefixString = "Downloading:")
 			{
-				fProgress = fProgress.e_CheckRange(0, 1);
+				fProgress = fProgress.eCheckRange(0, 1);
 
 				var iBarFill = (Int32)((float)ProgressBarLenght * fProgress);
 				if (iBarFill > ProgressBarLenght) iBarFill = ProgressBarLenght;
@@ -10937,28 +11269,28 @@ namespace uom
 				var sProgressBar = new string(cProgressBarFillChar, iBarFill);
 				if (iBarFill < ProgressBarLenght) sProgressBar = sProgressBar.PadRight(ProgressBarLenght, cProgressBarEmptyChar);
 				lock (_ConsoleLock)
-					Console.Write($"{ProgressPrefixString} [{sProgressBar}] {fProgress.e_FormatPercent(iDecimalPlaces)}\r");
+					Console.Write($"{ProgressPrefixString} [{sProgressBar}] {fProgress.eFormatPercent(iDecimalPlaces)}\r");
 			}
 
 			/// <summary>Display progress bar</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void e_WriteConsoleProgress(
+			public static void eWriteConsoleProgress(
 				this int iProgress,
 				int ProgressBarLenght = 30,
 				char cProgressBarFillChar = '#',
 				char cProgressBarEmptyChar = '-',
 				string ProgressPrefixString = "Downloading:")
-				=> ((float)((float)iProgress / (float)100)).e_WriteConsoleProgress(0, ProgressBarLenght, cProgressBarFillChar, cProgressBarEmptyChar, ProgressPrefixString);
+				=> ((float)((float)iProgress / (float)100)).eWriteConsoleProgress(0, ProgressBarLenght, cProgressBarFillChar, cProgressBarEmptyChar, ProgressPrefixString);
 
 
 			/// <summary>Возвращает строку вида 'HEADER---------'</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string e_Console_CreateHeaderLine(this string Text, int iWith = constants.C_DEFAULT_CONSOLE_WIDTH_1)
+			internal static string eConsole_CreateHeaderLine(this string Text, int iWith = constants.C_DEFAULT_CONSOLE_WIDTH_1)
 				=> Text.PadRight(iWith, '-');
 
 			/// <summary>Если строка превышает заданную длинну, то разбивает на строки этой длинны.</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string[] e_Console_SplitStringToFixedWidth(this string sText, int MaxRowWidth = constants.C_DEFAULT_CONSOLE_WIDTH_1)
+			internal static string[] eConsole_SplitStringToFixedWidth(this string sText, int MaxRowWidth = constants.C_DEFAULT_CONSOLE_WIDTH_1)
 			{
 				var aList = new List<string>();
 				while (sText.Length > MaxRowWidth)
@@ -11035,19 +11367,19 @@ namespace uom
 				var aTabbed = ArgsAndDescriptions
 					.Select(T => new { Key = (T.Key.PadRight(iMaxKeyLenght) + "-"), Value = (T.Value) });
 
-				aTabbed.e_ForEach(T =>
+				aTabbed.eForEach(T =>
 				{
 					sb.Append(T.Key);
 					string sDescr = T.Value;
 					int iMaxDescrLenght = MaxWidth - iMaxKeyLenght - 2;
-					var aLines = sDescr.e_Console_SplitStringToFixedWidth(iMaxDescrLenght);
+					var aLines = sDescr.eConsole_SplitStringToFixedWidth(iMaxDescrLenght);
 					if (aLines.Any())
 					{
 						sb.AppendLine(aLines.First());
 						if (aLines.Length > 1)
 						{
 							var aRows = aLines.Except(aLines.Take(1));
-							aRows.e_ForEach(S =>
+							aRows.eForEach(S =>
 							{
 								string sRow = new string(' ', iMaxKeyLenght + 1) + S;
 								sb.AppendLine(sRow);
@@ -11066,7 +11398,7 @@ namespace uom
 				{
 					Console.Write(sMessage + Suffix);
 					var sInput = Console.ReadLine();
-					return (sInput.e_IsNOTNullOrWhiteSpace() && (sInput!.ToLower() == YesAnswer.ToLower()));
+					return (sInput.eIsNotNullOrWhiteSpace() && (sInput!.ToLower() == YesAnswer.ToLower()));
 				}
 			}
 
