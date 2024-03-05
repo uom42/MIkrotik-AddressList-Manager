@@ -1533,7 +1533,6 @@ private static async Task<int> AnotherSlowCalculation()
 #endregion
 
 
-
 // <summary>Commnon Tools For Net Multiplatform (C) UOM 2000-2024 </summary>
 namespace uom
 {
