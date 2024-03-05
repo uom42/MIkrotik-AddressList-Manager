@@ -13,11 +13,11 @@ namespace MALM.UI.AddressListSuggestions
 
 	internal class FromDHCPLeaseItem : MikrotikObjectBase
 	{
-		public global::Mikrotik.API.Model.IP.DHCPServer.LeaseListItem MikrotikRow2 => (MikrotikRow as global::Mikrotik.API.Model.IP.DHCPServer.LeaseListItem)!;
+		public MikrotikDotNet.Model.IP.DHCPServer.LeaseItem MikrotikRow2 => (MikrotikRow as MikrotikDotNet.Model.IP.DHCPServer.LeaseItem)!;
 
-		public FromDHCPLeaseItem(global::Mikrotik.API.Model.IP.DHCPServer.LeaseListItem mkRow) : base(mkRow) { }
+		public FromDHCPLeaseItem(MikrotikDotNet.Model.IP.DHCPServer.LeaseItem mkRow) : base(mkRow) { }
 
-		public override string GetAddress() => MikrotikRow2.Address;
+		public override string GetAddress() => MikrotikRow2.Address!.ToString();
 
 		public override string ToString()
 		{

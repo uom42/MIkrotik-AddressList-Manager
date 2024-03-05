@@ -1,9 +1,14 @@
 
-using static MALM.Localization.Strings;
+using static MALM.Localization.LStrings;
 
 using System.Collections.ObjectModel;
 using MALM.Model;
 using MALM.Model.Mikrotik;
+using System.Windows.Input;
+using CommunityToolkit.Maui.Alerts;
+using CommunityToolkit.Mvvm.Input;
+using uom.maui;
+using MALM.Pages;
 
 
 namespace MALM.UI;
@@ -12,7 +17,7 @@ namespace MALM.UI;
 public partial class DevicesListUI : ContentPage
 {
 
-	private ObservableCollection<DevicesListRecordRowsGroup> _deviceGroups = [];
+	private ObservableCollection<DevicesListRecordsGroup> _deviceGroups = [];
 
 
 	//Disallowing returns to Login Screen on Back Button
@@ -22,7 +27,11 @@ public partial class DevicesListUI : ContentPage
 	/// <summary>Non Windows Code</summary>
 	private async Task OnLoad()
 	{
-		_devices.CollectionChanged += OnCollectionChanged;
+		_devices.CollectionChanged += async (_, _) =>
+		{
+			//Debug.WriteLine($"***************** CollectionChanged!");
+			await SaveDevicesList(); //Save database changes
+		};
 
 		var groups =
 				(from row in _devices
@@ -33,29 +42,24 @@ public partial class DevicesListUI : ContentPage
 					 Name = newGroup.Key,
 					 GroupItems = newGroup.ToArray()
 				 })
-				.Select(g => new DevicesListRecordRowsGroup(lvwDevices, g.Name, g.GroupItems))
+				.Select(g => new DevicesListRecordsGroup(lvwDevices, g.Name, g.GroupItems))
 				.ToArray();
 
-		//await DisplayAlert("DEBUG", "QueryMKData 1", L_OK);
 		_deviceGroups = new(groups);
 		lvwDevices.ItemsSource = _deviceGroups;
 
-		//await DisplayAlert("DEBUG", "QueryMKData 2", L_OK);
-		//OnDeviceSelected();
-
 		if (!_devices.Any())
 		{
-
 			//Automaticaly adding new element if list is empty
 			OnAdd(this, EventArgs.Empty);
 		}
 
+		//uom.maui.ui.KeyboardHelper.HideKeyboard();
 		await Task.Delay(1);
-
 	}
 
 
-	private (DevicesListRecordRowsGroup? Group, bool Added) FindDeviceGroup(DevicesListRecord? dev, bool createIfNotExist)
+	private (DevicesListRecordsGroup? Group, bool Added) FindDeviceGroup(DevicesListRecord? dev, bool createIfNotExist)
 	{
 		if (dev == null) return (null, false);
 
@@ -64,47 +68,106 @@ public partial class DevicesListUI : ContentPage
 			.FirstOrDefault();
 
 		if (foundGroup != null) return (foundGroup!, false);
-		foundGroup = new DevicesListRecordRowsGroup(lvwDevices, (dev.Group ?? string.Empty).Trim(), []);
+		foundGroup = new DevicesListRecordsGroup(lvwDevices, (dev.Group ?? string.Empty).Trim(), []);
 		return (foundGroup, true);
 	}
 
 
 
-
-
-	private async void OnCollectionChanged(object? s, NotifyCollectionChangedEventArgs e)
-	{
-		//Debug.WriteLine($"***************** CollectionChanged!");
-		await SaveDevicesList();
-	}
-
-
 	private void OnExit() => Application.Current?.Quit();
 
 
-	#region Tap gestures
+	#region Edit Devices list
 
-	private async void OnGroupTap(object sender, TappedEventArgs e)
+
+	[RelayCommand]
+	private async Task Device_Edit(DevicesListRecord dev)
 	{
-		var v = sender as View;
-		if (v == null) return;
+		var oldGroupFindResult = FindDeviceGroup(dev, false);
 
-		try
+		void updateChangedDevice(int index, DevicesListRecord? dev2)
 		{
-			var grp = v?.BindingContext as DevicesListRecordRowsGroup;
-			if (grp == null) return;
+			if (dev2 == null) return;   //Edit was canceled by User 
 
-			if (grp.SwitchCollapsed()) lvwDevices.ItemsSource = _deviceGroups;
+			_devices[index] = dev2!;
+			var oldGroup = oldGroupFindResult.Group;
+			var newGroupFindResult = FindDeviceGroup(dev2, true);
+			if (oldGroup != null && object.ReferenceEquals(oldGroup, newGroupFindResult.Group))
+			{
+				//Changing in the some group
+				index = oldGroup.IndexOf(dev);
+				oldGroup[index] = dev2!;
+			}
+			else
+			{
+				//Group was changed
+				oldGroup!.Remove(dev2);
+				if (oldGroup.CachedItemsCount < 1) _deviceGroups.Remove(oldGroup); //Removing group with 0 items from the UI
+
+				DevicesListRecordsGroup newGroup = newGroupFindResult.Group!;
+				if (newGroupFindResult.Added)
+				{
+					//Adding new group with to Old Existing Group
+					_deviceGroups.Add(newGroup);
+				}
+				newGroup.Add(dev2);
+				newGroup.IsCollapsed = false;
+			}
 		}
-		catch (Exception ex)
-		{
-			Debug.WriteLine($"\t*****\t {ex.Message}");
-		}
-		await Task.Delay(1);
+
+		int idx = _devices.IndexOf(dev);
+		await this.e_GoToWithReturnAsync<DevicesListRecord>(
+			nameof(DevicesListRecordEditorUI),
+			retDev => updateChangedDevice(idx, retDev),
+			DevicesListRecordEditorUI.C_INPUT_PARAM_KEY, dev);
+
 	}
 
 
+	[RelayCommand]
+	private async Task Device_Delete(DevicesListRecord dev)
+	{
+		string q = string.Format(Q_ADDRESSBOOK_DELETE_RECORD, dev.AddressString);
+		if (!await DisplayAlert(L_DELETE, q, L_YES, L_NO)) return;
+
+		var grp = FindDeviceGroup(dev, false).Group;
+		_devices.Remove(dev);
+		if (grp != null)
+		{
+			grp.Remove(dev);
+			if (grp.CachedItemsCount < 1) _deviceGroups.Remove(grp); //Removing group with 0 items from the UI
+		}
+	}
+
 	#endregion
+
+
+
+
+
+
+	//Start device pings...
+	private async Task onAppearing()
+	{
+		await Task.Delay(1);
+
+		foreach (var dev in _devices)
+		{
+			await dev.StatusPingBegin();
+		}
+	}
+
+	private async Task onDisappearing()
+	{
+		await Task.Delay(1);
+
+
+		foreach (var dev in _devices)
+		{
+			await dev.StatusPingStop();
+		}
+
+	}
 
 
 }

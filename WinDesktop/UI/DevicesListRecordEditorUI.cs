@@ -96,10 +96,7 @@ internal partial class DevicesListRecordEditorUI : Form
 			if (string.IsNullOrWhiteSpace(txtUser.Text.Trim())) throw new ArgumentNullException(L_DEVICE_USER);
 			return true;
 		}
-		catch (Exception ex)
-		{
-			//ex.e_LogError(true, E_TITLE_DEFAULT);
-		}
+		catch { }
 		return false;
 	}
 

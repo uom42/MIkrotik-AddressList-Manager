@@ -4,7 +4,7 @@ using System.Drawing;
 
 using uom.controls;
 
-using Mikrotik.API.Model.IP.Firewall.AddressList;
+using MikrotikDotNet.Model.IP.Firewall.AddressList;
 
 namespace MALM.UI
 {
@@ -36,7 +36,7 @@ namespace MALM.UI
 			this.e_UpdateTexts(
 				ali.Address,
 				ali.Comment ?? "",
-				ali.CreationTime_AsDateTime.e_ToLongDateTimeString(),
+				ali.CreationTime!.e_ToLongDateTimeString(),
 				ali.MKID);
 
 			ImageKey = ali.Disabled ? C_IMAGE_KEY_GRAY : C_IMAGE_KEY_GREEN;
@@ -53,7 +53,7 @@ namespace MALM.UI
 
 			if (MikrotikRow.Address.ToLower().Contains(filter)) return true;
 			if (MikrotikRow.List.ToLower().Contains(filter)) return true;
-			if (MikrotikRow.CreationTime.ToLower().Contains(filter)) return true;
+			if (MikrotikRow.CreationTime.ToString().Contains(filter)) return true;
 			if (MikrotikRow.Comment != null && MikrotikRow.Comment.ToLower().Contains(filter)) return true;
 
 			return false;

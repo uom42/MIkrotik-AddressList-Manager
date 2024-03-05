@@ -3,7 +3,7 @@
 #endif
 #nullable enable
 
-using static MALM.Localization.Strings;
+using static MALM.Localization.LStrings;
 
 using System.Xml.Serialization;
 using System.ComponentModel;
@@ -141,10 +141,11 @@ namespace MALM.Model
 		#endregion
 
 
-
 		#region Local Properties
 
-		internal UInt16? PortInt = null;
+
+		[XmlIgnore]
+		public UInt16? PortInt { get; set; } = null;
 
 		/// <summary>
 		/// Storing password safe in memory. This protection only works to protect against random memory scanner programs.
@@ -331,41 +332,12 @@ namespace MALM.Model
 #endif
 
 
+		[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public MKConnection CreateConnection()
+			=> PortInt.HasValue
+			? MikrotikDotNet.Model.Helpers.CreateConnection(AddressString!, UserName!, PwdString, PortInt.Value)
+			: MikrotikDotNet.Model.Helpers.CreateConnection(AddressString!, UserName!, PwdString);
 
-
-
-		private MKConnection CreateConnection() => (PortInt.HasValue)
-			? new(AddressString, UserName, PwdString, PortInt.Value)
-			: new(AddressString, UserName, PwdString);
-
-
-		internal static async Task<MKConnection> OpenConnection(DevicesListRecord dev)
-		{
-			CancellationTokenSource ct = new();
-
-			MKConnection con = dev.CreateConnection();
-			Task tskConnect = new(con.Open, ct.Token, TaskCreationOptions.LongRunning);
-			tskConnect.Start();
-
-			int timeout = 3_000;
-			if (await Task.WhenAny(tskConnect, Task.Delay(timeout, ct.Token)) == tskConnect)
-			{
-				// Task completed within timeout.
-				// Consider that the task may have faulted or been canceled.
-				// We re-await the task so that any exceptions/cancellation is rethrown.
-				await tskConnect;
-
-				if (!con.IsOpen) throw new Exception(E_MIKROTIK_CONNECTION_FAILED);
-				return con;
-			}
-			else
-			{
-				// timeout/cancellation logic
-				ct.Cancel();
-				throw new TimeoutException(E_MIKROTIK_CONNECTION_FAILED);
-			}
-
-		}
 
 
 	}

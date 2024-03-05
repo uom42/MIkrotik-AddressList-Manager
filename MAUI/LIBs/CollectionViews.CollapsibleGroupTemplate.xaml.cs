@@ -1,16 +1,36 @@
+using CommunityToolkit.Maui.Animations;
+using CommunityToolkit.Mvvm.Input;
+
 namespace uom.controls.MAUI.CollectionViews;
 
 
 public partial class CollapsibleGroupTemplate : ContentView
 {
-	public event EventHandler<Layout> OnChangeCollapsedState = delegate { };
+	//Checking reference to MauiIcon (AathifMahir.Maui.MauiIcons.Material.Outlined) http://www.aathifmahir.com/dotnet/2022/maui/icons
+	//_ = new MauiIcons.Core.MauiIcon();
 
-	public CollapsibleGroupTemplate()
+	public CollapsibleGroupTemplate() => InitializeComponent();
+
+
+	private async void TapGestureRecognizer_Tapped(object sender, TappedEventArgs e)
 	{
-		//Checking reference to MauiIcon (AathifMahir.Maui.MauiIcons.Material.Outlined) http://www.aathifmahir.com/dotnet/2022/maui/icons
-		//_ = new MauiIcons.Core.MauiIcon();
+		var fa = new FadeAnimation()
+		{
+			Easing = Easing.Default,
+			Length = 100
+		};
+		await fa.Animate(Ellipse1);
+	}
 
-		InitializeComponent();
 
+	[RelayCommand]
+	private async Task Tapped()
+	{
+		var fa = new FadeAnimation()
+		{
+			Easing = Easing.Default,
+			Length = 100
+		};
+		await fa.Animate(Ellipse1);
 	}
 }

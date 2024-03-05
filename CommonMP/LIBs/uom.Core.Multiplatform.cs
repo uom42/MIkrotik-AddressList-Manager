@@ -2114,173 +2114,6 @@ namespace uom
 		#endregion
 	}
 
-	internal static class NetInfo
-	{
-
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool IsInDomain()
-		{
-			try
-			{
-				//_ = System.DirectoryServices.ActiveDirectory.Domain.GetComputerDomain();
-				return System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().DomainName.e_IsNOTNullOrWhiteSpace();
-			}
-			catch { return false; }
-		}
-
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<UnicastIPAddressInformation> GelLocalIPList(OperationalStatus os = OperationalStatus.Up)
-		{
-
-			var ual = System.Net.NetworkInformation.NetworkInterface
-				.GetAllNetworkInterfaces()
-				.Where(nic => nic.OperationalStatus == os)
-				.SelectMany(nic => nic.GetIPProperties().UnicastAddresses)
-				.Where(ip => (ip.Address != null && ip.IPv4Mask != null));
-
-			foreach (var ip in ual)
-				yield return ip;
-		}
-
-
-
-
-		#region GetRemoteMAC
-
-		/*
-
-		/// <summary>Запрашивает в ARP таблице адрес удалённого хоста</summary>
-		/// 		''' <param name="RemoteIP">IP удалённого хоста</param>
-		/// 		''' <param name="TryPing">Предварительно пинговать хост (чтобы он появился в таблице ARP)</param>
-		/// 		''' <param name="PingTimeOut">Тайм-аут пинга</param>
-		public static MACAddress GetRemoteMAC(IPAddress RemoteIP, bool TryPing, int PingTimeOut = 3000)
-		{
-
-
-			if (RemoteIP.Equals(IPAddress.None) || RemoteIP.Equals(IPAddress.Broadcast))
-			{
-				throw new ArgumentNullException("RemoteIP");
-			}
-
-			else if (RemoteIP.Equals(IPAddress.Loopback))
-			{
-				// Попытка узнать МАК для адреса 127.0.0.1
-				string sLocalHostDNS = Dns.GetHostName();
-				IPAddress[] argResolvedIP = null;
-				MACAddress[] aMACS = GetRemoteMAC(sLocalHostDNS, false, 3000, ResolvedIP: ref argResolvedIP, false);
-				if (aMACS.Length > 0)
-				{
-					return aMACS[0];
-				}
-				else
-				{
-					string sERR = string.Format("MAC Resolve for {0} FAILED!", sLocalHostDNS);
-					throw new Exception(sERR);
-				}
-			}
-
-
-			int iPhyAddrLen = 6;
-			var hMACBuffer = Marshal.AllocHGlobal(iPhyAddrLen);
-			try
-			{
-				// retrieve the remote MAC address
-		uint iIP = (uint)RemoteIP.Address;
-		uint iIPAny = (uint)IPAddress.Any.Address;
-		int iResult = SendARP(iIP, iIPAny, hMACBuffer, ref iPhyAddrLen);
-				if (iResult != 0)
-				{
-					var WEX = new Win32Exception(iResult);
-					throw WEX;
-				}
-
-	byte[] abMAC = new byte[] { 0, 0, 0, 0, 0, 0 };
-	Marshal.Copy(hMACBuffer, abMAC, 0, 6);
-				var MAC = new MACAddress(abMAC);
-				return MAC;
-			}
-			finally
-			{
-	Marshal.FreeHGlobal(hMACBuffer);
-	}
-		}
-
-
-
-		/// <summary>Запрашивает в ARP таблице MAC адрес удалённого хоста</summary>
-		/// 		''' <param name="RemoteIP">IP удалённого хоста</param>
-		public static PhysicalAddress GetRemoteMAC(IPAddress RemoteIP)
-		{
-
-			if (RemoteIP.Equals(IPAddress.None) || RemoteIP.Equals(IPAddress.Broadcast) || RemoteIP.Equals(IPAddress.Loopback))
-
-			{
-
-				throw new ArgumentNullException("RemoteIP");
-			}
-
-			int iPhyAddrLen = 6;
-			var hMACBuffer = Marshal.AllocHGlobal(iPhyAddrLen);
-			try
-			{
-
-		uint iIP = (uint)RemoteIP.Address;
-		uint iIPAny = (uint)IPAddress.Any.Address;
-
-		int iResult = SendARP(iIP, iIPAny, hMACBuffer, ref iPhyAddrLen);
-				if (iResult != 0)
-				{
-					var WEX = new Win32Exception(iResult);
-					throw WEX;
-				}
-
-	byte[] abMAC = new byte[] { 0, 0, 0, 0, 0, 0 };
-	Marshal.Copy(hMACBuffer, abMAC, 0, 6);
-				return new PhysicalAddress(abMAC);
-	}
-			finally
-			{
-	Marshal.FreeHGlobal(hMACBuffer);
-	}
-		}
-
-
-
-	/// <summary>Возвращает несколько адресов, которые удалось выяснить</summary>
-	/// 		''' <param name="RemoteIPOrDNSMane">IP или DNS имя удаленного хоста</param>
-	/// 		''' <param name="TryPing">Предварительно пинговать хост ()</param>
-	/// 		''' <param name="PingTimeOut">Тайм-аут пинга</param>
-	/// 		''' <param name="CanThrowError">Генерировать исключение если, произошла ошибка с одним из адресов</param>
-	public static MACAddress[] GetRemoteMAC(string RemoteIPOrDNSMane, bool TryPing, int PingTimeOut = 3000, [Optional, DefaultParameterValue(null)] ref IPAddress[] ResolvedIP, bool CanThrowError = false)
-	{
-
-	var aHE = Dns.GetHostEntry(RemoteIPOrDNSMane);
-	ResolvedIP = aHE.AddressList;
-	var aMACs = new List<MACAddress>();
-	foreach (IPAddress IP in ResolvedIP)
-	{
-	try
-	{
-	   var MAC = GetRemoteMAC(IP, TryPing, PingTimeOut);
-	   aMACs.Add(MAC);
-	}
-	catch
-	{
-	   if (CanThrowError)
-		   throw;
-	}
-	}
-	return aMACs.ToArray();
-	}
-
-		 */
-
-		#endregion
-
-	}
-
 
 	internal class DateTimeInterval : Stopwatch
 	{
@@ -3004,9 +2837,181 @@ namespace uom
 	namespace Network
 	{
 
-		internal static class Tools
+
+		internal static class Helpers
 		{
 
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool IsInDomain()
+			{
+				try
+				{
+					//_ = System.DirectoryServices.ActiveDirectory.Domain.GetComputerDomain();
+					return System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().DomainName.e_IsNotNullOrWhiteSpace();
+				}
+				catch { return false; }
+			}
+
+
+			/// <summary>Gets IP of installed network adapters</summary>
+			/// <param name="os">Adapter operational status filter</param>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			private static IEnumerable<UnicastIPAddressInformation> GelLocalIP(OperationalStatus os = OperationalStatus.Up)
+			{
+
+				var ual = System.Net.NetworkInformation.NetworkInterface
+					.GetAllNetworkInterfaces()
+					.Where(nic => nic.OperationalStatus == os)
+					.SelectMany(nic => nic.GetIPProperties().UnicastAddresses)
+					.Where(ip => ip.Address != null);
+
+				foreach (var ip in ual)
+					yield return ip;
+			}
+
+			/// <summary>Gets IP of installed network adapters</summary>
+			/// <param name="os">Adapter operational status filter</param>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static IEnumerable<UnicastIPAddressInformation> GelLocalIP4(OperationalStatus os = OperationalStatus.Up)
+			{
+				var a = GelLocalIP(os)
+					.Where(ua => ua.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && ua.IPv4Mask != null);
+
+				return a;
+			}
+
+
+			#region GetRemoteMAC
+
+			/*
+
+			/// <summary>Запрашивает в ARP таблице адрес удалённого хоста</summary>
+			/// 		''' <param name="RemoteIP">IP удалённого хоста</param>
+			/// 		''' <param name="TryPing">Предварительно пинговать хост (чтобы он появился в таблице ARP)</param>
+			/// 		''' <param name="PingTimeOut">Тайм-аут пинга</param>
+			public static MACAddress GetRemoteMAC(IPAddress RemoteIP, bool TryPing, int PingTimeOut = 3000)
+			{
+
+
+				if (RemoteIP.Equals(IPAddress.None) || RemoteIP.Equals(IPAddress.Broadcast))
+				{
+					throw new ArgumentNullException("RemoteIP");
+				}
+
+				else if (RemoteIP.Equals(IPAddress.Loopback))
+				{
+					// Попытка узнать МАК для адреса 127.0.0.1
+					string sLocalHostDNS = Dns.GetHostName();
+					IPAddress[] argResolvedIP = null;
+					MACAddress[] aMACS = GetRemoteMAC(sLocalHostDNS, false, 3000, ResolvedIP: ref argResolvedIP, false);
+					if (aMACS.Length > 0)
+					{
+						return aMACS[0];
+					}
+					else
+					{
+						string sERR = string.Format("MAC Resolve for {0} FAILED!", sLocalHostDNS);
+						throw new Exception(sERR);
+					}
+				}
+
+
+				int iPhyAddrLen = 6;
+				var hMACBuffer = Marshal.AllocHGlobal(iPhyAddrLen);
+				try
+				{
+					// retrieve the remote MAC address
+			uint iIP = (uint)RemoteIP.Address;
+			uint iIPAny = (uint)IPAddress.Any.Address;
+			int iResult = SendARP(iIP, iIPAny, hMACBuffer, ref iPhyAddrLen);
+					if (iResult != 0)
+					{
+						var WEX = new Win32Exception(iResult);
+						throw WEX;
+					}
+
+		byte[] abMAC = new byte[] { 0, 0, 0, 0, 0, 0 };
+		Marshal.Copy(hMACBuffer, abMAC, 0, 6);
+					var MAC = new MACAddress(abMAC);
+					return MAC;
+				}
+				finally
+				{
+		Marshal.FreeHGlobal(hMACBuffer);
+		}
+			}
+
+
+
+			/// <summary>Запрашивает в ARP таблице MAC адрес удалённого хоста</summary>
+			/// 		''' <param name="RemoteIP">IP удалённого хоста</param>
+			public static PhysicalAddress GetRemoteMAC(IPAddress RemoteIP)
+			{
+
+				if (RemoteIP.Equals(IPAddress.None) || RemoteIP.Equals(IPAddress.Broadcast) || RemoteIP.Equals(IPAddress.Loopback))
+
+				{
+
+					throw new ArgumentNullException("RemoteIP");
+				}
+
+				int iPhyAddrLen = 6;
+				var hMACBuffer = Marshal.AllocHGlobal(iPhyAddrLen);
+				try
+				{
+
+			uint iIP = (uint)RemoteIP.Address;
+			uint iIPAny = (uint)IPAddress.Any.Address;
+
+			int iResult = SendARP(iIP, iIPAny, hMACBuffer, ref iPhyAddrLen);
+					if (iResult != 0)
+					{
+						var WEX = new Win32Exception(iResult);
+						throw WEX;
+					}
+
+		byte[] abMAC = new byte[] { 0, 0, 0, 0, 0, 0 };
+		Marshal.Copy(hMACBuffer, abMAC, 0, 6);
+					return new PhysicalAddress(abMAC);
+		}
+				finally
+				{
+		Marshal.FreeHGlobal(hMACBuffer);
+		}
+			}
+
+
+
+		/// <summary>Возвращает несколько адресов, которые удалось выяснить</summary>
+		/// 		''' <param name="RemoteIPOrDNSMane">IP или DNS имя удаленного хоста</param>
+		/// 		''' <param name="TryPing">Предварительно пинговать хост ()</param>
+		/// 		''' <param name="PingTimeOut">Тайм-аут пинга</param>
+		/// 		''' <param name="CanThrowError">Генерировать исключение если, произошла ошибка с одним из адресов</param>
+		public static MACAddress[] GetRemoteMAC(string RemoteIPOrDNSMane, bool TryPing, int PingTimeOut = 3000, [Optional, DefaultParameterValue(null)] ref IPAddress[] ResolvedIP, bool CanThrowError = false)
+		{
+
+		var aHE = Dns.GetHostEntry(RemoteIPOrDNSMane);
+		ResolvedIP = aHE.AddressList;
+		var aMACs = new List<MACAddress>();
+		foreach (IPAddress IP in ResolvedIP)
+		{
+		try
+		{
+		   var MAC = GetRemoteMAC(IP, TryPing, PingTimeOut);
+		   aMACs.Add(MAC);
+		}
+		catch
+		{
+		   if (CanThrowError)
+			   throw;
+		}
+		}
+		return aMACs.ToArray();
+		}
+
+			 */
+
+			#endregion
 
 
 			public static FileInfo? DownloadFile_WebRequest(string url, string localFile, TimeSpan timeout)
@@ -3097,7 +3102,7 @@ namespace uom
 
 
 		/// <summary>Comparable PhysicalAddress</summary>
-		internal class PhysicalAddressEx(byte[] mac) : PhysicalAddress(mac), IComparable<PhysicalAddressEx>
+		internal class PhysicalAddressEx(byte[] mac) : PhysicalAddress(mac), IComparable<PhysicalAddressEx>, IComparable<PhysicalAddress>
 		{
 			/// <summary>
 			/// <code>
@@ -3122,11 +3127,116 @@ namespace uom
 
 			public override bool Equals(object? obj) => base.Equals(obj);
 
+			public override int GetHashCode() => GetHash().GetHashCode();
+
+			public int CompareTo(PhysicalAddress? other)
+				=> this.GetHash().CompareTo(other?.ToString() ?? string.Empty);
+
+		}
+
+		[Obsolete("Not tested!", true)]
+		internal class IPAddressEx : System.Net.IPAddress
+		{
+			public IPAddressEx(byte[] address) : base(address) { }
+
+			public IPAddressEx(Int64 address) : base(address) { }
+
+			public IPAddressEx(byte[] address, Int64 scopeid) : base(address, scopeid) { }
+
+
+			/// <summary>Determines the relative value of adddress1 to address2.</summary>
+			/// <returns>-1 indicates address1 is less than address2. 1 indicates address1 is greater than address2. 0 indicates both are equal. -2 indicates addresses are incompatible for comparison.</returns>
+			public int CompareTo(IPAddressEx value)
+			{
+				int returnVal = 0;
+				if (this.AddressFamily == value.AddressFamily)
+				{
+					byte[] b1 = this.GetAddressBytes();
+					byte[] b2 = value.GetAddressBytes();
+
+					for (int i = 0; i < b1.Length; i++)
+					{
+						if (b1[i] < b2[i])
+						{
+							returnVal = -1;
+							break;
+						}
+						else if (b1[i] > b2[i])
+						{
+							returnVal = 1;
+							break;
+						}
+					}
+				}
+				else
+				{
+					throw new ArgumentOutOfRangeException("value", "Cannot compare two addresses no in the same Address Family.");
+				}
+
+				return returnVal;
+			}
+
+
+			/// <summary>Determines if the current IP Address is in the given range.</summary>
+			/// <param name="rangeStartAddress">The beginning of the range.</param>
+			/// <param name="rangeEndAddress">The end of the range.</param>
+			/// <returns>True if the IP Address is within the passed range.</returns>
+			public bool IsInRange(IPAddressEx rangeStartAddress, IPAddressEx rangeEndAddress)
+			{
+				bool returnVal = false;
+				// ensure that all addresses are of the same type otherwise reject //
+				if (rangeStartAddress.AddressFamily != rangeEndAddress.AddressFamily)
+					throw new ArgumentOutOfRangeException(nameof(rangeStartAddress),
+						  $"The Start Range type {rangeStartAddress.AddressFamily} and End Range type {rangeEndAddress.AddressFamily} are not compatible ip address families.");
+
+				if (rangeStartAddress.AddressFamily == this.AddressFamily)
+				{
+					returnVal = (CompareTo(rangeStartAddress) >= 0 && CompareTo(rangeEndAddress) <= 0);   // no need to check for -2 value as this check has already been undertaken to get into this block //
+				}
+				else
+				{
+					throw new ArgumentOutOfRangeException(nameof(rangeStartAddress),
+						  $"The range type {rangeStartAddress.AddressFamily} and current value type {this.AddressFamily} are not compatible ip address families");
+				}
+
+				return returnVal;
+			}
+
+			public static IPAddressEx[] GetLocalAddresses()
+			{
+				string hostName = System.Net.Dns.GetHostName();
+				System.Net.IPHostEntry entry = System.Net.Dns.GetHostEntry(hostName);
+				List<IPAddressEx> list = new List<IPAddressEx>();
+				foreach (System.Net.IPAddress address in entry.AddressList)
+				{
+					list.Add(new IPAddressEx(address.GetAddressBytes()));
+				}
+				return list.ToArray();
+			}
+
+			public static bool IsLocalAddressInRange(IPAddressEx rangeStartAddress, IPAddressEx rangeEndAddress)
+			{
+				bool returnVal = false;
+				foreach (IPAddressEx address in GetLocalAddresses())
+				{
+					if (address.IsInRange(rangeStartAddress, rangeEndAddress))
+					{
+						returnVal = true;
+						break;
+					}
+				}
+				return returnVal;
+			}
 		}
 
 
 		internal class IP4AddressWithMask(IPAddress ip, uint prefixLength = IP4AddressWithMask.PREFIX_32) : System.Net.NetworkInformation.IPAddressInformation(), IComparable<IP4AddressWithMask>
 		{
+			internal static readonly IPAddress CloudFlareRecursiveDNSConverter = IPAddress.Parse("1.1.1.1");
+
+			internal static readonly IP4AddressWithMask CloudFlareDNSNetwork = new(CloudFlareRecursiveDNSConverter, 8);
+
+
 			internal const uint PREFIX_0 = 0;
 			internal const uint PREFIX_32 = 32;
 
@@ -3161,7 +3271,7 @@ namespace uom
 					if (!IPAddress.TryParse(ip, out IPAddress? ipa)) continue;
 
 					uint prefixSize = PREFIX_32;
-					if (prefixSizeString.e_IsNOTNullOrWhiteSpace() && uint.TryParse(prefixSizeString.Substring(1), out var parsedPrefixSize))
+					if (prefixSizeString.e_IsNotNullOrWhiteSpace() && uint.TryParse(prefixSizeString.Substring(1), out var parsedPrefixSize))
 						prefixSize = parsedPrefixSize;
 
 					yield return new IP4AddressWithMask(ipa!, prefixSize);
@@ -3180,102 +3290,10 @@ namespace uom
 		}
 
 
-		internal class ComparibleIPAddress : System.Net.IPAddress
+		internal class IP4AddressComparer : IComparer<IPAddress>
 		{
-			public ComparibleIPAddress(byte[] address) : base(address) { }
+			public static readonly Lazy<IP4AddressComparer> StaticInstance = new(() => new());
 
-			public ComparibleIPAddress(Int64 address) : base(address) { }
-
-			public ComparibleIPAddress(byte[] address, Int64 scopeid) : base(address, scopeid) { }
-
-
-			/// <summary>Determines the relative value of adddress1 to address2.</summary>
-			/// <returns>-1 indicates address1 is less than address2. 1 indicates address1 is greater than address2. 0 indicates both are equal. -2 indicates addresses are incompatible for comparison.</returns>
-			public int CompareTo(ComparibleIPAddress value)
-			{
-				int returnVal = 0;
-				if (this.AddressFamily == value.AddressFamily)
-				{
-					byte[] b1 = this.GetAddressBytes();
-					byte[] b2 = value.GetAddressBytes();
-
-					for (int i = 0; i < b1.Length; i++)
-					{
-						if (b1[i] < b2[i])
-						{
-							returnVal = -1;
-							break;
-						}
-						else if (b1[i] > b2[i])
-						{
-							returnVal = 1;
-							break;
-						}
-					}
-				}
-				else
-				{
-					throw new ArgumentOutOfRangeException("value", "Cannot compare two addresses no in the same Address Family.");
-				}
-
-				return returnVal;
-			}
-
-			/// <summary>Determines if the current IP Address is in the given range.</summary>
-			/// <param name="rangeStartAddress">The beginning of the range.</param>
-			/// <param name="rangeEndAddress">The end of the range.</param>
-			/// <returns>True if the IP Address is within the passed range.</returns>
-			public bool IsInRange(ComparibleIPAddress rangeStartAddress, ComparibleIPAddress rangeEndAddress)
-			{
-				bool returnVal = false;
-				// ensure that all addresses are of the same type otherwise reject //
-				if (rangeStartAddress.AddressFamily != rangeEndAddress.AddressFamily)
-					throw new ArgumentOutOfRangeException(nameof(rangeStartAddress),
-						  $"The Start Range type {rangeStartAddress.AddressFamily} and End Range type {rangeEndAddress.AddressFamily} are not compatible ip address families.");
-
-				if (rangeStartAddress.AddressFamily == this.AddressFamily)
-				{
-					returnVal = (CompareTo(rangeStartAddress) >= 0 && CompareTo(rangeEndAddress) <= 0);   // no need to check for -2 value as this check has already been undertaken to get into this block //
-				}
-				else
-				{
-					throw new ArgumentOutOfRangeException(nameof(rangeStartAddress),
-						  $"The range type {rangeStartAddress.AddressFamily} and current value type {this.AddressFamily} are not compatible ip address families");
-				}
-
-				return returnVal;
-			}
-
-			public static ComparibleIPAddress[] GetLocalAddresses()
-			{
-				string hostName = System.Net.Dns.GetHostName();
-				System.Net.IPHostEntry entry = System.Net.Dns.GetHostEntry(hostName);
-				List<ComparibleIPAddress> list = new List<ComparibleIPAddress>();
-				foreach (System.Net.IPAddress address in entry.AddressList)
-				{
-					list.Add(new ComparibleIPAddress(address.GetAddressBytes()));
-				}
-				return list.ToArray();
-			}
-
-			public static bool IsLocalAddressInRange(ComparibleIPAddress rangeStartAddress, ComparibleIPAddress rangeEndAddress)
-			{
-				bool returnVal = false;
-				foreach (ComparibleIPAddress address in GetLocalAddresses())
-				{
-					if (address.IsInRange(rangeStartAddress, rangeEndAddress))
-					{
-						returnVal = true;
-						break;
-					}
-				}
-				return returnVal;
-			}
-		}
-
-
-		internal class IPAddressComparer : IComparer<IPAddress>
-		{
 			public int Compare(IPAddress? x, IPAddress? y) => CompareIPAddress(x, y);
 
 			public static int CompareIPAddress(IPAddress? x, IPAddress? y)
@@ -3289,6 +3307,45 @@ namespace uom
 				return uX.CompareTo(uY);
 			}
 		}
+
+		internal class IP4AddressWithMaskComparer : IComparer<string>, IComparer<IP4AddressWithMask>
+		{
+			public static readonly Lazy<IP4AddressWithMaskComparer> StaticInstance = new(() => new());
+
+			public int Compare(string? x, string? y)
+			{
+				try
+				{
+					IP4AddressWithMask?
+						ipX = IP4AddressWithMask.ParseIPs(x ?? string.Empty).FirstOrDefault(),
+						ipY = IP4AddressWithMask.ParseIPs(y ?? string.Empty).FirstOrDefault();
+
+					return Compare(ipX, ipY);
+				}
+				catch { }
+				return string.Compare(x, y);
+			}
+
+			public int Compare(IP4AddressWithMask? x, IP4AddressWithMask? y)
+			{
+				if (x == null && y == null) return 0;
+				if (x == null) return -1;
+				return x.CompareTo(y);
+			}
+		}
+
+
+		internal class MACComparer : IComparer<PhysicalAddress>
+		{
+			public static readonly Lazy<MACComparer> StaticInstance = new(() => new());
+
+
+			public static int CompareMAC(PhysicalAddress? x, PhysicalAddress? y)
+				=> string.Compare(x?.ToString() ?? string.Empty, y?.ToString() ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+
+			public int Compare(PhysicalAddress? x, PhysicalAddress? y) => CompareMAC(x, y);
+		}
+
 
 
 		//https://newbedev.com/progress-bar-with-httpclient
@@ -3684,7 +3741,7 @@ namespace uom
 				)
 			{
 				_ = aFilesToFind ?? throw new ArgumentNullException(nameof(aFilesToFind));
-				_aFilesToFind = aFilesToFind.Where((f) => f.e_IsNOTNullOrWhiteSpace()).ToArray();
+				_aFilesToFind = aFilesToFind.Where((f) => f.e_IsNotNullOrWhiteSpace()).ToArray();
 				if (!_aFilesToFind.Any()) throw new ArgumentNullException(nameof(aFilesToFind));
 
 				_cbOnOnEnterDir = fuOnEnterDir;
@@ -4395,6 +4452,7 @@ namespace uom
 				return sb.ToString().TrimEnd();
 			}
 
+
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static string e_DumpStaticMembers(this Type t, params string[] excludeMembers)
 			{
@@ -4594,12 +4652,12 @@ namespace uom
 		   List<string> l = new();
 		   foreach (var o in ie)
 		   {
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+	#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
 			   string s = (o ?? "null").ToString();
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8604 // Possible null reference argument.
+	#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+	#pragma warning disable CS8604 // Possible null reference argument.
 			   l.Add(s);
-#pragma warning restore CS8604 // Possible null reference argument.
+	#pragma warning restore CS8604 // Possible null reference argument.
 			   if (l.Count >= limitArrayItemsOutput) break;
 		   }
 		   result += l.ToArray().e_Join(itemSeparator)!;
@@ -5146,7 +5204,7 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_ToNonNull(this string? sourceText) => (sourceText ?? "");
+			public static string e_ToNonNull(this string? sourceText) => (sourceText ?? string.Empty);
 
 			/// <inheritdoc cref="string.IsNullOrEmpty"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -5159,15 +5217,15 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_IsNOTNullOrWhiteSpace(this string? sourceText) => (!sourceText.e_IsNullOrWhiteSpace());
+			public static bool e_IsNotNullOrWhiteSpace(this string? sourceText) => (!sourceText.e_IsNullOrWhiteSpace());
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_IsNOTNullOrWhiteSpaceAndStartsWith(this string? sourceText, string sFindWhat) => sourceText.e_IsNOTNullOrWhiteSpace() && sourceText!.StartsWith(sFindWhat);
+			public static bool e_IsNotNullOrWhiteSpaceAndStartsWith(this string? sourceText, string sFindWhat) => sourceText.e_IsNotNullOrWhiteSpace() && sourceText!.StartsWith(sFindWhat);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool e_IsNOTNullOrWhiteSpaceAndEndsWith(this string? sourceText, string sFindWhat) => sourceText.e_IsNOTNullOrWhiteSpace() && sourceText!.EndsWith(sFindWhat);
+			public static bool e_IsNotNullOrWhiteSpaceAndEndsWith(this string? sourceText, string sFindWhat) => sourceText.e_IsNotNullOrWhiteSpace() && sourceText!.EndsWith(sFindWhat);
 
 
 
@@ -5278,10 +5336,13 @@ namespace uom
 			private static readonly string[] ByteSize_En = ["B", "KB", "MB", "GB", "TB", "PB", "EB"];
 			private static readonly string[] ByteSize_Ru = ["Б", "КБ", "МБ", "ГБ", "ТБ", "ПБ", "ЕБ"];
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_FormatByteSize(this Int64 BytesLength, int iDecimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS)
+			public static string e_FormatByteSize(this UInt64 bytesLength, int decimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS)
 			{
-				string[] sizes = uom.AppInfo.CurrentUICultureIsRuTree ? ByteSize_Ru : ByteSize_En;
-				double dblLen = (double)BytesLength;
+				string[] sizes = uom.AppInfo.CurrentUICultureIsRuTree
+					? ByteSize_Ru
+					: ByteSize_En;
+
+				double dblLen = (double)bytesLength;
 				int order = 0;
 				while (dblLen >= 1024 && (order < sizes.Length - 1))
 				{
@@ -5289,18 +5350,24 @@ namespace uom
 					dblLen /= 1024;
 				}
 				// Adjust the format string to your preferences. For example "{0:0.#}{1}" would show a single decimal place, and no space.
-				string sFormat = (iDecimalPlaces > 0) ? ("{0:0." + new String('#', iDecimalPlaces) + "} {1}") : "{0:0} {1}";
+				string sFormat = (decimalPlaces > 0) ? ("{0:0." + new String('#', decimalPlaces) + "} {1}") : "{0:0} {1}";
 				var result = string.Format(sFormat, dblLen, sizes[order]);
 				return result;
 			}
 
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string e_FormatByteSize(this Int64 bytesLength, int decimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS)
+				=> ((UInt64)bytesLength).e_FormatByteSize(decimalPlaces);
+
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string e_FormatByteSize(
-				this int BytesLength,
-				int iDecimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS) => ((Int64)BytesLength).e_FormatByteSize(iDecimalPlaces);
+			public static string e_FormatByteSize(this Int32 bytesLength, int decimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS)
+				=> ((UInt64)bytesLength).e_FormatByteSize(decimalPlaces);
 
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string e_FormatByteSize(this UInt32 bytesLength, int decimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS)
+				=> ((UInt64)bytesLength).e_FormatByteSize(decimalPlaces);
 
 
 
@@ -5809,7 +5876,7 @@ namespace uom
 			internal static string e_AppendText(this string sourceText, string TextToAppend, string sSeparator = constants.vbCrLf)
 			{
 				if (sourceText.e_IsNullOrWhiteSpace()) sourceText = "";
-				if (sourceText.e_IsNOTNullOrWhiteSpace()) sourceText += sSeparator;
+				if (sourceText.e_IsNotNullOrWhiteSpace()) sourceText += sSeparator;
 				return (sourceText + TextToAppend);
 			}
 			/// <summary>Добавляет строку к тексту. Если исходный текст пустой, то разделитель к исходному тексту не добавляется</summary>
@@ -5888,7 +5955,7 @@ namespace uom
 					bool bAdd = true;
 
 					if (trimEachLine) sLine = sLine.Trim();
-					if (skipEmptyLines) bAdd = sLine.e_IsNOTNullOrWhiteSpace();
+					if (skipEmptyLines) bAdd = sLine.e_IsNotNullOrWhiteSpace();
 					if (bAdd) yield return sLine;
 					sLine = sr.ReadLine();
 				}
@@ -6111,13 +6178,13 @@ namespace uom
 				char encloseChar = constants.CC_QUOTE,
 				bool onlyOnePass = false)
 			{
-				while (sourceText.e_IsNOTNullOrWhiteSpace() && sourceText.StartsWith(Convert.ToString(encloseChar)))
+				while (sourceText.e_IsNotNullOrWhiteSpace() && sourceText.StartsWith(Convert.ToString(encloseChar)))
 				{
 					sourceText = sourceText.e_TrimStartOne(encloseChar);
 					if (onlyOnePass) break;
 				}
 
-				while (sourceText.e_IsNOTNullOrWhiteSpace() && sourceText.EndsWith(Convert.ToString(encloseChar)))
+				while (sourceText.e_IsNotNullOrWhiteSpace() && sourceText.EndsWith(Convert.ToString(encloseChar)))
 				{
 					sourceText = sourceText.e_TrimEndOne(encloseChar);
 					if (onlyOnePass) break;
@@ -6143,7 +6210,7 @@ namespace uom
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static string e_TrimStartOne(this string sourceText, char trimmedChar)
 			{
-				if (sourceText.e_IsNOTNullOrWhiteSpace() && sourceText.StartsWith(trimmedChar.ToString()))
+				if (sourceText.e_IsNotNullOrWhiteSpace() && sourceText.StartsWith(trimmedChar.ToString()))
 				{
 					if (sourceText.Length > 1)
 					{
@@ -6161,7 +6228,7 @@ namespace uom
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static string e_TrimEndOne(this string sourceText, char trimmedChar)
 			{
-				if (sourceText.e_IsNOTNullOrWhiteSpace() && sourceText.EndsWith(trimmedChar.ToString()))
+				if (sourceText.e_IsNotNullOrWhiteSpace() && sourceText.EndsWith(trimmedChar.ToString()))
 				{
 					if (sourceText.Length > 1)
 					{
@@ -6179,7 +6246,7 @@ namespace uom
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static string e_TrimEndOne(this string sourceText, string trimmedSuffix)
 			{
-				if (sourceText.e_IsNOTNullOrWhiteSpace() && sourceText.EndsWith(trimmedSuffix))
+				if (sourceText.e_IsNotNullOrWhiteSpace() && sourceText.EndsWith(trimmedSuffix))
 				{
 					if (sourceText.Length > trimmedSuffix.Length)
 					{
@@ -6248,17 +6315,18 @@ namespace uom
 				if (source.e_IsNullOrWhiteSpace() || source.Length < 2) return source;
 				return source.Select(c => char.IsUpper(c) ? (" " + c.ToString()) : c.ToString()).ToArray().e_Join("")!.TrimStart();
 
-
-				var sbResult = new StringBuilder(source.Length * 2);
-				//var aWordChars = source.ToCharArray();
-				bool bFirst = true;
-				foreach (char C in source)
-				{
-					if (!bFirst && char.IsUpper(C)) sbResult.Append(' ');
-					sbResult.Append(C);
-					bFirst = false;
-				}
-				return sbResult.ToString();
+				/*
+			 var sbResult = new StringBuilder(source.Length * 2);
+			 //var aWordChars = source.ToCharArray();
+			 bool bFirst = true;
+			 foreach (char C in source)
+			 {
+				 if (!bFirst && char.IsUpper(C)) sbResult.Append(' ');
+				 sbResult.Append(C);
+				 bFirst = false;
+			 }
+			 return sbResult.ToString();
+				 */
 			}
 
 			/// <summary>Проверяет строку на (Is Nothing) и (String.IsNullOrEmpty) и (SourceString.Length>0) и возвращает либо исходную строку, либо пустую</summary>
@@ -6502,6 +6570,8 @@ namespace uom
 		internal static class Extensions_Dictionary
 		{
 
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool e_IsDictionaryEqualTo<TKey, TValue>(this Dictionary<TKey, TValue> dic1, Dictionary<TKey, TValue> dic2) where TKey : notnull
 				=> dic1
 				.OrderBy(x => x.Key)
@@ -6663,12 +6733,24 @@ namespace uom
 			internal static string[] e_ToArrayOfString<T>(
 				this Dictionary<string, T> dic,
 				bool skipNullValues = true,
+				string nameValueSeperator = " = ",
 				string nullValuesDisplayName = "[NULL]")
 				=> dic
-				.Select<KeyValuePair<string, T>, string?>(kvp
-					=> ((null == kvp.Value) && skipNullValues)
-					? null
-					: $"{kvp.Key} = {kvp.Value?.ToString() ?? nullValuesDisplayName}")
+				.Select<KeyValuePair<string, T>, string?>(kvp =>
+				{
+					if (kvp.Value == null && skipNullValues) return null;
+					object val = kvp.Value!;
+
+					var vt = val.GetType();
+					if (vt.IsGenericType && vt.GetGenericTypeDefinition() == typeof(Nullable<>))
+					{
+						int dddd = 5;
+						//…
+					}
+
+					return $"{kvp.Key}{nameValueSeperator}{val.ToString() ?? nullValuesDisplayName}";
+
+				})
 				.Where(s => (null != s))
 				.ToArray()!;
 
@@ -7196,6 +7278,13 @@ namespace uom
 			//    catch { return false; }
 			//}
 
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool e_EqualsOneOf<TEnum>(this TEnum value, params TEnum[] values) where TEnum : Enum
+				=> values.FirstOrDefault(e => e.Equals(value)) != null;
+
+
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static T e_BuildFromFlags<T>(this T initialValue, params (bool flagCondition, T flagToSet)[] flags) where T : Enum
 			{
@@ -7370,9 +7459,33 @@ namespace uom
 			}
 
 
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static TEnum e_ToEnumValue<TEnum>(this string valueName, TEnum defaultValue) where TEnum : Enum
+			{
+				var et = typeof(TEnum);
+				var values = Enum.GetValues(et).Cast<TEnum>();
+
+				var found = Enum
+					.GetValues(et)
+					.Cast<TEnum>()
+					.FirstOrDefault(v => v.ToString()!.Equals(valueName, StringComparison.InvariantCultureIgnoreCase));
+
+				if (found != null) return found;
+				return defaultValue;
+			}
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static TEnum e_ToEnumValue<TEnum>(this string valueName) where TEnum : Enum
+				=> valueName.e_ToEnumValue<TEnum>((TEnum)(object)0);
+
+
+
+
+
 			/*
-
-
 
 
 		////// <summary>Возвращает значение атрибута <see cref="My.UOM.EnumTools.Description2Attribute"/> </summary>    
@@ -8770,29 +8883,38 @@ namespace uom
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static (IPAddress FirstIP, IPAddress LastIP, IPAddress BroadcastIP, uint HostCount, IEnumerable<IPAddress>? SubnetHosts) e_CalculateIP4Subnet(this IPAddress ipa, IPAddress subnetMask)
+			internal static (
+				IPAddress SubnetZeroIP,
+				IPAddress FirstIP,
+				IPAddress LastIP,
+				IPAddress BroadcastIP,
+				uint HostCount,
+				IEnumerable<IPAddress>? SubnetHosts
+				) e_CalculateIP4Subnet(this IPAddress ipa, IPAddress subnetMask)
 			{
 				IPAddress ipaFirst = ipa, ipaLast = ipa, ipaBroadcast = ipa;
 				uint uSubnetIPCount = 1u;
-				if (subnetMask.Equals(IPAddress.Broadcast)) return (ipaFirst, ipaLast, ipaBroadcast, uSubnetIPCount, null);
 
 				uint uMask = subnetMask.e_ToUInt32CalculableOrder();
 				//if (uMask == 0xFF_FF_FF_FF) return (ipaFirst, ipaLast, ipaBroadcast, uSubnetIPCount);
 				uint uIP = ipa.e_ToUInt32CalculableOrder();
+				uint uSubnetZeroIP = uIP & uMask;
+				IPAddress ipaSubnetZeroIP = uSubnetZeroIP.e_FromIPCalculableOrderToIP4Address();
+				if (subnetMask.Equals(IPAddress.Broadcast)) return (ipaSubnetZeroIP, ipaFirst, ipaLast, ipaBroadcast, uSubnetIPCount, null);
+
+
 				{
 					uint uMaskNot = ~uMask;
 					uint uBroadcastIP = uIP | uMaskNot;
 					ipaBroadcast = uBroadcastIP.e_FromIPCalculableOrderToIP4Address();
 				}
 
-				uint uPrefixLen = subnetMask.e_GetIP4SubnetPrefixSizeFromMask();
-				uint uSubnetZeroIP = uIP & uMask;
-				//IPAddress ipaSubnetZeroIP = uSubnetZeroIP.e_FromCalculableOrderToIPAddress();
-
 				uint uFirstIP = uSubnetZeroIP | 0x00_00_00_01;
 				ipaFirst = uFirstIP.e_FromIPCalculableOrderToIP4Address();
 				ipaLast = ipaFirst;
-				if (uPrefixLen >= 31) return (ipaFirst, ipaLast, ipaBroadcast, uSubnetIPCount, ipaFirst.e_ToArrayOf());
+
+				uint uPrefixLen = subnetMask.e_GetIP4SubnetPrefixSizeFromMask();
+				if (uPrefixLen >= 31) return (ipaSubnetZeroIP, ipaFirst, ipaLast, ipaBroadcast, uSubnetIPCount, ipaFirst.e_ToArrayOf());
 
 				uint uChangeableBits = 32u - uPrefixLen;
 				uSubnetIPCount = 0;
@@ -8807,18 +8929,33 @@ namespace uom
 				ipaLast = uLastIP.e_FromIPCalculableOrderToIP4Address();
 				var ipList = ipaFirst.e_GetAllIP4List(ipaLast);
 
-				return (ipaFirst, ipaLast, ipaBroadcast, uSubnetIPCount, ipList);
+				return (ipaSubnetZeroIP, ipaFirst, ipaLast, ipaBroadcast, uSubnetIPCount, ipList);
 			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static (IPAddress FirstIP, IPAddress LastIP, IPAddress BroadcastIP, uint HostCount, IEnumerable<IPAddress>? SubnetHosts) e_CalculateIP4Subnet(this Network.IP4AddressWithMask IP4)
+			internal static (
+				IPAddress SubnetZeroIP,
+				IPAddress FirstIP,
+				IPAddress LastIP,
+				IPAddress BroadcastIP,
+				uint HostCount,
+				IEnumerable<IPAddress>? SubnetHosts
+				) e_CalculateIP4Subnet(this Network.IP4AddressWithMask IP4)
 				=> IP4.Address.e_CalculateIP4Subnet(IP4.Mask);
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static (IPAddress FirstIP, IPAddress LastIP, IPAddress BroadcastIP, uint HostCount, IEnumerable<IPAddress>? SubnetHosts) e_CalculateIP4Subnet(this IPAddress ipa, uint subnetPrefix)
+			internal static (
+				IPAddress SubnetZeroIP,
+				IPAddress FirstIP,
+				IPAddress LastIP,
+				IPAddress BroadcastIP,
+				uint HostCount,
+				IEnumerable<IPAddress>? SubnetHosts)
+				e_CalculateIP4Subnet(this IPAddress ipa, uint subnetPrefix)
 				=> ipa.e_CalculateIP4Subnet(subnetPrefix.e_GetIP4SubnetMask());
+
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static bool e_IsInSubnet(this uom.Network.IP4AddressWithMask host, uom.Network.IP4AddressWithMask targetSubnet)
@@ -8831,26 +8968,34 @@ namespace uom
 			}
 
 
-
-
+			/// <summary>Checks if host is in subnet of any local network adapter</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsInLocalSubnet(this Network.IP4AddressWithMask remote)
+			internal static bool e_IsInLocalSubnet(this Network.IP4AddressWithMask ip)
 			{
-				foreach (UnicastIPAddressInformation uaLocal in uom.NetInfo
-					.GelLocalIPList()
-					.Where(ua => (ua.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)))
+				foreach (UnicastIPAddressInformation uaLocal in uom.Network.Helpers.GelLocalIP4())
 				{
 					uom.Network.IP4AddressWithMask subnetLocal = uaLocal.e_ToIP4AddressWithMask();
-					if (remote.e_IsInSubnet(subnetLocal)) return true;
+					if (ip.e_IsInSubnet(subnetLocal)) return true;
 				}
 				return false;
 			}
 
+
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsInLocalSubnet(this IPAddress remoteIP, uint remotePrefix)
+			internal static bool e_IsInLocalSubnet(this IPAddress ip, uint ipPrefixLen)
+				=> new uom.Network.IP4AddressWithMask(ip, ipPrefixLen).e_IsInLocalSubnet();
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static bool e_IsInSubnet(this IPAddress ip, uom.Network.IP4AddressWithMask subnet)
 			{
-				uom.Network.IP4AddressWithMask remote = new Network.IP4AddressWithMask(remoteIP, remotePrefix);
-				return remote.e_IsInLocalSubnet();
+				var ipaZerro = subnet.e_CalculateIP4Subnet().SubnetZeroIP;
+
+				uint uZerro = ipaZerro.e_ToUInt32();
+				uint uIP = ip.e_ToUInt32();
+
+				bool inSubNet = (uZerro & uIP) == uZerro;
+				return inSubNet;
 			}
 
 
@@ -9473,7 +9618,7 @@ namespace uom
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static CultureInfo e_GetTopParent(this CultureInfo Cult)
 			{
-				while (Cult.Parent != null && Cult.Parent.Name.e_IsNOTNullOrWhiteSpace()) Cult = Cult.Parent;
+				while (Cult.Parent != null && Cult.Parent.Name.e_IsNotNullOrWhiteSpace()) Cult = Cult.Parent;
 				return Cult;
 			}
 
@@ -9735,29 +9880,98 @@ namespace uom
 				=> (T)t.e_CreateInstanceParametrized(ConstructorArgs);
 
 
-
-			private const BindingFlags DEFAULT_BF = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.IgnoreCase;
-
-
-			internal static Dictionary<string, string> e_DumpPropertiesAsDictionary(this object obj)
+			[Flags]
+			public enum MemberTypes : int
 			{
-				Dictionary<string, string> props = [];
-				if (obj == null) return props;
-
-				var type = obj.GetType();
-				foreach (var prop in type.GetProperties())
-				{
-					object? val = prop.GetValue(obj, new object[] { });
-#pragma warning disable CS8600, CS8604 // Converting null literal or possible null value to non-nullable type.
-					string valStr = (val ?? "null").ToString();
-					props.Add(prop.Name, valStr);
-#pragma warning restore CS8600, CS8604 // Converting null literal or possible null value to non-nullable type.
-				}
-				return props;
+				Property = 1,
+				Field = 2,
+				Method = 4
 			}
 
 
+			//public delegate string ValueToString
 
+			internal static Dictionary<string, string> e_DumpMembersAsDictionary(
+				this object obj,
+				string nullValuePlaceholder = "null",
+				bool skipNullValuedPropertiesAndFields = false,
+				BindingFlags bindingAttr = BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public | BindingFlags.FlattenHierarchy | BindingFlags.DeclaredOnly,
+				MemberTypes memberType = MemberTypes.Property,
+				Func<object?, MemberInfo, string?>? valueToStringConverter = null
+
+				)
+			{
+				Dictionary<string, string> dicMembers = [];
+				if (obj == null) return dicMembers;
+
+				var t = obj.GetType();
+				var members = t.GetMembers(bindingAttr);
+
+				foreach (var mi in members)
+				{
+					string valStr = mi.MemberType.ToString();
+					switch (mi)
+					{
+						case PropertyInfo pi:
+							{
+								if (!memberType.HasFlag(MemberTypes.Property)) continue;
+								if (pi.CanRead)
+								{
+									object? val = pi.GetValue(obj, []);
+									if (val == null && skipNullValuedPropertiesAndFields) continue;
+
+									/*
+									if (val != null)
+									{
+										var vt = val.GetType();
+										if (vt.IsGenericType && vt.GetGenericTypeDefinition() == typeof(Nullable<>))
+										{
+											int dddd = 5;
+											//…
+										}
+
+									}
+									 */
+
+									valStr = valueToStringConverter?.Invoke(val, mi)
+										?? (val ?? nullValuePlaceholder).ToString()
+										?? nullValuePlaceholder;
+								}
+								else
+								{
+									valStr = "[!CanRead!]";
+								}
+							}
+							break;
+
+						case FieldInfo fi:
+							{
+								if (!memberType.HasFlag(MemberTypes.Field)) continue;
+								object? val = fi.GetValue(obj);
+								if (val == null && skipNullValuedPropertiesAndFields) continue;
+
+								valStr = valueToStringConverter?.Invoke(val, mi)
+										?? (val ?? nullValuePlaceholder).ToString()
+										?? nullValuePlaceholder;
+							}
+							break;
+
+						case MethodInfo:
+							{
+								if (!memberType.HasFlag(MemberTypes.Method)) continue;
+							}
+							break;
+
+						default:
+							break;
+					}
+					dicMembers.Add(mi.Name, valStr);
+				}
+				return dicMembers;
+			}
+
+
+			private const BindingFlags DEFAULT_BF = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.IgnoreCase | BindingFlags.FlattenHierarchy;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static object? e_GetPropertyValue(this object obj, string propertyName, object? defaultValue = null, BindingFlags bf = DEFAULT_BF)
@@ -9798,41 +10012,82 @@ namespace uom
 
 			#region Копирование свойств объектов
 
+#if NET
 
 
 
+			private const BindingFlags DEF_BINDING = BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase | BindingFlags.FlattenHierarchy;
 
 			/// <summary>Копируем значения всех свойств</summary>
-			/// <param name="Destination">У этого свойства заполняются данными</param>
+			/// <param name="target">У этого свойства заполняются данными</param>
 			/// <param name="source">У этого объекта берутся значения свойств.</param>
-			/// <param name="ThrowErrorIfFieldNotFound">Вызываеть ошибку если необходимое свойство не найдено в источнике данных</param>
+			/// <param name="throwIfNotFound">Вызываеть ошибку если необходимое свойство не найдено в источнике данных</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_CopyPropertyValuesFrom(this object Destination, object source, IEnumerable<string> PropertyNames, bool ThrowErrorIfFieldNotFound)
+			internal static void e_CopyPropertyValuesFrom(
+				this object target,
+				object source,
+				IEnumerable<string> propertyNames,
+				BindingFlags bf = DEF_BINDING,
+				bool throwIfNotFound = true)
 			{
-				var aPropsSrc = TypeDescriptor.GetProperties(source);
-				var aPropsDest = TypeDescriptor.GetProperties(Destination);
-				$"*** Copy Properties From {source.GetType()} to {Destination.GetType()}".e_DebugWriteLine();
+				/*
+				PropertyDescriptor[] srcProps = [.. TypeDescriptor.GetProperties(source).Cast<PropertyDescriptor>()];
+				PropertyDescriptor[] trgProps = [.. TypeDescriptor.GetProperties(target).Cast<PropertyDescriptor>()];
+				$"*** Copy Properties From '{source.GetType()}' to '{target.GetType()}'".e_DebugWriteLine();
+				 */
 
-				foreach (var sPropertyName in PropertyNames)
+				PropertyInfo[] srcProps = [..
+					source.GetType()
+					.GetProperties(bf)
+					.Where(p => p.CanRead)
+					.IntersectBy(propertyNames, pd => pd.Name)];
+
+				PropertyInfo[] trgProps = [..
+					target.GetType()
+					.GetProperties(bf)
+					.Where(p => p.CanWrite)
+					.IntersectBy(propertyNames, pd => pd.Name)];
+
+				/*
+				string[] srcPropNames = [.. srcProps.Select(p => p.Name)];
+				string[] trgPropNames = [.. trgProps.Select(p => p.Name)];
+				if (!Enumerable.SequenceEqual(srcPropNames, trgPropNames))
 				{
-					var aTarpetProperties = (from P in aPropsDest.Cast<PropertyDescriptor>()
-											 where (P.Name.ToLower() ?? "") == (sPropertyName.ToLower() ?? "")
-											 select P).ToArray();
-					if (aTarpetProperties.Any())
+					//throw new Exception("The source and target propertieslist is not Equal!");
+				}
+				 */
+
+				var srcPropsDic = srcProps.ToDictionary(p => p.Name);
+				foreach (var propTarget in trgProps)
+				{
+					if (!srcPropsDic.TryGetValue(propTarget.Name, out var propSource) || propSource == null)
 					{
-						var rTarpetProperty = aTarpetProperties.First();
-						if (!rTarpetProperty.IsReadOnly)
+						if (throwIfNotFound) throw new ArgumentOutOfRangeException(nameof(source), $"Property '{propTarget.Name}' was not found in '{source}' object!");
+					}
+
+					object? val = propSource!.GetValue(source);
+					propTarget.SetValue(target, val);
+
+					/*
+					var foundProp = trgProps
+						.Where(p => p.Name.Equals(propName, StringComparison.InvariantCultureIgnoreCase))
+						.FirstOrDefault();
+
+					if (foundProp != null)
+					{
+						var tarpetProp = foundProp;
+						if (!tarpetProp.IsReadOnly)
 						{
-							var aSoupceProperty = (from P in aPropsSrc.Cast<PropertyDescriptor>()
-												   where (P.Name.ToLower() ?? "") == (sPropertyName.ToLower() ?? "")
+							var aSoupceProperty = (from P in srcProps.Cast<PropertyDescriptor>()
+												   where (P.Name.ToLower() ?? "") == (propName.ToLower() ?? "")
 												   select P).ToArray();
 							if (aSoupceProperty.Any())
 							{
 								var rFirstProp = aSoupceProperty.First();
 								var objVal = rFirstProp.GetValue(source);
-								rTarpetProperty.SetValue(Destination, objVal);
+								tarpetProp.SetValue(target, objVal);
 
-#if DEBUG
+			#if DEBUG
 								var sVal = "[Nothing]".ToUpper();
 								var sType = sVal;
 								if (null != objVal)
@@ -9840,45 +10095,66 @@ namespace uom
 									sType = objVal.GetType().ToString();
 									sVal = objVal.ToString();
 								}
-								$"Copied '{sPropertyName}' = {sType}:('{sVal}')".e_DebugWriteLine();
-#endif
+								$"Copied '{propName}' = {sType}:('{sVal}')".e_DebugWriteLine();
+			#endif
 							}
 							else
 							{
 								// Свойство с таким именем не найдено в объекте-источнике
-								string sError = string.Format("Свойство '{0}' не найдено в объекте-источнике!", sPropertyName);
-#if DEBUG
-								sError.e_DebugWriteLine();
-#endif
-								if (ThrowErrorIfFieldNotFound) throw new Exception(sError);
+								string err = $"Свойство '{propName}' не найдено в объекте-источнике!";
+			#if DEBUG
+								err.e_DebugWriteLine();
+			#endif
+								if (throwIfNotFound) throw new ArgumentOutOfRangeException(nameof(propertyNames), err);
 							}
 						}
 					}
+					 */
 				}
 			}
 
-			internal enum PROPERTIES_SOURCES : int
+
+			internal enum PROPERTY_LIST_SOURCES : int
 			{
-				/// <summary>Список свойств берётся у объекта-назначения</summary>
-				DestinationObject = 0,
-				/// <summary>Список свойств берётся у объекта-источника</summary>
-				SourceObject
+				/// <summary>Take property list from Target object</summary>
+				Target = 0,
+				/// <summary>Take property list from Source object</summary>
+				Source
 			}
 			/// <summary>Копируем значения всех свойств</summary>
-			/// <param name="Destination">У этого объекта берётся список свойств и его свойства заполняются данными</param>
-			/// <param name="source">У этого объекта берутся только значения свойств.</param>
-			/// <param name="ThrowErrorIfFieldNotFound">Вызываеть ошибку если необходимое свойство не найдено в источнике данных</param>
+			/// <param name="target">set property values to</param>
+			/// <param name="source">get property values from</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void e_CopyPropertyValuesFrom(this object Destination, object source, PROPERTIES_SOURCES PropertyNamesSource, bool ThrowErrorIfFieldNotFound)
+			internal static void e_CopyPropertyValuesFrom(this object target,
+				object source,
+				PROPERTY_LIST_SOURCES propertyListSource,
+				BindingFlags bf = DEF_BINDING,
+				bool throwIfNotFound = true)
 			{
-				var aPropNames = PropertyNamesSource switch
+				/*
+				var propList = propertyListSource switch
 				{
-					PROPERTIES_SOURCES.SourceObject => (from P in TypeDescriptor.GetProperties(source).Cast<PropertyDescriptor>() where !P.IsReadOnly select P.Name),
-					PROPERTIES_SOURCES.DestinationObject => (from P in TypeDescriptor.GetProperties(Destination).Cast<PropertyDescriptor>() where !P.IsReadOnly select P.Name),
-					_ => throw new ArgumentException("PropertyNamesSource")
+					PROPERTIES_SOURCES.Source => TypeDescriptor.GetProperties(source).Cast<PropertyDescriptor>(),
+					PROPERTIES_SOURCES.Target => TypeDescriptor.GetProperties(target).Cast<PropertyDescriptor>(),
+					_ => throw new ArgumentOutOfRangeException(nameof(propertyListSource))
 				};
-				Destination.e_CopyPropertyValuesFrom(source, aPropNames.ToArray(), ThrowErrorIfFieldNotFound);
+				 */
+
+				var propList = propertyListSource switch
+				{
+					PROPERTY_LIST_SOURCES.Source => source.GetType().GetProperties(bf),
+					PROPERTY_LIST_SOURCES.Target => target.GetType().GetProperties(bf),
+					_ => throw new ArgumentOutOfRangeException(nameof(propertyListSource))
+				};
+
+				var propNames = propList
+					.Select(p => p.Name);
+
+				target.e_CopyPropertyValuesFrom(source, propNames.ToArray(), bf, throwIfNotFound);
 			}
+
+#endif
+
 			#endregion
 
 
@@ -10085,17 +10361,17 @@ namespace uom
 			}
 
 			/*
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	internal static string e_SerializeAsXML(this System.Collections.IList SerializableObject)
-	{
-	StringBuilder sb = new();
-	using (StringWriter sw = new(sb))
-	{
-	System.Xml.Serialization.XmlSerializer xs = new(SerializableObject.GetType());
-	xs.Serialize(sw, SerializableObject);
-	}
-	return sb.ToString();
-	}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static string e_SerializeAsXML(this System.Collections.IList SerializableObject)
+		{
+		StringBuilder sb = new();
+		using (StringWriter sw = new(sb))
+		{
+		System.Xml.Serialization.XmlSerializer xs = new(SerializableObject.GetType());
+		xs.Serialize(sw, SerializableObject);
+		}
+		return sb.ToString();
+		}
 			 */
 
 
@@ -10282,7 +10558,7 @@ namespace uom
 				throw new NotImplementedException();
 
 				//string sXML = UOM.Settings.mAppSettings.GetSetting_String(ParamName, null, ThrowExceptionIfError: false).Value;
-				//if (sXML.e_IsNOTNullOrWhiteSpace())
+				//if (sXML.e_IsNotNullOrWhiteSpace())
 				//{
 				//    var Obj = sXML.e_DeSerializeXML(defaultValue);
 				//    return Obj;
@@ -10347,7 +10623,7 @@ namespace uom
 			/// <param name="createSaltFromPassword"></param>
 			/// <param name="iterations">the iteration count must be greater than zero. The minimum recommended number of iterations is 1000</param>
 			/// <exception cref="ArgumentOutOfRangeException"></exception>
-			/// <seealso cref="https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.rfc2898derivebytes.-ctor?view=netframework-4.8#system-security-cryptography-rfc2898derivebytes-ctor(system-byte()-system-byte()-system-int32)"/>
+			/// <seealso href="https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.rfc2898derivebytes.-ctor?view=netframework-4.8#system-security-cryptography-rfc2898derivebytes-ctor(system-byte()-system-byte()-system-int32)"/>
 			public static byte[] e_Encrypt_AES(
 				this byte[] bytesToBeEncrypted,
 				byte[] passwordBytes,
@@ -10553,7 +10829,7 @@ namespace uom
 
 
 			/// <summary>
-			/// https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.hashalgorithm.create?f1url=%3FappId%3DDev16IDEF1%26l%3DEN-US%26k%3Dk(System.Security.Cryptography.HashAlgorithm.Create);k(DevLang-csharp)%26rd%3Dtrue&view=net-6.0
+			/// https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.hashalgorithm.create
 			/// </summary>
 			public enum HashNames : int
 			{
@@ -10563,12 +10839,13 @@ namespace uom
 				SHA384,
 				SHA512
 			}
-			/// <inheritdoc cref="HashAlgorithm.Create"/>
+
+			/// <inheritdoc cref="HashAlgorithm.Create(string)"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			private static HashAlgorithm? CreateHashAlgorithm(HashNames hn) => HashAlgorithm.Create(hn.ToString());
 
 			/// <summary>
-			/// https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.keyedhashalgorithm.create?view=netframework-4.8&f1url=%3FappId%3DDev16IDEF1%26l%3DEN-US%26k%3Dk(System.Security.Cryptography.KeyedHashAlgorithm.Create);k(TargetFrameworkMoniker-.NETFramework,Version%253Dv4.8);k(DevLang-csharp)%26rd%3Dtrue
+			/// https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.keyedhashalgorithm.create
 			/// </summary>
 			public enum KeyedHashNames : int
 			{
@@ -10580,12 +10857,13 @@ namespace uom
 				HMACSHA512,
 				MACTripleDES
 			}
-			/// <inheritdoc cref="KeyedHashAlgorithm.Create"/>
+
+			/// <inheritdoc cref="KeyedHashAlgorithm.Create(string)"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			private static KeyedHashAlgorithm? CreateKeyedHashAlgorithm(KeyedHashNames kha) => KeyedHashAlgorithm.Create(kha.ToString());
 
 
-			/// <inheritdoc cref="HashAlgorithm.ComputeHash"/>
+			/// <inheritdoc cref="HashAlgorithm.ComputeHash(byte[])"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static byte[] e_ComputeHash(this byte[] ab, HashNames ha)
 			{
@@ -10598,7 +10876,7 @@ namespace uom
 			public static byte[] e_ComputeHashUni(this string str, HashNames ha)
 				=> str.e_GetBytes_Unicode().e_ComputeHash(ha);
 
-			/// <inheritdoc cref="KeyedHashAlgorithm.ComputeHash"/>
+			/// <inheritdoc cref="CreateKeyedHashAlgorithm"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static byte[] e_ComputeKeyedHash(this byte[] ab, KeyedHashNames kha)
 			{
@@ -10665,7 +10943,7 @@ namespace uom
 			}
 
 
-			/// <inheritdoc cref="Marshal.PtrToStructure"/>
+			/// <inheritdoc cref="Marshal.PtrToStructure(IntPtr)"/>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static T e_ToStructure<T>(this IntPtr Ptr) where T : struct
 				=> Marshal.PtrToStructure<T>(Ptr);
@@ -10704,7 +10982,7 @@ namespace uom
 				try
 				{
 					a.Invoke(mem, len);
-					return (TStruct)Marshal.PtrToStructure(mem, typeof(TStruct));
+					return (TStruct)Marshal.PtrToStructure(mem, typeof(TStruct))!;
 				}
 				finally
 				{
@@ -11066,7 +11344,7 @@ namespace uom
 				{
 					Console.Write(sMessage + Suffix);
 					var sInput = Console.ReadLine();
-					return (sInput.e_IsNOTNullOrWhiteSpace() && (sInput!.ToLower() == YesAnswer.ToLower()));
+					return (sInput.e_IsNotNullOrWhiteSpace() && (sInput!.ToLower() == YesAnswer.ToLower()));
 				}
 			}
 

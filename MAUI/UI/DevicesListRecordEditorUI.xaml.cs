@@ -1,8 +1,9 @@
 using MALM.Model;
 
+using uom.controls.MAUI.Animations;
 using uom.maui;
 
-using static MALM.Localization.Strings;
+using static MALM.Localization.LStrings;
 
 namespace MALM.Pages;
 
@@ -80,7 +81,11 @@ public partial class DevicesListRecordEditorUI : ContentPage
 
 	private async void OnOk(object sender, EventArgs e)
 	{
+
 		if (!ValidateUserInput()) return;
+
+		await btnOk.WaitForButtonAnimation();
+
 
 		DevicesListRecord md = DeviceToEdit!;
 		md.AddressString = txtAddress.Text;

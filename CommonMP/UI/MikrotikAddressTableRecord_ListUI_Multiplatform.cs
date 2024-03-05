@@ -1,20 +1,20 @@
 ﻿#nullable enable
 
 using MikrotikDotNet;
-using Mikrotik.API.Model.IP.Firewall.AddressList;
-
-
+using MikrotikDotNet.Model.IP.Firewall.AddressList;
 
 #if !WINDOWS
+
 using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Markup;
 
+
 using uom.maui;
-using MALM.Model.Mikrotik;
+using MALM.Model.AddressList;
 
 #endif
 
-using static MALM.Localization.Strings;
+using static MALM.Localization.LStrings;
 
 
 
@@ -91,11 +91,12 @@ partial class MikrotikAddressTableRecord_ListUI
 		lvwRows.Items_NeedRefreshList += async (_, _) => await RefreshList();
 		btnRows_Refresh.Click += async (_, _) => await RefreshList();
 
-		this.btnRows_Enable.Click += async (s, e) => await SelectedRows_EnableDisable(true);
-		this.btnRows_Disable.Click += async (s, e) => await SelectedRows_EnableDisable(false);
+		btnRows_Enable.Click += async (s, e) => await SelectedRows_EnableDisable(true);
+		btnRows_Disable.Click += async (s, e) => await SelectedRows_EnableDisable(false);
+		btnRows_Add.Click += async (s, e) => await OnRows_Add();
 
-		this.btnRows_Add.Click += async (s, e) => await OnRows_Add();
 
+		btnViewARPList.Click += (_, _) => ViewARPList();
 
 
 		this.Load += async (s, e) => await OnLoad();
@@ -118,7 +119,7 @@ partial class MikrotikAddressTableRecord_ListUI
 	private void LocalizeUI()
 	{
 #if WINDOWS
-		Text = Application.ProductName + $" ({_connection.Host})";
+		Text = $"{Application.ProductName} ({_connection.Host})";
 		colAddress.Text = L_DEVICE_ADDRESS;
 		colComment.Text = L_COMMENT;
 		colCreated.Text = L_CREATED;
@@ -252,7 +253,7 @@ partial class MikrotikAddressTableRecord_ListUI
 			lvwRows.EmptyText = ex.Message;
 			ex.e_LogError(true, E_TITLE_DEFAULT);
 #else
-			await ex.e_LogErrorToast();
+			ex.e_LogErrorToast();
 
 			//Return to Select Device Dialog
 			await Shell.Current.Navigation.PopAsync();

@@ -21,6 +21,7 @@ namespace MALM.UI
 
 			if (!isOk) return null; //User canceled
 
+			await Task.Delay(1);
 			//Login fully completed
 			return ui.LoginResult;
 		}

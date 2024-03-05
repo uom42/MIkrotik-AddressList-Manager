@@ -3,8 +3,8 @@
 	x:Class="MALM.Pages.DevicesListRecordEditorUI"
 	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
 	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-	xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
-	Title="DevicesListRecordEditor"
+	xmlns:mct="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+	xmlns:uom_ctl_ani="clr-namespace:uom.controls.MAUI.Animations"
 	Loaded="_Loaded">
 
 
@@ -20,6 +20,15 @@
 		HorizontalOptions="FillAndExpand"
 		VerticalOptions="FillAndExpand">
 
+		<StackLayout.Behaviors>
+			<mct:AnimationBehavior EventName="Loaded">
+				<mct:AnimationBehavior.AnimationType>
+					<uom_ctl_ani:FadeInAnimation Length="500" />
+				</mct:AnimationBehavior.AnimationType>
+			</mct:AnimationBehavior>
+		</StackLayout.Behaviors>
+
+
 		<StackLayout
 			Margin="16"
 			Spacing="16"
@@ -28,44 +37,67 @@
 
 			<Entry
 				x:Name="txtAddress"
-				ClearButtonVisibility="WhileEditing"
 				IsTextPredictionEnabled="True"
 				Keyboard="Text"
 				MaxLength="100"
 				Placeholder="A"
 				ReturnType="Next"
+				Style="{StaticResource EntryWithShadow}"
 				TextTransform="Uppercase">
-				<Entry.Shadow>
-					<Shadow
-						Brush="Black"
-						Opacity="0.8"
-						Radius="40"
-						Offset="16,16" />
-				</Entry.Shadow>
 
+				<Entry.Behaviors>
+					<mct:AnimationBehavior EventName="Focused">
+						<mct:AnimationBehavior.AnimationType>
+							<uom_ctl_ani:SampleScaleToAnimation
+								Easing="{x:Static Easing.Linear}"
+								Length="100"
+								Scale="1.05" />
+						</mct:AnimationBehavior.AnimationType>
+					</mct:AnimationBehavior>
 
+					<mct:AnimationBehavior EventName="Unfocused">
+						<mct:AnimationBehavior.AnimationType>
+							<uom_ctl_ani:SampleScaleToAnimation
+								Easing="{x:Static Easing.Linear}"
+								Length="100"
+								Scale="1" />
+						</mct:AnimationBehavior.AnimationType>
+					</mct:AnimationBehavior>
 
+				</Entry.Behaviors>
 
 			</Entry>
 
 			<Entry
 				x:Name="txtPort"
-				ClearButtonVisibility="WhileEditing"
 				IsTextPredictionEnabled="False"
 				Keyboard="Numeric"
 				MaxLength="5"
 				Placeholder="P"
-				ReturnType="Next">
-				<Entry.Shadow>
-					<Shadow
-						Brush="Black"
-						Opacity="0.8"
-						Radius="40"
-						Offset="16,16" />
-				</Entry.Shadow>
+				ReturnType="Next"
+				Style="{StaticResource EntryWithShadow}">
 
 				<Entry.Behaviors>
-					<toolkit:NumericValidationBehavior
+					<mct:AnimationBehavior EventName="Focused">
+						<mct:AnimationBehavior.AnimationType>
+							<uom_ctl_ani:SampleScaleToAnimation
+								Easing="{x:Static Easing.Linear}"
+								Length="100"
+								Scale="1.05" />
+						</mct:AnimationBehavior.AnimationType>
+					</mct:AnimationBehavior>
+
+					<mct:AnimationBehavior EventName="Unfocused">
+						<mct:AnimationBehavior.AnimationType>
+							<uom_ctl_ani:SampleScaleToAnimation
+								Easing="{x:Static Easing.Linear}"
+								Length="100"
+								Scale="1" />
+						</mct:AnimationBehavior.AnimationType>
+					</mct:AnimationBehavior>
+
+
+					<mct:NumericValidationBehavior
 						Flags="ValidateOnValueChanged"
 						InvalidStyle="{StaticResource InvalidEntryStyle}"
 						MaximumDecimalPlaces="0"
@@ -76,56 +108,95 @@
 
 			<Entry
 				x:Name="txtUser"
-				ClearButtonVisibility="WhileEditing"
 				IsTextPredictionEnabled="False"
 				Keyboard="Text"
 				MaxLength="100"
 				Placeholder="U"
-				ReturnType="Next">
-				<Entry.Shadow>
-					<Shadow
-						Brush="Black"
-						Opacity="0.8"
-						Radius="40"
-						Offset="16,16" />
-				</Entry.Shadow>
+				ReturnType="Next"
+				Style="{StaticResource EntryWithShadow}">
+				<Entry.Behaviors>
+					<mct:AnimationBehavior EventName="Focused">
+						<mct:AnimationBehavior.AnimationType>
+							<uom_ctl_ani:SampleScaleToAnimation
+								Easing="{x:Static Easing.Linear}"
+								Length="100"
+								Scale="1.05" />
+						</mct:AnimationBehavior.AnimationType>
+					</mct:AnimationBehavior>
+
+					<mct:AnimationBehavior EventName="Unfocused">
+						<mct:AnimationBehavior.AnimationType>
+							<uom_ctl_ani:SampleScaleToAnimation
+								Easing="{x:Static Easing.Linear}"
+								Length="100"
+								Scale="1" />
+						</mct:AnimationBehavior.AnimationType>
+					</mct:AnimationBehavior>
+
+				</Entry.Behaviors>
+
 			</Entry>
 
 			<Entry
 				x:Name="txtPassword"
-				ClearButtonVisibility="WhileEditing"
-				IsPassword="True"
-				IsTextPredictionEnabled="False"
-				Keyboard="Text"
-				MaxLength="100"
 				Placeholder="P"
 				ReturnType="Next"
+				Style="{StaticResource EntryPassword_100}"
 				Text="">
-				<Entry.Shadow>
-					<Shadow
-						Brush="Black"
-						Opacity="0.8"
-						Radius="40"
-						Offset="16,16" />
-				</Entry.Shadow>
+				<Entry.Behaviors>
+					<mct:AnimationBehavior EventName="Focused">
+						<mct:AnimationBehavior.AnimationType>
+							<uom_ctl_ani:SampleScaleToAnimation
+								Easing="{x:Static Easing.Linear}"
+								Length="100"
+								Scale="1.05" />
+						</mct:AnimationBehavior.AnimationType>
+					</mct:AnimationBehavior>
+
+					<mct:AnimationBehavior EventName="Unfocused">
+						<mct:AnimationBehavior.AnimationType>
+							<uom_ctl_ani:SampleScaleToAnimation
+								Easing="{x:Static Easing.Linear}"
+								Length="100"
+								Scale="1" />
+						</mct:AnimationBehavior.AnimationType>
+					</mct:AnimationBehavior>
+
+				</Entry.Behaviors>
+
 			</Entry>
 
 			<Entry
 				x:Name="txtDeviceGroup"
-				ClearButtonVisibility="WhileEditing"
 				IsTextPredictionEnabled="True"
 				Keyboard="Text"
 				MaxLength="100"
 				Placeholder="G"
 				ReturnType="Next"
+				Style="{StaticResource EntryWithShadow}"
 				Text="">
-				<Entry.Shadow>
-					<Shadow
-						Brush="Black"
-						Opacity="0.8"
-						Radius="40"
-						Offset="16,16" />
-				</Entry.Shadow>
+
+				<Entry.Behaviors>
+					<mct:AnimationBehavior EventName="Focused">
+						<mct:AnimationBehavior.AnimationType>
+							<uom_ctl_ani:SampleScaleToAnimation
+								Easing="{x:Static Easing.Linear}"
+								Length="100"
+								Scale="1.05" />
+						</mct:AnimationBehavior.AnimationType>
+					</mct:AnimationBehavior>
+
+					<mct:AnimationBehavior EventName="Unfocused">
+						<mct:AnimationBehavior.AnimationType>
+							<uom_ctl_ani:SampleScaleToAnimation
+								Easing="{x:Static Easing.Linear}"
+								Length="100"
+								Scale="1" />
+						</mct:AnimationBehavior.AnimationType>
+					</mct:AnimationBehavior>
+
+				</Entry.Behaviors>
+
 			</Entry>
 
 		</StackLayout>
@@ -136,15 +207,16 @@
 			<Button
 				x:Name="btnOk"
 				Clicked="OnOk"
+				Style="{StaticResource ButtonWithShadow}"
 				Text="Ok">
 
-				<Button.Shadow>
-					<Shadow
-						Brush="Black"
-						Opacity="0.8"
-						Radius="40"
-						Offset="16,16" />
-				</Button.Shadow>
+				<Button.Behaviors>
+					<mct:AnimationBehavior EventName="Clicked">
+						<mct:AnimationBehavior.AnimationType>
+							<uom_ctl_ani:SampleScaleAnimation Easing="{x:Static Easing.Linear}" Length="100" />
+						</mct:AnimationBehavior.AnimationType>
+					</mct:AnimationBehavior>
+				</Button.Behaviors>
 
 			</Button>
 

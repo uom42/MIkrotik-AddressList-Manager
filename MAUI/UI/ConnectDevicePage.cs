@@ -4,7 +4,7 @@ using MALM.Model;
 
 using uom.maui;
 
-using static MALM.Localization.Strings;
+using static MALM.Localization.LStrings;
 
 namespace MALM.UI
 {
@@ -42,14 +42,14 @@ namespace MALM.UI
 		}
 
 
-		private async Task ConnectDevice()
+		private async Task ConnectDevice(int timeout = MikrotikDotNet.Model.Helpers.DEVICE_CONNECT_TIMEOUT_DEFAULT)
 		{
 			_lblProgress.Text = L_CONNECTING_TO.e_Format(_deviceToConnect.AddressString ?? string.Empty);
 
 			await Task.Delay(500);
 			try
 			{
-				var con = await DevicesListRecord.OpenConnection(_deviceToConnect);
+				var con = await MikrotikDotNet.Model.Helpers.ConnectDeviceAsync(_deviceToConnect.CreateConnection(), timeout);
 				//Connected successfully
 
 				await this.e_SetDialogResultAndPopBackAsync(con);
@@ -57,8 +57,7 @@ namespace MALM.UI
 			catch (Exception ex)
 			{
 				_circle.IsRunning = false;
-				await ex.e_LogErrorToast();
-
+				ex.e_LogErrorToast();
 				await Shell.Current.Navigation.PopAsync();
 			}
 		}

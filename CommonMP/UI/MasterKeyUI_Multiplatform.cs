@@ -1,8 +1,9 @@
 ﻿#nullable enable
 
-using static MALM.Localization.Strings;
+using static MALM.Localization.LStrings;
 
 using MALM.Model;
+
 
 
 #if !WINDOWS
@@ -12,6 +13,7 @@ using CommunityToolkit.Maui.Markup;
 using CommunityToolkit.Maui.Alerts;
 
 using uom.maui;
+using uom.controls.MAUI.Animations;
 
 
 #else
@@ -71,6 +73,12 @@ namespace MALM.UI
 			txtMasterKey2.TextChanged += (_, _) => OnEdited();
 #endif
 			txtMasterKey1.TextChanged += (_, _) => OnEdited();
+
+
+			//var bb = txtMasterKey1.Behaviors;
+			//int hhhh = 8;
+
+			//btnOk.Clicked
 
 		}
 
@@ -213,7 +221,7 @@ namespace MALM.UI
 #if !WINDOWS
 		private void OnEdited() => btnOk.IsEnabled = ValidateUserInput();
 #else
-		private void OnEdited() => btnOk.Enabled = (txtMasterKey2.Visible == false && txtMasterKey2.Text.e_IsNOTNullOrWhiteSpace()) || ValidateUserInput();
+		private void OnEdited() => btnOk.Enabled = (txtMasterKey2.Visible == false && txtMasterKey2.Text.e_IsNotNullOrWhiteSpace()) || ValidateUserInput();
 #endif
 
 
@@ -234,6 +242,10 @@ namespace MALM.UI
 		private async void OnOk(object sender, EventArgs e) => await OnOk();
 		private async Task OnOk()
 		{
+#if !WINDOWS
+			await btnOk.WaitForButtonAnimation();
+#endif
+
 			switch (_mkm!.LoginMode)
 			{
 				case MasterKeyManager.LoginModes.Login:
@@ -245,7 +257,7 @@ namespace MALM.UI
 						catch (Exception ex)
 						{
 #if !WINDOWS
-							await ex.e_LogErrorToast();
+							ex.e_LogErrorToast();
 #else
 							ex.e_LogError(true, E_TITLE_LOGIN_FAILED);
 #endif
@@ -264,6 +276,9 @@ namespace MALM.UI
 							LoginResult = rows;
 							DialogResult = DialogResult.OK;
 #else
+
+							uom.maui.ui.KeyboardHelper.HideKeyboard();
+
 							LoginResult lr = new(_mkm, rows);
 							var devListUI = new DevicesListUI(lr);
 							await Shell.Current.Navigation.PushAsync(devListUI);
@@ -289,7 +304,7 @@ namespace MALM.UI
 
 								Exception err = new(errMsg, ex);
 #if !WINDOWS
-								await err.e_LogErrorToast();
+								err.e_LogErrorToast();
 								//await DisplayAlert(E_TITLE_LOGIN_FAILED, err, L_OK);
 #else
 								err.e_LogError(true, E_TITLE_LOGIN_FAILED);
@@ -313,7 +328,7 @@ namespace MALM.UI
 
 						}
 
-						break;
+						//break;
 					}
 
 
@@ -331,7 +346,7 @@ namespace MALM.UI
 						catch (Exception ex)
 						{
 #if !WINDOWS
-							await ex.e_LogErrorToast();
+							ex.e_LogErrorToast();
 #else
 							ex.e_LogError(true);
 #endif
@@ -339,6 +354,9 @@ namespace MALM.UI
 						}
 
 #if !WINDOWS
+
+						uom.maui.ui.KeyboardHelper.HideKeyboard();
+
 						if (isInitialSetup)
 						{
 							var rows = await _mkm.Database_WriteEncryptedEmpty();// Write an empty Datatase.

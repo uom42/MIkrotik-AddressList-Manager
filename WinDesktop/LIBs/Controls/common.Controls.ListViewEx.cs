@@ -2139,7 +2139,7 @@ namespace uom.Extensions
 		internal static string e_GetStringID(this ListViewGroup g, string defaultID = "default")
 		{
 			string?[] fields = [g.Name, g.Header];
-			return fields.FirstOrDefault(s => s.e_IsNOTNullOrWhiteSpace()) ?? defaultID;
+			return fields.FirstOrDefault(s => s.e_IsNotNullOrWhiteSpace()) ?? defaultID;
 		}
 
 

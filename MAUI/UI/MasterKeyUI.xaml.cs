@@ -5,23 +5,14 @@ using MALM.Model;
 using Plugin.Fingerprint;
 using Plugin.Fingerprint.Abstractions;
 
+using uom.controls.MAUI.Animations;
 using uom.maui;
 
-using static MALM.Localization.Strings;
+using static MALM.Localization.LStrings;
 
 
 public partial class MasterKeyUI : ContentPage
 {
-
-	/*
-	private readonly IFingerprint _fingerprint;
-
-	/// <summary>EntryPoint for Non Windows Login</summary>
-	public MasterKeyUI(IFingerprint fingerprint) : this()
-	{
-		this._fingerprint = fingerprint;
-	}
-	 */
 
 	private async Task<bool> IsBiometricAvailableAsync()
 	{
@@ -31,6 +22,9 @@ public partial class MasterKeyUI : ContentPage
 		{
 			return false;
 		}
+
+		//uom.controls.MAUI.Animations.SampleScaleAnimation
+
 #endif
 		return await CrossFingerprint.Current.IsAvailableAsync(true);
 	}
@@ -57,6 +51,8 @@ public partial class MasterKeyUI : ContentPage
 
 	private async void OnCancel(object sender, EventArgs e)
 	{
+		await btnCancel.WaitForButtonAnimation();
+
 		switch (_mkm!.LoginMode)
 		{
 			case MasterKeyManager.LoginModes.Login:

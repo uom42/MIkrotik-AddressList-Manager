@@ -28,7 +28,7 @@ using static Microsoft.Maui.ApplicationModel.Permissions;
 	
 	 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:mct="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="CommunityToolkit.Maui.Sample.Pages.Behaviors.NumericValidationBehaviorPage">
 
     <ContentPage.Resources>
@@ -44,7 +44,7 @@ using static Microsoft.Maui.ApplicationModel.Permissions;
 	
     <Entry Keyboard="Numeric">
         <Entry.Behaviors>
-            <toolkit:NumericValidationBehavior
+            <mct:NumericValidationBehavior
                 InvalidStyle="{StaticResource InvalidEntryStyle}"
                 ValidStyle="{StaticResource ValidEntryStyle}"
                 Flags="ValidateOnValueChanged"
@@ -147,73 +147,103 @@ namespace uom.maui
 
 	namespace ui
 	{
-		internal abstract class ContentPageWithResult<TResult>() : ContentPage()
+
+
+
+		internal static partial class KeyboardHelper
 		{
 
-			private Func<TResult?, Task>? _onDialogResult;
-
-			public TResult? DialogResult { get; private set; } = default;
 
 
-			public async Task ShowDialog(bool modal, Func<TResult?, Task> onDialogResult)
+			public static void HideKeyboard()
 			{
-				_onDialogResult = onDialogResult;
-				if (modal)
+
+
+#if ANDROID
+
+				var context = Platform.AppContext;
+				var inputMethodManager = context.GetSystemService(Android.Content.Context.InputMethodService) as Android.Views.InputMethods.InputMethodManager;
+				if (inputMethodManager != null)
 				{
+					var activity = Platform.CurrentActivity;
+					var token = activity?.CurrentFocus?.WindowToken;
+					inputMethodManager.HideSoftInputFromWindow(token, Android.Views.InputMethods.HideSoftInputFlags.None);
+					activity?.Window?.DecorView?.ClearFocus();
+				}
+#elif IOS
+			 UIApplication.SharedApplication.KeyWindow.EndEditing(true);
+			 //UIApplication.SharedApplication.Delegate.GetWindow().EndEditing(true);
+#endif
+
+
+			}
+		}
+
+
+
+		namespace navigation
+		{
+
+
+
+
+
+			internal abstract class ContentPageWithResult<TResult>() : ContentPage()
+			{
+
+				private Func<TResult?, Task>? _onDialogResult;
+
+				public TResult? DialogResult { get; private set; } = default;
+
+
+				public async Task ShowDialog(bool modal, Func<TResult?, Task> onDialogResult)
+				{
+					_onDialogResult = onDialogResult;
+					if (modal)
+					{
+						await Shell.Current.Navigation.PushModalAsync(this);
+					}
+					else
+					{
+					}
+				}
+
+				public async Task SetDialogResult(TResult? result, bool navigateBack = true)
+				{
+					DialogResult = result;
+					if (_onDialogResult != null) await _onDialogResult.Invoke(result);
+					if (navigateBack) await Shell.Current.Navigation.PopAsync();
+				}
+			}
+
+
+
+			internal abstract class ParametrizedModalPageBase<Tin, TResult>(Tin? inParameter = default) : ContentPage()
+			{
+				protected readonly Tin? InputParameter = inParameter;
+
+				public TResult? DialogResult { get; private set; } = default;
+
+
+				private Func<TResult?, Task>? _onDialogResult;
+
+				public async Task ShowDialog(Func<TResult?, Task> onDialogResult)
+				{
+					_onDialogResult = onDialogResult;
 					await Shell.Current.Navigation.PushModalAsync(this);
 				}
-				else
+
+				public async Task SetDialogResult(TResult? result, bool navigateBack = true)
 				{
+					DialogResult = result;
+					if (_onDialogResult != null) await _onDialogResult.Invoke(result);
+					if (navigateBack) await Shell.Current.Navigation.PopAsync();
 				}
 			}
 
-			public async Task SetDialogResult(TResult? result, bool navigateBack = true)
-			{
-				DialogResult = result;
-				if (_onDialogResult != null) await _onDialogResult.Invoke(result);
-				if (navigateBack) await Shell.Current.Navigation.PopAsync();
-			}
+
 		}
 
-
-
-		internal abstract class ParametrizedModalPageBase<Tin, TResult>(Tin? inParameter = default) : ContentPage()
-		{
-			protected readonly Tin? InputParameter = inParameter;
-
-			public TResult? DialogResult { get; private set; } = default;
-
-
-			private Func<TResult?, Task>? _onDialogResult;
-
-			public async Task ShowDialog(Func<TResult?, Task> onDialogResult)
-			{
-				_onDialogResult = onDialogResult;
-				await Shell.Current.Navigation.PushModalAsync(this);
-			}
-
-			public async Task SetDialogResult(TResult? result, bool navigateBack = true)
-			{
-				DialogResult = result;
-				if (_onDialogResult != null) await _onDialogResult.Invoke(result);
-				if (navigateBack) await Shell.Current.Navigation.PopAsync();
-			}
-		}
-
-	}
-
-
-	public class InvertableBool(bool b) : ObservableObject
-	{
-		private bool _value = b;
-
-		public bool Value { get { return _value; } }
-		public bool Invert { get { return !_value; } }
-
-
-		public static implicit operator InvertableBool(bool b) => new(b);
-
-		public static implicit operator bool(InvertableBool b) => b._value;
 	}
 
 
@@ -231,9 +261,7 @@ namespace uom.maui
 		}
 		 */
 
-		/// <summary>
-		/// https://learn.microsoft.com/ru-ru/dotnet/maui/platform-integration/appmodel/permissions?view=net-maui-8.0&tabs=android
-		/// </summary>
+		/// <summary>https://learn.microsoft.com/ru-ru/dotnet/maui/platform-integration/appmodel/permissions</summary>
 		internal static class PermissionsHelper
 		{
 
@@ -379,6 +407,63 @@ namespace uom.maui
 
 	}
 
+
+	public class InvertableBool(bool b) : ObservableObject
+	{
+		private bool _value = b;
+
+		public bool Value { get { return _value; } }
+		public bool Invert { get { return !_value; } }
+
+
+		public static implicit operator InvertableBool(bool b) => new(b);
+
+		public static implicit operator bool(InvertableBool b) => b._value;
+	}
+
+
+
+	internal static class ResourceHelper
+	{
+
+		/*
+		public static object FindResource2(this VisualElement o, string key)
+		{
+			while (o != null)
+			{
+				if (o.Resources.TryGetValue(key, out var r1)) return r1;
+				if (o is Page) break;
+				if (o is IElement e) o = e.Parent as VisualElement;
+			}
+			if (Application.Current!.Resources.TryGetValue(key, out var r2)) return r2;
+			return null;
+		}
+		 */
+
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T FindAppResource<T>(this string resourcekey, T defaultValue = default) where T : struct
+		{
+			try
+			{
+				var resFound = Application.Current!.Resources.TryGetValue(resourcekey, out var res);
+				if (!resFound) throw new ArgumentOutOfRangeException(nameof(resourcekey), $"FindAppResource FAILED for ");
+
+				return (T)res;
+			}
+			catch (Exception ex) { ex.e_LogErrorNoUI(); }
+			return defaultValue;
+		}
+
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Int32 FindAppResource_Int32(this string key, Int32 def = 0) => FindAppResource(key, def);
+
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static UInt32 FindAppResource_UInt32(this string key, UInt32 def = 0u) => FindAppResource(key, def);
+
+	}
 
 
 
@@ -722,6 +807,23 @@ namespace uom.maui
 		//MsgBoxFlags? flags = MsgBoxFlags.Btn_OK | MsgBoxFlags.Icn_Information | MsgBoxFlags.DefBtn_1,
 
 
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static void e_ToastShow(this string msg, int toastFontSize = 14)
+		{
+			MainThread.BeginInvokeOnMainThread(async () =>
+			{
+				//CancellationTokenSource cancellationTokenSource = new();
+				await Toast
+					.Make(msg, CommunityToolkit.Maui.Core.ToastDuration.Long, toastFontSize)
+					.Show();
+
+			});
+		}
+
+
+
+
 		[DebuggerNonUserCode, DebuggerStepThrough]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static async Task e_MsgboxShow(
@@ -944,17 +1046,72 @@ namespace uom.maui
 
 
 
+		/* 	 
+
+
+		internal static Task<bool> TouchHold(this View element, TimeSpan duration)
+		{
+
+			Timer timer = new(delegate
+			{
+				element.PreviewMouseUp -= touchUpHandler;
+				timer.Stop();
+				task.SetResult(true);
+			});
+
+			TaskCompletionSource<bool> task = new < bool > ();
+			timer.Interval = duration;
+
+			MouseButtonEventHandler touchUpHandler = delegate
+			{
+				timer.Stop();
+				if (task.Task.Status == TaskStatus.Running)
+				{
+					task.SetResult(false);
+				}
+			};
+
+			element.PreviewMouseUp += touchUpHandler;
+
+			timer.Tick += delegate
+			{
+				element.PreviewMouseUp -= touchUpHandler;
+				timer.Stop();
+				task.SetResult(true);
+			};
+
+			timer.Start();
+			return task.Task;
+		}
+
+		//Great piece of code.I add just an example usage for completeness:
+		private async void btn_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+		{
+			if (await TouchHold(btn, TimeSpan.FromSeconds(2)))
+			{
+				// todo: long press code goes here
+			}
+		}
+		//And from XAML:
+		<Button Name = "btn" PreviewMouseDown="btn_PreviewMouseDown">Press long</Button>
+
+
+		 */
 
 
 
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static void ExecuteMTSafe(this System.Windows.Input.ICommand cmd, object o)
+			=> MainThread.BeginInvokeOnMainThread(() => cmd?.Execute(o));
 
-
-
-
-
-
-
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static CancellationTokenSource ExecuteForBindedAnimation(this System.Windows.Input.ICommand cmd)
+		{
+			CancellationTokenSource cts = new();
+			cmd?.ExecuteMTSafe(cts.Token);
+			return cts;
+		}
 
 	}
 
@@ -976,11 +1133,7 @@ namespace uom.maui
 
 		/// <summary>Фиксация ошибки в журнале, в DEBUG, вывод сообщения</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static async Task e_LogError(this Exception ex,
-			bool showMessageBox,
-			string modalMessageBoxTitle = C_FAILED_TO_RUN,
-			bool supressAnyModalPopEvenInDEBUG = false,
-			Page? ctx = null,
+		internal static string e_LogErrorNoUI(this Exception ex,
 			[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0)
 		{
 
@@ -989,19 +1142,30 @@ namespace uom.maui
 			string errorDump = ex.e_FullDump(callerName, callerFile, callerLine);
 			$"{CS_SEPARATOR_10}\n{errorDump}\n{CS_SEPARATOR_10}".e_DebugWriteLine();
 
-			//Показываем расширенные данные в DEBUG режиме
+			//Display Extened data in DEBUG mode
 			msg += $"\n{CS_SEPARATOR_10}\nUOM DEBUG-MODE DETAILED ERROR INFO:\n{errorDump}";
 
 			Debug.WriteLine(msg);
 
-#else
-
-#if ANDROID
+#elif ANDROID
 			string tag = $"{AppInfo.Title ?? string.Empty} {AppInfo.Version ?? string.Empty}";
 			Android.Util.Log.Error(tag, msg);
 #endif
+			return msg;
+		}
 
-#endif
+
+		/// <summary>Фиксация ошибки в журнале, в DEBUG, вывод сообщения</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static async Task e_LogError(this Exception ex,
+			bool showMessageBox,
+			string modalMessageBoxTitle = C_FAILED_TO_RUN,
+			bool supressAnyModalPopEvenInDEBUG = false,
+			Page? ctx = null,
+			[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0)
+		{
+
+			string msg = ex.e_LogErrorNoUI(callerName, callerFile, callerLine);
 
 			if (showMessageBox || !supressAnyModalPopEvenInDEBUG)
 			{
@@ -1030,12 +1194,12 @@ namespace uom.maui
 
 		/// <summary>Фиксация ошибки в журнале, в DEBUG, вывод сообщения</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static async Task e_LogErrorToast(this Exception ex,
+		internal static void e_LogErrorToast(this Exception ex,
 			int toastFontSize = 14,
 			[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0)
 		{
 			//Write rrror to device log
-			await ex.e_LogError(false, supressAnyModalPopEvenInDEBUG: true);
+			ex.e_LogErrorNoUI();
 
 			MainThread.BeginInvokeOnMainThread(async () =>
 			{

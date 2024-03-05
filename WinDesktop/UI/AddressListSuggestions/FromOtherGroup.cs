@@ -10,9 +10,9 @@ namespace MALM.UI.AddressListSuggestions
 
 	internal class FromOtherGroup : MikrotikObjectBase
 	{
-		public global::Mikrotik.API.Model.IP.Firewall.AddressList.AddressListItem MikrotikRow2 => (MikrotikRow as global::Mikrotik.API.Model.IP.Firewall.AddressList.AddressListItem)!;
+		public MikrotikDotNet.Model.IP.Firewall.AddressList.AddressListItem MikrotikRow2 => (MikrotikRow as MikrotikDotNet.Model.IP.Firewall.AddressList.AddressListItem)!;
 
-		public FromOtherGroup(global::Mikrotik.API.Model.IP.Firewall.AddressList.AddressListItem mkRow) : base(mkRow) { }
+		public FromOtherGroup(MikrotikDotNet.Model.IP.Firewall.AddressList.AddressListItem mkRow) : base(mkRow) { }
 
 		public override string GetAddress() => MikrotikRow2.Address;
 

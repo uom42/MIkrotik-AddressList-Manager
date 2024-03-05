@@ -30,8 +30,6 @@
 
 		<Setter Property="BorderColor" Value="{StaticResource White}" />
 		<Setter Property="BorderWidth" Value="{AppThemeBinding Light=0, Dark=1}" />
-		<!--
-		-->
 
 
 		<Setter Property="FontFamily" Value="OpenSansRegular" />
@@ -415,9 +413,16 @@
 
 
 
-	<!--#region Password Entry-->
+	<!--#region Entry with shadow-->
 
-	<Style x:Key="EntryWithShadow" TargetType="Entry">
+	<Style
+		xmlns:mct="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+		xmlns:sc="clr-namespace:System.Collections;assembly=mscorlib"
+		xmlns:scg="clr-namespace:System.Collections.Generic;assembly=mscorlib"
+		xmlns:sys="clr-namespace:System;assembly=mscorlib"
+		xmlns:uom_ctl_ani="clr-namespace:uom.controls.MAUI.Animations"
+		x:Key="EntryWithShadow"
+		TargetType="Entry">
 		<Setter Property="ClearButtonVisibility" Value="WhileEditing" />
 		<Setter Property="Shadow">
 			<Setter.Value>
@@ -428,6 +433,56 @@
 					Offset="16,16" />
 			</Setter.Value>
 		</Setter>
+
+		<!--
+		<Setter Property="Behaviors">
+	<Setter.Value>
+		<sc:ArrayList
+			xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			xmlns:sysCtl="clr-namespace:Microsoft.Maui.Controls"
+			x:TypeArguments="sysCtl:Behavior">
+
+			<mct:AnimationBehavior EventName="Focused">
+				<mct:AnimationBehavior.AnimationType>
+					<uom_ctl_ani:SampleScaleToAnimation
+						Easing="{x:Static Easing.Linear}"
+						Length="100"
+						Scale="1.05" />
+				</mct:AnimationBehavior.AnimationType>
+			</mct:AnimationBehavior>
+
+			<mct:AnimationBehavior EventName="Unfocused">
+				<mct:AnimationBehavior.AnimationType>
+					<uom_ctl_ani:SampleScaleToAnimation
+						Easing="{x:Static Easing.Linear}"
+						Length="100"
+						Scale="1" />
+				</mct:AnimationBehavior.AnimationType>
+			</mct:AnimationBehavior>
+
+		</sc:ArrayList>
+
+	</Setter.Value>
+
+</Setter>
+		
+
+		<Setter Property="Behaviors">
+			<Setter.Value>
+				<mct:AnimationBehavior EventName="Focused">
+					<mct:AnimationBehavior.AnimationType>
+						<uom_ctl_ani:SampleScaleToAnimation
+							Easing="{x:Static Easing.Linear}"
+							Length="100"
+							Scale="1.05" />
+					</mct:AnimationBehavior.AnimationType>
+				</mct:AnimationBehavior>
+			</Setter.Value>
+
+		</Setter>
+		
+		-->
+
 	</Style>
 
 	<Style
@@ -462,69 +517,8 @@
 					Offset="16,16" />
 			</Setter.Value>
 		</Setter>
-	</Style>
-
-	<!--#endregion-->
 
 
-	<!--#region CollectionView.GroupHeaderTemplate Style NEW (ContentView with Grig)-->
-
-
-	<Style x:Key="GroupHeader_base" TargetType="View">
-		<Setter Property="VerticalOptions" Value="Center" />
-	</Style>
-	<Style
-		x:Key="GroupHeader_GridLabel"
-		BasedOn="{StaticResource GroupHeader_base}"
-		TargetType="Label">
-		<Setter Property="VerticalTextAlignment" Value="Center" />
-		<Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray500}}" />
-	</Style>
-
-	<Style
-		x:Key="GroupHeader_DisplayName"
-		BasedOn="{StaticResource GroupHeader_GridLabel}"
-		TargetType="Label">
-		<Setter Property="FontSize" Value="Header" />
-		<Setter Property="FontAttributes" Value="Bold" />
-	</Style>
-
-	<Style
-		x:Key="GroupHeader_ItemsCount"
-		BasedOn="{StaticResource GroupHeader_GridLabel}"
-		TargetType="Label">
-		<Setter Property="FontSize" Value="Micro" />
-	</Style>
-
-	<Style
-		x:Key="GroupHeader_HorizontalLine"
-		BasedOn="{StaticResource GroupHeader_base}"
-		TargetType="Line">
-		<Setter Property="StrokeThickness" Value="3" />
-		<Setter Property="StrokeLineCap" Value="Round" />
-		<Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}" />
-		<Setter Property="X2" Value="{Binding Width, Source={RelativeSource Self}}" />
-	</Style>
-
-
-
-	<Style
-		x:Key="GroupHeader_ExpandCollapseGroupGlyphBackground"
-		BasedOn="{StaticResource GroupHeader_base}"
-		TargetType="Ellipse">
-		<Setter Property="WidthRequest" Value="25" />
-		<Setter Property="HeightRequest" Value="{Binding WidthRequest, Source={RelativeSource Self}}" />
-		<Setter Property="Fill" Value="{AppThemeBinding Light={StaticResource Pantone_GreenBlue}, Dark=Transparent}" />
-		<Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource Pantone_GreenBlue}, Dark={StaticResource Gray400}}" />
-		<Setter Property="StrokeThickness" Value="{AppThemeBinding Light=0, Dark=1}" />
-	</Style>
-
-	<Style
-		x:Key="GroupHeader_ExpandCollapseGroupGlyph"
-		BasedOn="{StaticResource GroupHeader_GridLabel}"
-		TargetType="Label">
-		<Setter Property="LineBreakMode" Value="NoWrap" />
-		<Setter Property="FontSize" Value="Title" />
 	</Style>
 
 	<!--#endregion-->

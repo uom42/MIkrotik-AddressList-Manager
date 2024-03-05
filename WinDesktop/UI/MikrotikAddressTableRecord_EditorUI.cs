@@ -3,7 +3,7 @@
 
 using MALM.UI.AddressListSuggestions;
 
-using Mikrotik.API.Model.IP.Firewall.AddressList;
+using MikrotikDotNet.Model.IP.Firewall.AddressList;
 
 
 namespace MALM.UI

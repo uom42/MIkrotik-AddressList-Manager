@@ -1,4 +1,4 @@
-﻿using static MALM.Localization.Strings;
+﻿using static MALM.Localization.LStrings;
 
 using Microsoft.Extensions.Logging;
 using CommunityToolkit.Maui.Markup;

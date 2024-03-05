@@ -145,11 +145,11 @@ namespace MALM.Model
 				}
 				catch (Exception ex)
 				{
-					await ex.e_LogError(false, supressAnyModalPopEvenInDEBUG: true);
+					ex.e_LogErrorNoUI();
 					loadedKeyString = string.Empty;
 				}
 
-				bool dontAskKey = loadedKeyString.e_IsNOTNullOrWhiteSpace();
+				bool dontAskKey = loadedKeyString.e_IsNotNullOrWhiteSpace();
 #if DEBUG
 				Debug.WriteLine($"loadedKeyString = '{loadedKeyString}'");
 #endif
@@ -288,7 +288,17 @@ namespace MALM.Model
 				//Saving Masterkey
 
 #if !WINDOWS
-				await SecureStorage.SetAsync(MKey_Value, masterKey);
+				try
+				{
+					await SecureStorage.SetAsync(MKey_Value, masterKey);
+				}
+				catch (Javax.Crypto.AEADBadTagException jcex)
+				{
+					//Looks like android secured storage is damaged!
+					//Trying to clear and rewrite secure storage
+					SecureStorage.RemoveAll();
+					SecureStorage.SetAsync(MKey_Value, masterKey).Wait();
+				}
 
 				//Try to read ancrypted data
 				var readedKey = await SecureStorage.GetAsync(MKey_Value);

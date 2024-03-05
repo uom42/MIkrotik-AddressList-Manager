@@ -26,6 +26,15 @@ internal partial class DevicesListUI : Form
 
 		lvwDevices.e_ClearItems();
 
+		var iml = new ImageList()
+		{
+			ColorDepth = ColorDepth.Depth32Bit,
+			ImageSize = System.Windows.Forms.SystemInformation.IconSize,
+		};
+		iml.Images.Add(Properties.Resources.Router);
+		lvwDevices.SmallImageList = iml;
+
+
 		string? recent = Extensions_DebugAndErrors.e_tryCatch(LoadRecent, null).Result;
 
 		foreach (var abr in _devices)
@@ -58,24 +67,24 @@ internal partial class DevicesListUI : Form
 	#region Internal Helpers
 
 
-	private ListViewItem AddRecordToList(DevicesListRecord abr)
+	private uom.controls.ListViewItemT<DevicesListRecord> AddRecordToList(DevicesListRecord abr)
 	{
-		var li = new ListViewItem(abr.AddressString);
+		var li = new uom.controls.ListViewItemT<DevicesListRecord>(abr);
 		li.e_AddFakeSubitems(lvwDevices);
-		li.Tag = abr;
 		lvwDevices.Items.Add(li);
 		UpdateRecordInList(li);
 		return li;
 	}
 
 
-	private void UpdateRecordInList(ListViewItem li)
+	private void UpdateRecordInList(uom.controls.ListViewItemT<DevicesListRecord> li)
 	{
-		DevicesListRecord abr = (DevicesListRecord)li.Tag!;
+		DevicesListRecord abr = li.Value2;
 		string title = abr.AddressString;
 		if (abr.PortInt.HasValue) title += $":{abr.PortInt.Value}";
 
 		li.e_UpdateTexts(title, abr.UserName);
+		li.ImageIndex = 0;
 
 		li.Group = lvwDevices.e_GroupsCreateGroupByKey(
 			string.IsNullOrWhiteSpace(abr.Group)
@@ -94,14 +103,71 @@ internal partial class DevicesListUI : Form
 	#endregion
 
 
+	private uom.controls.ListViewItemT<DevicesListRecord>? SelectedDevice
+		=> lvwDevices.e_SelectedItemsAs<uom.controls.ListViewItemT<DevicesListRecord>>().FirstOrDefault();
+
+
+	private void OnDeviceSelected()
+	{
+		var sel = SelectedDevice;
+		var hasSel = (sel != null);
+
+		btnConnect.Enabled = hasSel;
+		btnDelete.Enabled = hasSel;
+		btnEdit.Enabled = hasSel;
+
+		try { SaveRecent(sel?.Value?.AddressString ?? ""); } catch { }
+	}
+
+
+
+	#region Editing
+
+	private async void Device_Edit(object s, EventArgs e)
+	{
+		var sel = SelectedDevice;
+		if (sel == null) return;
+		DevicesListRecord dev = sel.Value2;
+
+		using DevicesListRecordEditorUI fe = DevicesListRecordEditorUI.InitUI(dev);
+		if (fe.ShowDialog(this) != DialogResult.OK) return;
+
+		dev = DevicesListRecord.FromEditor(fe);
+		sel.Value2 = dev;
+		UpdateRecordInList(sel);
+		await SaveDevicesList();
+	}
+
+
+	private async void Device_Delete(object s, EventArgs e)
+	{
+		var sel = SelectedDevice;
+		if (sel == null) return;
+		DevicesListRecord dev = sel.Value2;
+
+		string q = string.Format(Q_ADDRESSBOOK_DELETE_RECORD, dev.AddressString);
+
+		if (!q.e_MsgboxAskIsYes(false, L_DEVICES_LIST_EDITOR)) return;
+		lvwDevices.Items.Remove(sel);
+		await SaveDevicesList();
+		OnDeviceSelected();
+	}
+
+
+
+	#endregion
+
+
 	#region Connect
 
 
 	private async Task OnTryConnectDevice(object? s, EventArgs e)
 	{
-		var sel = lvwDevices.e_SelectedItemsAndTags<DevicesListRecord>().FirstOrDefault();
-		var md = sel?.Tag;
-		if (md == null || string.IsNullOrWhiteSpace(md.AddressString)) return;
+		var sel = SelectedDevice;
+		if (sel == null) return;
+		DevicesListRecord dev = sel.Value2;
+
+		if (string.IsNullOrWhiteSpace(dev.AddressString)) return;
 
 		Control[] buttonsToDisable = [btnAdd, btnEdit, btnDelete, btnConnect, btnSetMasterKey];
 		UseWaitCursor = true;
@@ -111,7 +177,7 @@ internal partial class DevicesListUI : Form
 
 		try
 		{
-			var con = await DevicesListRecord.OpenConnection(md);
+			var con = await MikrotikDotNet.Model.Helpers.ConnectDeviceAsync(dev.CreateConnection());
 
 			//Connected successfully
 			_dialogResult = con!;

@@ -1,18 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using MikrotikDotNet.Model;
 
-namespace MALM.UI.AddressListSuggestions
+namespace MALM.UI.AddressListSuggestions;
+
+internal abstract class MikrotikObjectBase
 {
-	internal abstract class MikrotikObjectBase
-	{
-		public readonly global::Mikrotik.API.Model.ItemBase MikrotikRow;
-		public MikrotikObjectBase(global::Mikrotik.API.Model.ItemBase mkRow) { MikrotikRow = mkRow; }
+	public readonly MKDataRowBase MikrotikRow;
+	public MikrotikObjectBase(MKDataRowBase mkRow) { MikrotikRow = mkRow; }
 
-		public abstract string GetAddress();
-	}
-
-
+	public abstract string GetAddress();
 }

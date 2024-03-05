@@ -241,7 +241,7 @@ namespace uom
 				}
 				string path = RegBuildProductPath(ver);
 
-				if (subKey.e_IsNOTNullOrWhiteSpace()) path += '\\' + subKey;
+				if (subKey.e_IsNotNullOrWhiteSpace()) path += '\\' + subKey;
 				var keyProduct = global::Microsoft.Win32.Registry.CurrentUser.OpenSubKey(path, writable);
 
 				if (keyProduct == null && writable)
@@ -514,7 +514,7 @@ namespace uom
 			_ = prcExe ?? throw new Exception($"Process.Start({fiExe}) Failed!");
 
 			string sError = prcExe.StandardError.ReadToEnd();
-			if (sError.e_IsNOTNullOrWhiteSpace() && cem == ConsoleAppErrorMode.ErrorMustThrowException)
+			if (sError.e_IsNotNullOrWhiteSpace() && cem == ConsoleAppErrorMode.ErrorMustThrowException)
 				throw new Exception(sError);
 
 			string sOutput = prcExe.StandardOutput.ReadToEnd();
@@ -637,8 +637,8 @@ namespace uom
 			{
 				file = file.e_EncloseC();
 				var StartInfo = new ProcessStartInfo() { UseShellExecute = true, FileName = file };
-				if (arguments.e_IsNOTNullOrWhiteSpace()) StartInfo.Arguments = arguments;
-				if (workingDirectory.e_IsNOTNullOrWhiteSpace()) StartInfo.WorkingDirectory = workingDirectory;
+				if (arguments.e_IsNotNullOrWhiteSpace()) StartInfo.Arguments = arguments;
+				if (workingDirectory.e_IsNotNullOrWhiteSpace()) StartInfo.WorkingDirectory = workingDirectory;
 				if (elevated && !uom.AppInfo.IsProcessElevated())
 				{
 					//needElevation = !uom.AppInfo.IsProcessElevated();
@@ -1153,7 +1153,7 @@ namespace uom
 					// Dim aOpenProgIDsValues = hkOpenProgIDs.ExtReg_GetAllValues
 
 					// aOpenProgIDsValues = (From T In aOpenProgIDsValues
-					// Where ((T.Kind = RegistryValueKind.String) AndAlso T.ValueName. e_IsNOTNullOrWhiteSpace)).ToArray
+					// Where ((T.Kind = RegistryValueKind.String) AndAlso T.ValueName. e_IsNotNullOrWhiteSpace)).ToArray
 
 					// If aOpenProgIDsValues.Any Then
 					// Dim FirstValue = aOpenProgIDsValues.First
@@ -1956,7 +1956,7 @@ namespace uom
 				{
 					var sSPVersion = "";
 					if (wServicePackMajor != 0) sSPVersion += SPVersion.ToString();
-					if (szCSDVersion.e_IsNOTNullOrWhiteSpace()) sSPVersion += $" {szCSDVersion}";
+					if (szCSDVersion.e_IsNotNullOrWhiteSpace()) sSPVersion += $" {szCSDVersion}";
 					return sSPVersion;
 				}
 
@@ -1964,7 +1964,7 @@ namespace uom
 
 			public override string ToString()
 			{
-				var spVersion = SPVersionString; if (spVersion.e_IsNOTNullOrWhiteSpace()) spVersion = ", SP:" + spVersion;
+				var spVersion = SPVersionString; if (spVersion.e_IsNotNullOrWhiteSpace()) spVersion = ", SP:" + spVersion;
 				return $"Version: {Version}{spVersion}\n" +
 					$"Known Name: {KnownName}\n" +
 					$"Platform Id: {dwPlatformId}\n" +
@@ -2169,7 +2169,7 @@ namespace uom
 
 			if (currentUser) appID += C_MUTEX_PARTS_SEPARATOR + OS.UserAccounts.GetCurrentUserSID().ToString();
 
-			if (suffix.e_IsNOTNullOrWhiteSpace()) appID += (C_MUTEX_PARTS_SEPARATOR + suffix);
+			if (suffix.e_IsNotNullOrWhiteSpace()) appID += (C_MUTEX_PARTS_SEPARATOR + suffix);
 			return appID;
 		}
 
@@ -2349,7 +2349,7 @@ namespace uom
 							{
 								Action<T?> CB = new(NewVal =>
 							   {
-								   if (TemplateFormatString.e_IsNOTNullOrWhiteSpace())
+								   if (TemplateFormatString.e_IsNotNullOrWhiteSpace())
 								   {
 									   string S = TemplateFormatString!.e_Format(NewVal?.ToString()!);
 									   ValueDisplayControl.Text = S;
@@ -2527,7 +2527,7 @@ namespace uom
 				try
 				{
 					var lines = uom.AppTools.AppSettings.Get_stringsAsText(id, string.Empty, FORMS_SETTTINGS);
-					if (lines != null && lines.e_IsNOTNullOrWhiteSpace())
+					if (lines != null && lines.e_IsNotNullOrWhiteSpace())
 					{
 						return lines!.e_DeSerializeXML<FormPositionInfo>();
 					}
@@ -2710,9 +2710,9 @@ Try
 
 	'Ищем монитор, на котором последний раз было окно (могли отключить или удалить - тогда используем основной)
 	Dim scrnDisplay = Screen.PrimaryScreen
-	If (fps.Display.e_IsNOTNullOrWhiteSpace()) Then
+	If (fps.Display.e_IsNotNullOrWhiteSpace()) Then
 		Dim lastDisplay = (From SC In Screen.AllScreens
-						   Where(SC.DeviceName.e_IsNOTNullOrWhiteSpace AndAlso (SC.DeviceName.Equals(fps.Display, StringComparison.OrdinalIgnoreCase)))).FirstOrDefault()
+						   Where(SC.DeviceName.e_IsNotNullOrWhiteSpace AndAlso (SC.DeviceName.Equals(fps.Display, StringComparison.OrdinalIgnoreCase)))).FirstOrDefault()
 
 		If(lastDisplay IsNot Nothing) Then scrnDisplay = lastDisplay 'Найден!
 	End If
@@ -3380,7 +3380,7 @@ End Function
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static (string Result, bool StringWasTrimmed) e_LimitLenght(this string source, int maxLen = WinAPI.io.MAX_PATH)
 			{
-				if (source.e_IsNOTNullOrWhiteSpace() && (source.Length > maxLen)) return (source.Substring(0, maxLen), true);
+				if (source.e_IsNotNullOrWhiteSpace() && (source.Length > maxLen)) return (source.Substring(0, maxLen), true);
 				return (source, false);
 			}
 
@@ -6251,7 +6251,7 @@ End Function
 				ofd.Multiselect = Multiselect;
 
 				ofd.Filter = filter;
-				if (defaultExt.e_IsNOTNullOrWhiteSpace()) ofd.DefaultExt = defaultExt;
+				if (defaultExt.e_IsNotNullOrWhiteSpace()) ofd.DefaultExt = defaultExt;
 			}
 
 
@@ -6269,8 +6269,8 @@ End Function
 
 				ofd.Filter = filter;
 
-				if (initialFile.e_IsNOTNullOrWhiteSpace()) ofd.FileName = initialFile;
-				if (initialDirectory.e_IsNOTNullOrWhiteSpace()) ofd.InitialDirectory = initialDirectory;
+				if (initialFile.e_IsNotNullOrWhiteSpace()) ofd.FileName = initialFile;
+				if (initialDirectory.e_IsNotNullOrWhiteSpace()) ofd.InitialDirectory = initialDirectory;
 
 				return (ofd.ShowDialog(owner) != DialogResult.OK)
 					? Array.Empty<string>()
@@ -6331,7 +6331,7 @@ End Function
 							With SFD
 								If (sDefaultFileName.e_IsNullOrWhiteSpace) Then
 									sDefaultFileName = Now.ToFileName
-									If (sAutoFileNameSuffix.e_IsNOTNullOrWhiteSpace) Then sDefaultFileName = sAutoFileNameSuffix & " " & sDefaultFileName
+									If (sAutoFileNameSuffix.e_IsNotNullOrWhiteSpace) Then sDefaultFileName = sAutoFileNameSuffix & " " & sDefaultFileName
 								End If
 								.FileName = sDefaultFileName
 
@@ -6658,7 +6658,7 @@ End Function
 				//                if (keyFileExt != null)
 				//                {
 				//                    string sTypeKeyName = constants.ToString(keyFileExt.GetValue(null, null));
-				//                    if (sTypeKeyName.e_IsNOTNullOrWhiteSpace())
+				//                    if (sTypeKeyName.e_IsNotNullOrWhiteSpace())
 				//                    {
 				//                        using (var keyFileType = keyRoot.OpenSubKey(sTypeKeyName, false))
 				//                        {
@@ -6672,7 +6672,7 @@ End Function
 				//                                if (bHasFriendlyTypeName)
 				//                                {
 				//                                    string sFriendlyTypeName = constants.ToString(keyFileType.GetValue(CS_FRIENDLY_TYPE_NAME, null));
-				//                                    if (sFriendlyTypeName.e_IsNOTNullOrWhiteSpace())
+				//                                    if (sFriendlyTypeName.e_IsNotNullOrWhiteSpace())
 				//                                    {
 				//                                        if (UOM.Win32.Resources.mResourcesAPI.HasResourceStringPrefix(sFriendlyTypeName))
 				//                                            sFriendlyTypeName = UOM.Win32.Resources.mResourcesAPI.ExtractResourceString(sFriendlyTypeName);
@@ -6682,7 +6682,7 @@ End Function
 
 				//                                if (sTypeDescription.e_IsNullOrWhiteSpace())
 				//                                    sTypeDescription = constants.ToString(keyFileType.GetValue(null, null));
-				//                                if (sTypeDescription.e_IsNOTNullOrWhiteSpace())
+				//                                if (sTypeDescription.e_IsNotNullOrWhiteSpace())
 				//                                    sResult = sTypeDescription;
 				//                            }
 				//                        }
@@ -9566,7 +9566,7 @@ End Function
 				if (resName.e_IsNullOrWhiteSpace()) return null;
 				resName = fullResNameTemplate.e_Format(resName!);
 				string? resStringValue = rm.GetString(resName);
-				if (resStringValue.e_IsNOTNullOrWhiteSpace()) return resStringValue;
+				if (resStringValue.e_IsNotNullOrWhiteSpace()) return resStringValue;
 
 				return null;
 			}
@@ -9579,7 +9579,7 @@ End Function
 			private static string? e_GetLocalizedTextByPropertyName(this Component c, string propertyName = "Name")
 			{
 				string? componentName = c.e_GetPropertyValueAs<string>(propertyName, null, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-				if (componentName.e_IsNOTNullOrWhiteSpace())
+				if (componentName.e_IsNotNullOrWhiteSpace())
 					return componentName.e_GetLocalizedText();
 
 				return null;
@@ -9683,7 +9683,7 @@ End Function
 			{
 				string enumResSuffix = $"{value.GetType().Name}.{value}";
 				string? localizedString = enumResSuffix.e_GetLocalizedText(rm, LOCALIZED_RES_NAME_TEMPLATE_L_ENUM);
-				if (localizedString.e_IsNOTNullOrWhiteSpace()) return localizedString!;
+				if (localizedString.e_IsNotNullOrWhiteSpace()) return localizedString!;
 				return value.ToString().e_InsertSpacesBeforeUpperCaseChars();
 			}
 
@@ -9693,7 +9693,7 @@ End Function
 			{
 				string enumResSuffix = $"{value.GetType().Name}.{value}";
 				string? localizedString = enumResSuffix.e_GetLocalizedText(LOCALIZED_RES_NAME_TEMPLATE_L_ENUM);
-				if (localizedString.e_IsNOTNullOrWhiteSpace()) return localizedString!;
+				if (localizedString.e_IsNotNullOrWhiteSpace()) return localizedString!;
 				return value.ToString().e_InsertSpacesBeforeUpperCaseChars();
 			}
 
@@ -27650,7 +27650,7 @@ End Function
 					public static string BuildStreamPath(string filePath, string streamName)
 					{
 						string Result = filePath;
-						if (filePath.e_IsNOTNullOrWhiteSpace())
+						if (filePath.e_IsNotNullOrWhiteSpace())
 						{
 							if (Result.Length == 1) Result = @".\\" + Result;
 							Result += STREAM_SEPARATOR + streamName + FULL_STREAM_PATH_SUFFIX;
@@ -27731,7 +27731,7 @@ End Function
 										{
 											string sStreamName = STREAM_ID.ReadStreamName(hFile, ref lpContext, ref bFinished)!;
 											// Add the stream info to the result:
-											if (sStreamName.e_IsNOTNullOrWhiteSpace())
+											if (sStreamName.e_IsNotNullOrWhiteSpace())
 											{
 												var R = new NTFSStreamInfo(sFullPath, STREAM_ID, sStreamName);
 												lResult.Add(R);
@@ -27914,7 +27914,7 @@ End Function
 							var (hFind, FirstFile) = HardLinksEnumeration.FindFirstFile(sFile);
 							string sFoundName = FirstFile;
 							using var HLE = hFind;
-							while (sFoundName.e_IsNOTNullOrWhiteSpace())
+							while (sFoundName.e_IsNotNullOrWhiteSpace())
 							{
 								lResult.Add(sFoundName);
 								sFoundName = HLE.FindNextFileName()!;
@@ -28353,7 +28353,7 @@ End Function
 
 					private static REPARSE_GUID_DATA_BUFFER GetReparseData(string path)
 					{
-						Debug.Assert(path.e_IsNOTNullOrWhiteSpace() && path.Length > 2 && Convert.ToString(path[1]) == ":" && Convert.ToString(path[2]) == @"\");
+						Debug.Assert(path.e_IsNotNullOrWhiteSpace() && path.Length > 2 && Convert.ToString(path[1]) == ":" && Convert.ToString(path[2]) == @"\");
 						security.PRIVELEGE_NAMES.SeBackupPrivilege.e_AdjustProcessPrivilegeAndCloseToken();
 
 						// Open the file and get its handle

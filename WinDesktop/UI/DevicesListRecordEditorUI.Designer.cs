@@ -30,205 +30,213 @@ namespace MALM.UI
 		/// </summary>
 		private void InitializeComponent()
 		{
-			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(DevicesListRecordEditorUI));
-			this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
-			this.btnCancel = new System.Windows.Forms.Button();
-			this.btnSave = new System.Windows.Forms.Button();
-			this.lblDeviceAddress = new System.Windows.Forms.Label();
-			this.lblDeviceUser = new System.Windows.Forms.Label();
-			this.lblDevicePWD = new System.Windows.Forms.Label();
-			this.txtAddress = new System.Windows.Forms.TextBox();
-			this.txtUser = new System.Windows.Forms.TextBox();
-			this.txtPWD = new System.Windows.Forms.TextBox();
-			this.lblDeviceGroup = new System.Windows.Forms.Label();
-			this.txtGroup = new System.Windows.Forms.TextBox();
-			this.lblDevicePort = new System.Windows.Forms.Label();
-			this.txtPort = new System.Windows.Forms.TextBox();
-			this.tableLayoutPanel1.SuspendLayout();
-			this.SuspendLayout();
+			ComponentResourceManager resources = new ComponentResourceManager(typeof(DevicesListRecordEditorUI));
+			tableLayoutPanel1 = new TableLayoutPanel();
+			btnCancel = new Button();
+			btnSave = new Button();
+			lblDeviceAddress = new Label();
+			lblDeviceUser = new Label();
+			lblDevicePWD = new Label();
+			txtAddress = new TextBox();
+			txtUser = new TextBox();
+			txtPWD = new TextBox();
+			lblDeviceGroup = new Label();
+			txtGroup = new TextBox();
+			lblDevicePort = new Label();
+			txtPort = new TextBox();
+			tableLayoutPanel1.SuspendLayout();
+			SuspendLayout();
 			// 
 			// tableLayoutPanel1
 			// 
-			this.tableLayoutPanel1.ColumnCount = 3;
-			this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-			this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-			this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 100F));
-			this.tableLayoutPanel1.Controls.Add(this.btnCancel, 1, 6);
-			this.tableLayoutPanel1.Controls.Add(this.btnSave, 2, 6);
-			this.tableLayoutPanel1.Controls.Add(this.lblDeviceAddress, 0, 0);
-			this.tableLayoutPanel1.Controls.Add(this.lblDeviceUser, 0, 2);
-			this.tableLayoutPanel1.Controls.Add(this.lblDevicePWD, 0, 3);
-			this.tableLayoutPanel1.Controls.Add(this.txtAddress, 1, 0);
-			this.tableLayoutPanel1.Controls.Add(this.txtUser, 1, 2);
-			this.tableLayoutPanel1.Controls.Add(this.txtPWD, 1, 3);
-			this.tableLayoutPanel1.Controls.Add(this.lblDeviceGroup, 0, 4);
-			this.tableLayoutPanel1.Controls.Add(this.txtGroup, 1, 4);
-			this.tableLayoutPanel1.Controls.Add(this.lblDevicePort, 0, 1);
-			this.tableLayoutPanel1.Controls.Add(this.txtPort, 1, 1);
-			this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.tableLayoutPanel1.Location = new System.Drawing.Point(16, 16);
-			this.tableLayoutPanel1.Name = "tableLayoutPanel1";
-			this.tableLayoutPanel1.RowCount = 7;
-			this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-			this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-			this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-			this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-			this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-			this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-			this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 48F));
-			this.tableLayoutPanel1.Size = new System.Drawing.Size(541, 248);
-			this.tableLayoutPanel1.TabIndex = 0;
+			tableLayoutPanel1.ColumnCount = 3;
+			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle());
+			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 111F));
+			tableLayoutPanel1.Controls.Add(btnCancel, 1, 6);
+			tableLayoutPanel1.Controls.Add(btnSave, 2, 6);
+			tableLayoutPanel1.Controls.Add(lblDeviceAddress, 0, 0);
+			tableLayoutPanel1.Controls.Add(lblDeviceUser, 0, 2);
+			tableLayoutPanel1.Controls.Add(lblDevicePWD, 0, 3);
+			tableLayoutPanel1.Controls.Add(txtAddress, 1, 0);
+			tableLayoutPanel1.Controls.Add(txtUser, 1, 2);
+			tableLayoutPanel1.Controls.Add(txtPWD, 1, 3);
+			tableLayoutPanel1.Controls.Add(lblDeviceGroup, 0, 4);
+			tableLayoutPanel1.Controls.Add(txtGroup, 1, 4);
+			tableLayoutPanel1.Controls.Add(lblDevicePort, 0, 1);
+			tableLayoutPanel1.Controls.Add(txtPort, 1, 1);
+			tableLayoutPanel1.Dock = DockStyle.Fill;
+			tableLayoutPanel1.Location = new Point(18, 20);
+			tableLayoutPanel1.Margin = new Padding(3, 4, 3, 4);
+			tableLayoutPanel1.Name = "tableLayoutPanel1";
+			tableLayoutPanel1.RowCount = 7;
+			tableLayoutPanel1.RowStyles.Add(new RowStyle());
+			tableLayoutPanel1.RowStyles.Add(new RowStyle());
+			tableLayoutPanel1.RowStyles.Add(new RowStyle());
+			tableLayoutPanel1.RowStyles.Add(new RowStyle());
+			tableLayoutPanel1.RowStyles.Add(new RowStyle());
+			tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+			tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F));
+			tableLayoutPanel1.Size = new Size(601, 310);
+			tableLayoutPanel1.TabIndex = 0;
 			// 
 			// btnCancel
 			// 
-			this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-			this.btnCancel.Dock = System.Windows.Forms.DockStyle.Right;
-			this.btnCancel.Location = new System.Drawing.Point(306, 203);
-			this.btnCancel.Name = "btnCancel";
-			this.btnCancel.Size = new System.Drawing.Size(132, 42);
-			this.btnCancel.TabIndex = 6;
-			this.btnCancel.Text = "Cancel";
-			this.btnCancel.UseVisualStyleBackColor = true;
+			btnCancel.DialogResult = DialogResult.Cancel;
+			btnCancel.Dock = DockStyle.Right;
+			btnCancel.Location = new Point(340, 254);
+			btnCancel.Margin = new Padding(3, 4, 3, 4);
+			btnCancel.Name = "btnCancel";
+			btnCancel.Size = new Size(147, 52);
+			btnCancel.TabIndex = 6;
+			btnCancel.Text = "Cancel";
+			btnCancel.UseVisualStyleBackColor = true;
 			// 
 			// btnSave
 			// 
-			this.btnSave.Dock = System.Windows.Forms.DockStyle.Right;
-			this.btnSave.Location = new System.Drawing.Point(444, 203);
-			this.btnSave.Name = "btnSave";
-			this.btnSave.Size = new System.Drawing.Size(94, 42);
-			this.btnSave.TabIndex = 5;
-			this.btnSave.Text = "Save";
-			this.btnSave.UseVisualStyleBackColor = true;
+			btnSave.Dock = DockStyle.Right;
+			btnSave.Location = new Point(494, 254);
+			btnSave.Margin = new Padding(3, 4, 3, 4);
+			btnSave.Name = "btnSave";
+			btnSave.Size = new Size(104, 52);
+			btnSave.TabIndex = 5;
+			btnSave.Text = "Save";
+			btnSave.UseVisualStyleBackColor = true;
 			// 
 			// lblDeviceAddress
 			// 
-			this.lblDeviceAddress.AutoSize = true;
-			this.lblDeviceAddress.Dock = System.Windows.Forms.DockStyle.Right;
-			this.lblDeviceAddress.Location = new System.Drawing.Point(13, 0);
-			this.lblDeviceAddress.Name = "lblDeviceAddress";
-			this.lblDeviceAddress.Size = new System.Drawing.Size(72, 32);
-			this.lblDeviceAddress.TabIndex = 5;
-			this.lblDeviceAddress.Text = "Address:";
-			this.lblDeviceAddress.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+			lblDeviceAddress.AutoSize = true;
+			lblDeviceAddress.Dock = DockStyle.Right;
+			lblDeviceAddress.Location = new Point(13, 0);
+			lblDeviceAddress.Name = "lblDeviceAddress";
+			lblDeviceAddress.Size = new Size(81, 39);
+			lblDeviceAddress.TabIndex = 5;
+			lblDeviceAddress.Text = "Address:";
+			lblDeviceAddress.TextAlign = ContentAlignment.MiddleRight;
 			// 
 			// lblDeviceUser
 			// 
-			this.lblDeviceUser.AutoSize = true;
-			this.lblDeviceUser.Dock = System.Windows.Forms.DockStyle.Right;
-			this.lblDeviceUser.Location = new System.Drawing.Point(38, 64);
-			this.lblDeviceUser.Name = "lblDeviceUser";
-			this.lblDeviceUser.Size = new System.Drawing.Size(47, 32);
-			this.lblDeviceUser.TabIndex = 6;
-			this.lblDeviceUser.Text = "User:";
-			this.lblDeviceUser.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+			lblDeviceUser.AutoSize = true;
+			lblDeviceUser.Dock = DockStyle.Right;
+			lblDeviceUser.Location = new Point(43, 78);
+			lblDeviceUser.Name = "lblDeviceUser";
+			lblDeviceUser.Size = new Size(51, 39);
+			lblDeviceUser.TabIndex = 6;
+			lblDeviceUser.Text = "User:";
+			lblDeviceUser.TextAlign = ContentAlignment.MiddleRight;
 			// 
 			// lblDevicePWD
 			// 
-			this.lblDevicePWD.AutoSize = true;
-			this.lblDevicePWD.Dock = System.Windows.Forms.DockStyle.Right;
-			this.lblDevicePWD.Location = new System.Drawing.Point(3, 96);
-			this.lblDevicePWD.Name = "lblDevicePWD";
-			this.lblDevicePWD.Size = new System.Drawing.Size(82, 32);
-			this.lblDevicePWD.TabIndex = 7;
-			this.lblDevicePWD.Text = "Password:";
-			this.lblDevicePWD.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+			lblDevicePWD.AutoSize = true;
+			lblDevicePWD.Dock = DockStyle.Right;
+			lblDevicePWD.Location = new Point(3, 117);
+			lblDevicePWD.Name = "lblDevicePWD";
+			lblDevicePWD.Size = new Size(91, 39);
+			lblDevicePWD.TabIndex = 7;
+			lblDevicePWD.Text = "Password:";
+			lblDevicePWD.TextAlign = ContentAlignment.MiddleRight;
 			// 
 			// txtAddress
 			// 
-			this.tableLayoutPanel1.SetColumnSpan(this.txtAddress, 2);
-			this.txtAddress.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.txtAddress.Location = new System.Drawing.Point(91, 3);
-			this.txtAddress.MaxLength = 100;
-			this.txtAddress.Name = "txtAddress";
-			this.txtAddress.Size = new System.Drawing.Size(447, 26);
-			this.txtAddress.TabIndex = 0;
+			tableLayoutPanel1.SetColumnSpan(txtAddress, 2);
+			txtAddress.Dock = DockStyle.Fill;
+			txtAddress.Location = new Point(100, 4);
+			txtAddress.Margin = new Padding(3, 4, 3, 4);
+			txtAddress.MaxLength = 100;
+			txtAddress.Name = "txtAddress";
+			txtAddress.Size = new Size(498, 31);
+			txtAddress.TabIndex = 0;
 			// 
 			// txtUser
 			// 
-			this.tableLayoutPanel1.SetColumnSpan(this.txtUser, 2);
-			this.txtUser.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.txtUser.Location = new System.Drawing.Point(91, 67);
-			this.txtUser.MaxLength = 100;
-			this.txtUser.Name = "txtUser";
-			this.txtUser.Size = new System.Drawing.Size(447, 26);
-			this.txtUser.TabIndex = 2;
+			tableLayoutPanel1.SetColumnSpan(txtUser, 2);
+			txtUser.Dock = DockStyle.Fill;
+			txtUser.Location = new Point(100, 82);
+			txtUser.Margin = new Padding(3, 4, 3, 4);
+			txtUser.MaxLength = 100;
+			txtUser.Name = "txtUser";
+			txtUser.Size = new Size(498, 31);
+			txtUser.TabIndex = 2;
 			// 
 			// txtPWD
 			// 
-			this.tableLayoutPanel1.SetColumnSpan(this.txtPWD, 2);
-			this.txtPWD.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.txtPWD.Location = new System.Drawing.Point(91, 99);
-			this.txtPWD.MaxLength = 100;
-			this.txtPWD.Name = "txtPWD";
-			this.txtPWD.PasswordChar = '*';
-			this.txtPWD.Size = new System.Drawing.Size(447, 26);
-			this.txtPWD.TabIndex = 3;
-			this.txtPWD.UseSystemPasswordChar = true;
+			tableLayoutPanel1.SetColumnSpan(txtPWD, 2);
+			txtPWD.Dock = DockStyle.Fill;
+			txtPWD.Location = new Point(100, 121);
+			txtPWD.Margin = new Padding(3, 4, 3, 4);
+			txtPWD.MaxLength = 100;
+			txtPWD.Name = "txtPWD";
+			txtPWD.PasswordChar = '*';
+			txtPWD.Size = new Size(498, 31);
+			txtPWD.TabIndex = 3;
+			txtPWD.UseSystemPasswordChar = true;
 			// 
 			// lblDeviceGroup
 			// 
-			this.lblDeviceGroup.AutoSize = true;
-			this.lblDeviceGroup.Dock = System.Windows.Forms.DockStyle.Right;
-			this.lblDeviceGroup.Location = new System.Drawing.Point(27, 128);
-			this.lblDeviceGroup.Name = "lblDeviceGroup";
-			this.lblDeviceGroup.Size = new System.Drawing.Size(58, 32);
-			this.lblDeviceGroup.TabIndex = 11;
-			this.lblDeviceGroup.Text = "Group:";
-			this.lblDeviceGroup.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+			lblDeviceGroup.AutoSize = true;
+			lblDeviceGroup.Dock = DockStyle.Right;
+			lblDeviceGroup.Location = new Point(28, 156);
+			lblDeviceGroup.Name = "lblDeviceGroup";
+			lblDeviceGroup.Size = new Size(66, 39);
+			lblDeviceGroup.TabIndex = 11;
+			lblDeviceGroup.Text = "Group:";
+			lblDeviceGroup.TextAlign = ContentAlignment.MiddleRight;
 			// 
 			// txtGroup
 			// 
-			this.tableLayoutPanel1.SetColumnSpan(this.txtGroup, 2);
-			this.txtGroup.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.txtGroup.Location = new System.Drawing.Point(91, 131);
-			this.txtGroup.MaxLength = 100;
-			this.txtGroup.Name = "txtGroup";
-			this.txtGroup.Size = new System.Drawing.Size(447, 26);
-			this.txtGroup.TabIndex = 4;
+			tableLayoutPanel1.SetColumnSpan(txtGroup, 2);
+			txtGroup.Dock = DockStyle.Fill;
+			txtGroup.Location = new Point(100, 160);
+			txtGroup.Margin = new Padding(3, 4, 3, 4);
+			txtGroup.MaxLength = 100;
+			txtGroup.Name = "txtGroup";
+			txtGroup.Size = new Size(498, 31);
+			txtGroup.TabIndex = 4;
 			// 
 			// lblDevicePort
 			// 
-			this.lblDevicePort.AutoSize = true;
-			this.lblDevicePort.Dock = System.Windows.Forms.DockStyle.Right;
-			this.lblDevicePort.Location = new System.Drawing.Point(43, 32);
-			this.lblDevicePort.Name = "lblDevicePort";
-			this.lblDevicePort.Size = new System.Drawing.Size(42, 32);
-			this.lblDevicePort.TabIndex = 12;
-			this.lblDevicePort.Text = "Port:";
-			this.lblDevicePort.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+			lblDevicePort.AutoSize = true;
+			lblDevicePort.Dock = DockStyle.Right;
+			lblDevicePort.Location = new Point(46, 39);
+			lblDevicePort.Name = "lblDevicePort";
+			lblDevicePort.Size = new Size(48, 39);
+			lblDevicePort.TabIndex = 12;
+			lblDevicePort.Text = "Port:";
+			lblDevicePort.TextAlign = ContentAlignment.MiddleCenter;
 			// 
 			// txtPort
 			// 
-			this.tableLayoutPanel1.SetColumnSpan(this.txtPort, 2);
-			this.txtPort.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.txtPort.Location = new System.Drawing.Point(91, 35);
-			this.txtPort.MaxLength = 10;
-			this.txtPort.Name = "txtPort";
-			this.txtPort.Size = new System.Drawing.Size(447, 26);
-			this.txtPort.TabIndex = 1;
+			tableLayoutPanel1.SetColumnSpan(txtPort, 2);
+			txtPort.Dock = DockStyle.Fill;
+			txtPort.Location = new Point(100, 43);
+			txtPort.Margin = new Padding(3, 4, 3, 4);
+			txtPort.MaxLength = 10;
+			txtPort.Name = "txtPort";
+			txtPort.Size = new Size(498, 31);
+			txtPort.TabIndex = 1;
 			// 
-			// frmAddressBookRecordEditor
+			// DevicesListRecordEditorUI
 			// 
-			this.AcceptButton = this.btnSave;
-			this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
-			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.CancelButton = this.btnCancel;
-			this.ClientSize = new System.Drawing.Size(573, 280);
-			this.Controls.Add(this.tableLayoutPanel1);
-			this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-			this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-			this.MaximizeBox = false;
-			this.MinimizeBox = false;
-			this.Name = "frmAddressBookRecordEditor";
-			this.Padding = new System.Windows.Forms.Padding(16);
-			this.ShowIcon = false;
-			this.ShowInTaskbar = false;
-			this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-			this.Text = "Addressbook Editor";
-			this.tableLayoutPanel1.ResumeLayout(false);
-			this.tableLayoutPanel1.PerformLayout();
-			this.ResumeLayout(false);
-
+			AcceptButton = btnSave;
+			AutoScaleDimensions = new SizeF(10F, 25F);
+			AutoScaleMode = AutoScaleMode.Font;
+			CancelButton = btnCancel;
+			ClientSize = new Size(637, 350);
+			Controls.Add(tableLayoutPanel1);
+			FormBorderStyle = FormBorderStyle.FixedDialog;
+			Icon = (Icon)resources.GetObject("$this.Icon");
+			Margin = new Padding(3, 4, 3, 4);
+			MaximizeBox = false;
+			MinimizeBox = false;
+			Name = "DevicesListRecordEditorUI";
+			Padding = new Padding(18, 20, 18, 20);
+			ShowIcon = false;
+			ShowInTaskbar = false;
+			StartPosition = FormStartPosition.CenterParent;
+			Text = "Addressbook Editor";
+			tableLayoutPanel1.ResumeLayout(false);
+			tableLayoutPanel1.PerformLayout();
+			ResumeLayout(false);
 		}
 
 		#endregion

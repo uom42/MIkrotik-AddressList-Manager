@@ -1,10 +1,8 @@
 #nullable enable
 
-using MALM.Properties;
-using MALM.UI;
 using MALM.UI.AddressListSuggestions;
 
-using Mikrotik.API.Model.IP.Firewall.AddressList;
+using MikrotikDotNet.Model.IP.Firewall.AddressList;
 
 
 namespace MALM.UI;
@@ -22,6 +20,9 @@ public partial class MikrotikAddressTableRecord_ListUI : Form
 
 		btnRows_Refresh.Enabled = true;
 		btnRows_Add.Enabled = true;
+
+
+		btnViewARPList.Enabled = true;
 
 		txtFilter.Enabled = true;
 	}
@@ -65,7 +66,7 @@ public partial class MikrotikAddressTableRecord_ListUI : Form
 		}
 		catch (Exception ex)
 		{
-			ex.e_LogError(true, Localization.Strings.E_TITLE_DEFAULT);
+			ex.e_LogError(true, Localization.LStrings.E_TITLE_DEFAULT);
 
 			await QueryDataFromDevice();//On any error we refill list with actual data from mikrotik
 		}
@@ -108,7 +109,7 @@ public partial class MikrotikAddressTableRecord_ListUI : Form
 
 		{
 			//Append suggestion list from DHCP leases
-			var dhcpLeaseList = (await Mikrotik.API.Model.IP.DHCPServer.LeaseListItem.GetItemsAsync(_connection))
+			var dhcpLeaseList = (await MikrotikDotNet.Model.IP.DHCPServer.LeaseItem.GetItemsAsync(_connection))
 				.OrderBy(mr => mr.Address)
 				.Select(mr => new FromDHCPLeaseItem(mr))
 				.ToArray();
@@ -148,7 +149,7 @@ public partial class MikrotikAddressTableRecord_ListUI : Form
 		}
 		catch (Exception ex)
 		{
-			ex.e_LogError(true, Localization.Strings.E_TITLE_DEFAULT);
+			ex.e_LogError(true, Localization.LStrings.E_TITLE_DEFAULT);
 			await QueryDataFromDevice();//On any error we refill list with actual data from mikrotik
 		}
 		finally
@@ -189,5 +190,13 @@ public partial class MikrotikAddressTableRecord_ListUI : Form
 		if (!_tableRowsReady) return;
 
 		DisplayFilteredMKData();
+	}
+
+
+
+	private void ViewARPList()
+	{
+		using LocalSubnetBrowserUI f = new(_connection);
+		f.ShowDialog(this);
 	}
 }

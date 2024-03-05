@@ -42,32 +42,40 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<None Remove="Media\Router.ico" />
+		<None Remove="OUI\oui.txt" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Content Include="Router.ico" />
 	</ItemGroup>
+
 	<ItemGroup>
-		<PackageReference Include="Mikrotik.Net" Version="1.3.0" />
+		<EmbeddedResource Include="OUI\oui.txt" />
+	</ItemGroup>
+	<ItemGroup>
 		<PackageReference Include="System.Management" Version="8.0.0" />
 	</ItemGroup>
 
 
 	<ItemGroup>
 
-		<EmbeddedResource Update="Localization\Strings.resx">
+		<EmbeddedResource Update="Localization\LStrings.resx">
 			<Generator>ResXFileCodeGenerator</Generator>
-			<LastGenOutput>Strings.Designer.cs</LastGenOutput>
+			<LastGenOutput>LStrings.Designer.cs</LastGenOutput>
 		</EmbeddedResource>
 
-		<Compile Update="Localization\Strings.Designer.cs">
+		<Compile Update="Localization\LStrings.Designer.cs">
 			<DesignTime>True</DesignTime>
 			<AutoGen>True</AutoGen>
-			<DependentUpon>Strings.resx</DependentUpon>
+			<DependentUpon>LStrings.resx</DependentUpon>
 		</Compile>
 
-		<EmbeddedResource Update="Localization\Strings.ru.resx">
+		<EmbeddedResource Update="Localization\LStrings.ru.resx">
 			<Generator></Generator>
 		</EmbeddedResource>
 
-		<EmbeddedResource Update="Localization\Strings.uk.resx">
+		<EmbeddedResource Update="Localization\LStrings.uk.resx">
 			<Generator></Generator>
 		</EmbeddedResource>
 
@@ -99,6 +107,16 @@
 
 	<ItemGroup>
 		<Folder Include="Core\" />
+	</ItemGroup>
+
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\..\..\_LIB\CS_UOM\Network\Mikrotik\MikrotikDotNet\MDN_Git\Mikrotik.Net\Mikrotik.Net.csproj" />
+	</ItemGroup>
+
+
+	<ItemGroup>
+		<Resource Include="Media\Router.ico" />
 	</ItemGroup>
 
 

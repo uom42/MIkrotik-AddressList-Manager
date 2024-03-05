@@ -28,168 +28,174 @@
 		/// </summary>
 		private void InitializeComponent()
 		{
-			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MikrotikAddressTableRecord_EditorUI));
-			this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
-			this.btnCancel = new System.Windows.Forms.Button();
-			this.btnAdd = new System.Windows.Forms.Button();
-			this.lblGroup = new System.Windows.Forms.Label();
-			this.lblAddress = new System.Windows.Forms.Label();
-			this.lblComment = new System.Windows.Forms.Label();
-			this.cboGroup = new System.Windows.Forms.ComboBox();
-			this.cboAddress = new System.Windows.Forms.ComboBox();
-			this.txtComment = new System.Windows.Forms.TextBox();
-			this.label1 = new System.Windows.Forms.Label();
-			this.tableLayoutPanel1.SuspendLayout();
-			this.SuspendLayout();
+			ComponentResourceManager resources = new ComponentResourceManager(typeof(MikrotikAddressTableRecord_EditorUI));
+			tableLayoutPanel1 = new TableLayoutPanel();
+			btnCancel = new Button();
+			btnAdd = new Button();
+			lblGroup = new Label();
+			lblAddress = new Label();
+			lblComment = new Label();
+			cboGroup = new ComboBox();
+			cboAddress = new ComboBox();
+			txtComment = new TextBox();
+			label1 = new Label();
+			tableLayoutPanel1.SuspendLayout();
+			SuspendLayout();
 			// 
 			// tableLayoutPanel1
 			// 
-			this.tableLayoutPanel1.ColumnCount = 3;
-			this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-			this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-			this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 100F));
-			this.tableLayoutPanel1.Controls.Add(this.btnCancel, 1, 5);
-			this.tableLayoutPanel1.Controls.Add(this.btnAdd, 2, 5);
-			this.tableLayoutPanel1.Controls.Add(this.lblGroup, 0, 1);
-			this.tableLayoutPanel1.Controls.Add(this.lblAddress, 0, 2);
-			this.tableLayoutPanel1.Controls.Add(this.lblComment, 0, 3);
-			this.tableLayoutPanel1.Controls.Add(this.cboGroup, 1, 1);
-			this.tableLayoutPanel1.Controls.Add(this.cboAddress, 1, 2);
-			this.tableLayoutPanel1.Controls.Add(this.txtComment, 1, 3);
-			this.tableLayoutPanel1.Controls.Add(this.label1, 0, 0);
-			this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.tableLayoutPanel1.Location = new System.Drawing.Point(16, 16);
-			this.tableLayoutPanel1.Name = "tableLayoutPanel1";
-			this.tableLayoutPanel1.RowCount = 6;
-			this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-			this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-			this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-			this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-			this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-			this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 48F));
-			this.tableLayoutPanel1.Size = new System.Drawing.Size(1002, 229);
-			this.tableLayoutPanel1.TabIndex = 0;
+			tableLayoutPanel1.ColumnCount = 3;
+			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle());
+			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+			tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 111F));
+			tableLayoutPanel1.Controls.Add(btnCancel, 1, 5);
+			tableLayoutPanel1.Controls.Add(btnAdd, 2, 5);
+			tableLayoutPanel1.Controls.Add(lblGroup, 0, 1);
+			tableLayoutPanel1.Controls.Add(lblAddress, 0, 2);
+			tableLayoutPanel1.Controls.Add(lblComment, 0, 3);
+			tableLayoutPanel1.Controls.Add(cboGroup, 1, 1);
+			tableLayoutPanel1.Controls.Add(cboAddress, 1, 2);
+			tableLayoutPanel1.Controls.Add(txtComment, 1, 3);
+			tableLayoutPanel1.Controls.Add(label1, 0, 0);
+			tableLayoutPanel1.Dock = DockStyle.Fill;
+			tableLayoutPanel1.Location = new Point(18, 20);
+			tableLayoutPanel1.Margin = new Padding(3, 4, 3, 4);
+			tableLayoutPanel1.Name = "tableLayoutPanel1";
+			tableLayoutPanel1.RowCount = 6;
+			tableLayoutPanel1.RowStyles.Add(new RowStyle());
+			tableLayoutPanel1.RowStyles.Add(new RowStyle());
+			tableLayoutPanel1.RowStyles.Add(new RowStyle());
+			tableLayoutPanel1.RowStyles.Add(new RowStyle());
+			tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+			tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F));
+			tableLayoutPanel1.Size = new Size(1113, 286);
+			tableLayoutPanel1.TabIndex = 0;
 			// 
 			// btnCancel
 			// 
-			this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-			this.btnCancel.Dock = System.Windows.Forms.DockStyle.Right;
-			this.btnCancel.Location = new System.Drawing.Point(746, 184);
-			this.btnCancel.Name = "btnCancel";
-			this.btnCancel.Size = new System.Drawing.Size(153, 42);
-			this.btnCancel.TabIndex = 5;
-			this.btnCancel.Text = "Cancel";
-			this.btnCancel.UseVisualStyleBackColor = true;
+			btnCancel.DialogResult = DialogResult.Cancel;
+			btnCancel.Dock = DockStyle.Right;
+			btnCancel.Location = new Point(829, 230);
+			btnCancel.Margin = new Padding(3, 4, 3, 4);
+			btnCancel.Name = "btnCancel";
+			btnCancel.Size = new Size(170, 52);
+			btnCancel.TabIndex = 5;
+			btnCancel.Text = "Cancel";
+			btnCancel.UseVisualStyleBackColor = true;
 			// 
 			// btnAdd
 			// 
-			this.btnAdd.Dock = System.Windows.Forms.DockStyle.Right;
-			this.btnAdd.Location = new System.Drawing.Point(905, 184);
-			this.btnAdd.Name = "btnAdd";
-			this.btnAdd.Size = new System.Drawing.Size(94, 42);
-			this.btnAdd.TabIndex = 4;
-			this.btnAdd.Text = "Add";
-			this.btnAdd.UseVisualStyleBackColor = true;
+			btnAdd.Dock = DockStyle.Right;
+			btnAdd.Location = new Point(1006, 230);
+			btnAdd.Margin = new Padding(3, 4, 3, 4);
+			btnAdd.Name = "btnAdd";
+			btnAdd.Size = new Size(104, 52);
+			btnAdd.TabIndex = 4;
+			btnAdd.Text = "Add";
+			btnAdd.UseVisualStyleBackColor = true;
 			// 
 			// lblGroup
 			// 
-			this.lblGroup.AutoSize = true;
-			this.lblGroup.Dock = System.Windows.Forms.DockStyle.Right;
-			this.lblGroup.Location = new System.Drawing.Point(3, 52);
-			this.lblGroup.Name = "lblGroup";
-			this.lblGroup.Size = new System.Drawing.Size(155, 34);
-			this.lblGroup.TabIndex = 11;
-			this.lblGroup.Text = "Mikrotik List (Group):";
-			this.lblGroup.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+			lblGroup.AutoSize = true;
+			lblGroup.Dock = DockStyle.Right;
+			lblGroup.Location = new Point(3, 65);
+			lblGroup.Name = "lblGroup";
+			lblGroup.Size = new Size(177, 41);
+			lblGroup.TabIndex = 11;
+			lblGroup.Text = "Mikrotik List (Group):";
+			lblGroup.TextAlign = ContentAlignment.MiddleRight;
 			// 
 			// lblAddress
 			// 
-			this.lblAddress.AutoSize = true;
-			this.lblAddress.Dock = System.Windows.Forms.DockStyle.Right;
-			this.lblAddress.Location = new System.Drawing.Point(86, 86);
-			this.lblAddress.Name = "lblAddress";
-			this.lblAddress.Size = new System.Drawing.Size(72, 34);
-			this.lblAddress.TabIndex = 5;
-			this.lblAddress.Text = "Address:";
-			this.lblAddress.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+			lblAddress.AutoSize = true;
+			lblAddress.Dock = DockStyle.Right;
+			lblAddress.Location = new Point(99, 106);
+			lblAddress.Name = "lblAddress";
+			lblAddress.Size = new Size(81, 41);
+			lblAddress.TabIndex = 5;
+			lblAddress.Text = "Address:";
+			lblAddress.TextAlign = ContentAlignment.MiddleRight;
 			// 
 			// lblComment
 			// 
-			this.lblComment.AutoSize = true;
-			this.lblComment.Dock = System.Windows.Forms.DockStyle.Right;
-			this.lblComment.Location = new System.Drawing.Point(76, 120);
-			this.lblComment.Name = "lblComment";
-			this.lblComment.Size = new System.Drawing.Size(82, 32);
-			this.lblComment.TabIndex = 6;
-			this.lblComment.Text = "Comment:";
-			this.lblComment.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+			lblComment.AutoSize = true;
+			lblComment.Dock = DockStyle.Right;
+			lblComment.Location = new Point(85, 147);
+			lblComment.Name = "lblComment";
+			lblComment.Size = new Size(95, 39);
+			lblComment.TabIndex = 6;
+			lblComment.Text = "Comment:";
+			lblComment.TextAlign = ContentAlignment.MiddleRight;
 			// 
 			// cboGroup
 			// 
-			this.tableLayoutPanel1.SetColumnSpan(this.cboGroup, 2);
-			this.cboGroup.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.cboGroup.ItemHeight = 20;
-			this.cboGroup.Location = new System.Drawing.Point(164, 55);
-			this.cboGroup.MaxDropDownItems = 50;
-			this.cboGroup.Name = "cboGroup";
-			this.cboGroup.Size = new System.Drawing.Size(835, 28);
-			this.cboGroup.TabIndex = 3;
+			tableLayoutPanel1.SetColumnSpan(cboGroup, 2);
+			cboGroup.Dock = DockStyle.Fill;
+			cboGroup.ItemHeight = 25;
+			cboGroup.Location = new Point(186, 69);
+			cboGroup.Margin = new Padding(3, 4, 3, 4);
+			cboGroup.MaxDropDownItems = 50;
+			cboGroup.Name = "cboGroup";
+			cboGroup.Size = new Size(924, 33);
+			cboGroup.TabIndex = 3;
 			// 
 			// cboAddress
 			// 
-			this.tableLayoutPanel1.SetColumnSpan(this.cboAddress, 2);
-			this.cboAddress.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.cboAddress.Location = new System.Drawing.Point(164, 89);
-			this.cboAddress.MaxLength = 100;
-			this.cboAddress.Name = "cboAddress";
-			this.cboAddress.Size = new System.Drawing.Size(835, 28);
-			this.cboAddress.TabIndex = 0;
+			tableLayoutPanel1.SetColumnSpan(cboAddress, 2);
+			cboAddress.Dock = DockStyle.Fill;
+			cboAddress.Location = new Point(186, 110);
+			cboAddress.Margin = new Padding(3, 4, 3, 4);
+			cboAddress.MaxLength = 100;
+			cboAddress.Name = "cboAddress";
+			cboAddress.Size = new Size(924, 33);
+			cboAddress.TabIndex = 0;
 			// 
 			// txtComment
 			// 
-			this.tableLayoutPanel1.SetColumnSpan(this.txtComment, 2);
-			this.txtComment.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.txtComment.Location = new System.Drawing.Point(164, 123);
-			this.txtComment.MaxLength = 100;
-			this.txtComment.Name = "txtComment";
-			this.txtComment.Size = new System.Drawing.Size(835, 26);
-			this.txtComment.TabIndex = 1;
+			tableLayoutPanel1.SetColumnSpan(txtComment, 2);
+			txtComment.Dock = DockStyle.Fill;
+			txtComment.Location = new Point(186, 151);
+			txtComment.Margin = new Padding(3, 4, 3, 4);
+			txtComment.MaxLength = 100;
+			txtComment.Name = "txtComment";
+			txtComment.Size = new Size(924, 31);
+			txtComment.TabIndex = 1;
 			// 
 			// label1
 			// 
-			this.label1.AutoSize = true;
-			this.label1.BackColor = System.Drawing.SystemColors.Info;
-			this.tableLayoutPanel1.SetColumnSpan(this.label1, 3);
-			this.label1.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.label1.Location = new System.Drawing.Point(3, 0);
-			this.label1.Name = "label1";
-			this.label1.Padding = new System.Windows.Forms.Padding(16);
-			this.label1.Size = new System.Drawing.Size(996, 52);
-			this.label1.TabIndex = 12;
-			this.label1.Text = "New element will be created in disabled state!";
+			label1.AutoSize = true;
+			label1.BackColor = SystemColors.Info;
+			tableLayoutPanel1.SetColumnSpan(label1, 3);
+			label1.Dock = DockStyle.Fill;
+			label1.Location = new Point(3, 0);
+			label1.Name = "label1";
+			label1.Padding = new Padding(18, 20, 18, 20);
+			label1.Size = new Size(1107, 65);
+			label1.TabIndex = 12;
+			label1.Text = "New element will be created in disabled state!";
 			// 
-			// frmAddressListItemEditor
+			// MikrotikAddressTableRecord_EditorUI
 			// 
-			this.AcceptButton = this.btnAdd;
-			this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
-			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.CancelButton = this.btnCancel;
-			this.ClientSize = new System.Drawing.Size(1034, 261);
-			this.Controls.Add(this.tableLayoutPanel1);
-			this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-			this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-			this.MaximizeBox = false;
-			this.MinimizeBox = false;
-			this.Name = "frmAddressListItemEditor";
-			this.Padding = new System.Windows.Forms.Padding(16);
-			this.ShowIcon = false;
-			this.ShowInTaskbar = false;
-			this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-			this.Text = "AddressList Editor";
-			this.tableLayoutPanel1.ResumeLayout(false);
-			this.tableLayoutPanel1.PerformLayout();
-			this.ResumeLayout(false);
-
+			AcceptButton = btnAdd;
+			AutoScaleDimensions = new SizeF(10F, 25F);
+			AutoScaleMode = AutoScaleMode.Font;
+			CancelButton = btnCancel;
+			ClientSize = new Size(1149, 326);
+			Controls.Add(tableLayoutPanel1);
+			FormBorderStyle = FormBorderStyle.FixedDialog;
+			Icon = (Icon)resources.GetObject("$this.Icon");
+			Margin = new Padding(3, 4, 3, 4);
+			MaximizeBox = false;
+			MinimizeBox = false;
+			Name = "MikrotikAddressTableRecord_EditorUI";
+			Padding = new Padding(18, 20, 18, 20);
+			ShowIcon = false;
+			ShowInTaskbar = false;
+			StartPosition = FormStartPosition.CenterParent;
+			Text = "AddressList Editor";
+			tableLayoutPanel1.ResumeLayout(false);
+			tableLayoutPanel1.PerformLayout();
+			ResumeLayout(false);
 		}
 
 		#endregion
