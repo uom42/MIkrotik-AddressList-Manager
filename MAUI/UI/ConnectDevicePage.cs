@@ -44,12 +44,12 @@ namespace MALM.UI
 
 		private async Task ConnectDevice()
 		{
-			_lblProgress.Text = L_CONNECTING_TO.e_Format(_deviceToConnect.AddressString ?? string.Empty);// $"Connecting to '{_deviceToConnect.AddressString}'...";
+			_lblProgress.Text = L_CONNECTING_TO.e_Format(_deviceToConnect.AddressString ?? string.Empty);
 
 			await Task.Delay(500);
 			try
 			{
-				var con = await DevicesListRecord.Connect(_deviceToConnect);
+				var con = await DevicesListRecord.OpenConnection(_deviceToConnect);
 				//Connected successfully
 
 				await this.e_SetDialogResultAndPopBackAsync(con);

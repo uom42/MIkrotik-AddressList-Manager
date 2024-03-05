@@ -127,7 +127,13 @@
 										-->
 
 									<StackLayout.GestureRecognizers>
-										<TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnDeviceRow_Tapped" />
+
+										<TapGestureRecognizer
+											Command="{Binding DeviceTappedCommand}"
+											CommandParameter="{Binding .}"
+											NumberOfTapsRequired="1" />
+
+
 									</StackLayout.GestureRecognizers>
 
 

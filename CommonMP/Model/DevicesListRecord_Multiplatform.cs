@@ -7,11 +7,18 @@ using static MALM.Localization.Strings;
 
 using System.Xml.Serialization;
 using System.ComponentModel;
+using System.Windows.Input;
 
 using MikrotikDotNet;
 using MALM.UI;
+
+
 #if !WINDOWS
+
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Maui.Alerts;
+
+using uom.maui;
 #endif
 
 
@@ -332,7 +339,7 @@ namespace MALM.Model
 			: new(AddressString, UserName, PwdString);
 
 
-		internal static async Task<MKConnection> Connect(DevicesListRecord dev)
+		internal static async Task<MKConnection> OpenConnection(DevicesListRecord dev)
 		{
 			CancellationTokenSource ct = new();
 

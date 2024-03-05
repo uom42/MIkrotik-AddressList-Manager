@@ -87,6 +87,11 @@
 		</Compile>
 
 
+		<Compile Update="Model\DevicesListRecord_Multiplatform.cs">
+			<DependentUpon>DevicesListRecord.cs</DependentUpon>
+		</Compile>
+
+
 
 
 	</ItemGroup>

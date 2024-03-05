@@ -1,4 +1,4 @@
-namespace MALM.UI.Controls;
+namespace MALM.UI.DataTemplates;
 
 public partial class MikrotikAddressTableRecordTemplate : DataTemplate
 {
