@@ -94,4 +94,43 @@ internal partial class DevicesListUI : Form
 	#endregion
 
 
+	#region Connect
+
+
+	private async Task OnTryConnectDevice(object? s, EventArgs e)
+	{
+		var sel = lvwDevices.e_SelectedItemsAndTags<DevicesListRecord>().FirstOrDefault();
+		var md = sel?.Tag;
+		if (md == null || string.IsNullOrWhiteSpace(md.AddressString)) return;
+
+		Control[] buttonsToDisable = [btnAdd, btnEdit, btnDelete, btnConnect, btnSetMasterKey];
+		UseWaitCursor = true;
+		Update();
+
+		buttonsToDisable.e_Enable(false);
+
+		try
+		{
+			var con = await DevicesListRecord.OpenConnection(md);
+
+			//Connected successfully
+			_dialogResult = con!;
+			DialogResult = DialogResult.OK;
+		}
+		catch (Exception ex) { ex.e_LogError(true, E_TITLE_DEFAULT); }
+		finally
+		{
+			buttonsToDisable.e_Enable(true);
+			UseWaitCursor = false;
+			OnDeviceSelected();
+		}
+
+	}
+
+
+	#endregion
+
+
+
+
 }

@@ -130,7 +130,7 @@
 
 
 
-		<Compile Update="UI\Controls\MikrotikAddressTableRecordTemplate.xaml.cs">
+		<Compile Update="UI\DataTemplates\MikrotikAddressTableRecordTemplate.xaml.cs">
 			<DependentUpon>MikrotikAddressTableRecordTemplate.xaml</DependentUpon>
 		</Compile>
 
@@ -161,9 +161,18 @@
 		<Compile Update="UI\MikrotikAddressTableRecordsListUI.xaml.cs">
 			<DependentUpon>MikrotikAddressTableRecordsListUI.xaml</DependentUpon>
 		</Compile>
+
+
 		<Compile Update="Controls\AddressListItemRowCell.xaml.cs">
 			<DependentUpon>AddressListItemRowCell.xaml</DependentUpon>
 		</Compile>
+
+
+		<Compile Update="Model\DevicesListRecord_Multiplatform.cs">
+			<DependentUpon>DevicesListRecord.cs</DependentUpon>
+		</Compile>
+
+
 	</ItemGroup>
 
 

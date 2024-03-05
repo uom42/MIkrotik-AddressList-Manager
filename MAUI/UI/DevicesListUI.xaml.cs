@@ -4,14 +4,9 @@ using static MALM.Localization.Strings;
 using System.Collections.ObjectModel;
 using MALM.Model;
 using MALM.Model.Mikrotik;
-using Plugin.Fingerprint;
-using Plugin.Fingerprint.Abstractions;
-using Plugin.CurrentActivity;
-
 
 
 namespace MALM.UI;
-
 
 
 public partial class DevicesListUI : ContentPage
@@ -27,22 +22,7 @@ public partial class DevicesListUI : ContentPage
 	/// <summary>Non Windows Code</summary>
 	private async Task OnLoad()
 	{
-
-		/*
-		var loginResult = await MasterKeyManager.OpenDevicesDatabase();
-		if (loginResult == null)
-		{
-			// User canceleg login
-			OnExit();
-			return;
-		}
-		_mkm = loginResult.Manager;
-		_devices = new(loginResult.Devices);
-
-		 */
-
 		_devices.CollectionChanged += OnCollectionChanged;
-
 
 		var groups =
 				(from row in _devices
@@ -103,19 +83,6 @@ public partial class DevicesListUI : ContentPage
 
 
 	#region Tap gestures
-
-
-
-	private async void OnDeviceRow_Tapped(object sender, TappedEventArgs e)
-	{
-		var v = sender as View;
-		var md = v?.BindingContext as DevicesListRecord;
-		if (md == null) return;
-
-		await OnTryConnectDevice(md, EventArgs.Empty);
-
-	}
-
 
 	private async void OnGroupTap(object sender, TappedEventArgs e)
 	{
