@@ -6,17 +6,11 @@
 #endif
 
 
-using static MALM.Localization.LStrings;
-
-
 using MALM.UI;
+
+using static MALM.Localization.LStrings;
 
 namespace MALM.Model
 {
-
-	partial class DevicesListRecord
-	{
-
-
-	}
+	public partial class DevicesListRecord { }
 }

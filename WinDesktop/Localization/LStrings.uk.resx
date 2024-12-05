@@ -150,6 +150,9 @@
   <data name="L_APP_EXIT" xml:space="preserve">
     <value>Закрити програму</value>
   </data>
+  <data name="L_ATR_SAMPLE_GROUP" xml:space="preserve">
+    <value>Або виберіть зразок зі списку нижче:</value>
+  </data>
   <data name="L_CANCEL" xml:space="preserve">
     <value>Відміна</value>
   </data>

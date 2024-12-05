@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
-		<TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
+		<TargetFramework>net9.0-windows10.0.17763.0</TargetFramework>
 
 		<UseWindowsForms>true</UseWindowsForms>
 		<Nullable>enable</Nullable>
@@ -37,34 +37,29 @@
 
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-		<ApplicationIcon>Router.ico</ApplicationIcon>
+		<ApplicationIcon>..\CommonMP\Media\Router\Router.ico</ApplicationIcon>
 
 	</PropertyGroup>
 
 
 
 
-	<!-- Resources -->
 	<ItemGroup>
 
-		<EmbeddedResource Include="Media\ball_green.svg" />
-
-		<EmbeddedResource Include="Media\Router\Router_gray.svg" />
-
-		<EmbeddedResource Include="OUI\oui.txt" />
-
-	</ItemGroup>
+		<!-- Resources -->
+		<EmbeddedResource Include="..\CommonMP\OUI\oui.txt" Link="OUI\oui.txt" />
+		<EmbeddedResource Include="..\CommonMP\Media\Router\Router_gray.svg" Link="Media\Router\Router_gray.svg" />				
+		<EmbeddedResource Include="..\CommonMP\Media\Balls\ball_green.svg" Link="Media\Balls\ball_green.svg" />
 
 
-
-	<!-- Partial files -->
-	<ItemGroup>
-
+		
 		<EmbeddedResource Update="Localization\LStrings.resx">
 			<Generator>ResXFileCodeGenerator</Generator>
 			<LastGenOutput>LStrings.Designer.cs</LastGenOutput>
 		</EmbeddedResource>
 
+		
+		
 		<Compile Update="Localization\LStrings.Designer.cs">
 			<DesignTime>True</DesignTime>
 			<AutoGen>True</AutoGen>
@@ -80,23 +75,38 @@
 		</EmbeddedResource>
 
 
+		
+		
 
 
-		<None Include="UI\MasterKeyUI_Multiplatform.cs">
+		<Compile Include="..\CommonMP\OUI\MacRecordInfo.cs" Link="OUI\MacRecordInfo.cs" />
+		<Compile Include="..\CommonMP\OUI\MacRecordsGroup.cs" Link="OUI\MacRecordsGroup.cs" />
+		<Compile Include="..\CommonMP\OUI\Manager.cs" Link="OUI\Manager.cs" />
+		<Compile Include="..\CommonMP\OUI\Tools.cs" Link="OUI\Tools.cs" />
+		<Compile Include="..\CommonMP\OUI\OUIDatabase.cs" Link="OUI\OUIDatabase.cs" />
+
+
+
+
+		<!-- Partial UI files -->
+
+		<Compile Include="..\CommonMP\UI\MasterKeyUI_Multiplatform.cs" Link="UI\MasterKeyUI_Multiplatform.cs">
 			<DependentUpon>MasterKeyUI.cs</DependentUpon>
-		</None>
+		</Compile>
 
-		<None Include="UI\DevicesListUI_Multiplatform.cs">
+		<Compile Include="..\CommonMP\UI\DevicesListUI_Multiplatform.cs" Link="UI\DevicesListUI_Multiplatform.cs">
 			<DependentUpon>DevicesListUI.cs</DependentUpon>
-		</None>
+		</Compile>
 
-		<None Include="UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs">
+		<Compile Include="..\CommonMP\UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs" Link="UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs">
 			<DependentUpon>MikrotikAddressTableRecord_ListUI.cs</DependentUpon>
-		</None>
+		</Compile>
 
-		<None Include="Model\DevicesListRecord_Multiplatform.cs">
+
+		<!-- Partial Model files -->
+		<Compile Include="..\CommonMP\Model\DevicesListRecord_Multiplatform.cs" Link="Model\DevicesListRecord_Multiplatform.cs">
 			<DependentUpon>DevicesListRecord.cs</DependentUpon>
-		</None>
+		</Compile>
 
 	</ItemGroup>
 
@@ -104,11 +114,13 @@
 
 	<!-- References -->
 	<ItemGroup>
-		<ProjectReference Include="..\..\..\..\_LIB\CS_UOM\Network\Mikrotik\MikrotikDotNet\MDN_Git\Mikrotik.Net\Mikrotik.Net.csproj" />
 
 		<PackageReference Include="Svg" Version="3.4.7" />
 
 		<PackageReference Include="System.Management" Version="8.0.0" />
+	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\..\..\_LIB\CS_UOM\Network\Mikrotik\MikrotikDotNet\MDN_Git\Mikrotik.Net\Mikrotik.Net.csproj" />
 	</ItemGroup>
 
 

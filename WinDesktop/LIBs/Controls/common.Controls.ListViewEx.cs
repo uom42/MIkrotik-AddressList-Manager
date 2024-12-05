@@ -3,16 +3,16 @@
 //global using Extensions.Extensions_Controls_Listview;
 
 
+global using System.Drawing;
 global using System.Windows.Forms;
 
-global using System.Drawing;
-
 global using uom.controls;
+
+using System.Diagnostics.Eventing.Reader;
 
 using uom.WinAPI;
 
 using static uom.controls.ListViewEx;
-using System.Diagnostics.Eventing.Reader;
 
 
 namespace uom.controls
@@ -248,7 +248,10 @@ namespace uom.controls
 			{
 				BeginUpdate();
 				{
-					foreach (ListViewItem li in Items) li.Selected = true;
+					foreach (ListViewItem li in Items)
+					{
+						li.Selected = true;
+					}
 				}
 			}
 			finally { EndUpdate(); }
@@ -313,12 +316,23 @@ namespace uom.controls
 
 		private void On_MouseDoubleClick(Object sender, MouseEventArgs e)
 		{
-			if (e.Button != MouseButtons.Left) return;
-			if (this.CheckBoxes) return;
+			if (e.Button != MouseButtons.Left)
+			{
+				return;
+			}
+
+			if (this.CheckBoxes)
+			{
+				return;
+			}
 
 			var POS = e.Location;
 			var LI = this.GetItemAt(POS.X, POS.Y);
-			if (null == LI) return;
+			if (null == LI)
+			{
+				return;
+			}
+
 			this.On_Items_NeedEdit(LI.eToArrayOf());
 		}
 
@@ -359,7 +373,11 @@ namespace uom.controls
 		}
 		private void On_KeyPress(Object sender, KeyPressEventArgs e) //,Handles this.KeyPress
 		{
-			if (e.KeyChar != 0xD) return;
+			if (e.KeyChar != 0xD)
+			{
+				return;
+			}
+
 			e.Handled = this.On_Items_NeedEdit();
 		}
 		private void On_KeyUp(Object sender, KeyEventArgs e)
@@ -398,9 +416,21 @@ namespace uom.controls
 
 		protected virtual bool On_Items_NeedEdit(ListViewItem[]? aSel = null)
 		{
-			if (null == aSel || !aSel.Any()) aSel = this.eSelectedItemsAsIEnumerable().ToArray();
-			if (!aSel.Any()) return false;
-			if (!this.MultiSelect) aSel = aSel.First().eToArrayOf();
+			if (null == aSel || !aSel.Any())
+			{
+				aSel = this.eSelectedItemsAsIEnumerable().ToArray();
+			}
+
+			if (!aSel.Any())
+			{
+				return false;
+			}
+
+			if (!this.MultiSelect)
+			{
+				aSel = aSel.First().eToArrayOf();
+			}
+
 			Items_NeedEdit?.Invoke(this, aSel);
 			return true;
 		}
@@ -408,7 +438,11 @@ namespace uom.controls
 		protected virtual bool On_Items_NeedDelete()
 		{
 			var aSel = this.eSelectedItemsAsIEnumerable().ToArray();
-			if (!aSel.Any()) return false;
+			if (!aSel.Any())
+			{
+				return false;
+			}
+
 			Items_NeedDelete?.Invoke(this, aSel);
 			return true;
 		}
@@ -422,7 +456,11 @@ namespace uom.controls
 		private bool On_Clipboard_Copy()
 		{
 			var aSel = this.eSelectedItemsAsIEnumerable().ToArray();
-			if (!aSel.Any()) return false;
+			if (!aSel.Any())
+			{
+				return false;
+			}
+
 			ClipboardCopy?.Invoke(this, aSel);
 			return true;
 		}
@@ -669,7 +707,10 @@ namespace uom.controls
 			const int InsertionMarkWidth = 3;
 			const int InsertionMarkArrowSize = 8;
 
-			if (_dragDrop_InsertionIndex < 0 || _dragDrop_InsertionIndex >= this.Items.Count) return;
+			if (_dragDrop_InsertionIndex < 0 || _dragDrop_InsertionIndex >= this.Items.Count)
+			{
+				return;
+			}
 
 			Rectangle rcItemToDrop = this.Items[_dragDrop_InsertionIndex].GetBounds(ItemBoundsPortion.Entire);
 			using Graphics g = CreateGraphics();
@@ -802,12 +843,21 @@ namespace uom.controls
 			base.OnDragEnter(e);
 			e.Effect = DragDropEffects.None;
 
-			if (!DragDropMode.HasFlag(DragDropModes.DropFromExternal)) return;
-
+			if (!DragDropMode.HasFlag(DragDropModes.DropFromExternal))
+			{
+				return;
+			}
 
 			DataObject? shellData = e.Data as DataObject;
-			if (shellData == null) return;
-			if (!shellData.ContainsFileDropList()) return;
+			if (shellData == null)
+			{
+				return;
+			}
+
+			if (!shellData.ContainsFileDropList())
+			{
+				return;
+			}
 
 			FileInfo[] files = shellData.GetFileDropList()
 				.Cast<string>()
@@ -816,7 +866,10 @@ namespace uom.controls
 
 			DragDrop_DragEnterExternalFilesEventArgs ea = new(files);
 			DragDrop_DragEnterExternalFiles?.Invoke(this, ea);
-			if (ea.Cancel || !ea.Files.Any()) return;
+			if (ea.Cancel || !ea.Files.Any())
+			{
+				return;
+			}
 
 			_dragDrop_FilesFromExternalSource = ea.Files;
 			e.Effect = DragDropEffects.Copy;
@@ -915,7 +968,10 @@ namespace uom.controls
 
 		protected void OnDragDrop_DropExternalFiles(DragEventArgs e)
 		{
-			if (!this._dragDrop_FilesFromExternalSource.Any()) return;
+			if (!this._dragDrop_FilesFromExternalSource.Any())
+			{
+				return;
+			}
 
 			try
 			{
@@ -923,7 +979,10 @@ namespace uom.controls
 				{
 
 					int dropIndex = _dragDrop_InsertionIndex;
-					if (_dragDrop_InsertionMode == DragDropInsertionModes.After) dropIndex++;
+					if (_dragDrop_InsertionMode == DragDropInsertionModes.After)
+					{
+						dropIndex++;
+					}
 
 					dropIndex = (dropIndex >= Items.Count)
 						? dropIndex = -1
@@ -946,7 +1005,10 @@ namespace uom.controls
 
 		protected void OnDragDrop_ItemReorder(DragEventArgs e)
 		{
-			if (!this._dragDrop_ItemDragInProgress) return;
+			if (!this._dragDrop_ItemDragInProgress)
+			{
+				return;
+			}
 
 			try
 			{
@@ -964,7 +1026,10 @@ namespace uom.controls
 							.Cast<ListViewItem>()
 							.ToArray();
 
-						if (!dragItems.Any()) return;
+						if (!dragItems.Any())
+						{
+							return;
+						}
 
 						try
 						{
@@ -975,12 +1040,19 @@ namespace uom.controls
 									int dropIndex = dropToItem.Index;
 
 									if (dragItem.Index < dropIndex)
+									{
 										dropIndex--;
+									}
 
 									if (this._dragDrop_InsertionMode == DragDropInsertionModes.After && dragItem.Index < this.Items.Count - 1)
+									{
 										dropIndex++;
+									}
 
-									if (dropIndex == dragItem.Index) return;//Drop on itself
+									if (dropIndex == dragItem.Index)
+									{
+										return;//Drop on itself
+									}
 
 									Point clientPoint = PointToClient(new Point(e.X, e.Y));
 									DragDrop_ItemReorderEventArgs args = new(
@@ -991,7 +1063,10 @@ namespace uom.controls
 										clientPoint);
 
 									this.OnDragDrop_ItemReorder(args);
-									if (args.Cancel) continue;
+									if (args.Cancel)
+									{
+										continue;
+									}
 
 									this.Items.Remove(dragItem);
 									this.Items.Insert(dropIndex, dragItem);
@@ -1076,7 +1151,11 @@ namespace uom.controls
 
 		private void ResetEmptyText()
 		{
-			if (!IsHandleCreated) return;
+			if (!IsHandleCreated)
+			{
+				return;
+			}
+
 			uom.WinAPI.windows.SendMessage(Handle, (int)ListViewMessages.LVM_RESETEMPTYTEXT, 0, 0);
 		}
 
@@ -1222,7 +1301,10 @@ namespace uom.controls
 		{
 			const string GROUPS_SATES_EXT = ".groups.xml";
 			string lvID = this.eCreateListViewID();
-			if (!string.IsNullOrWhiteSpace(dataID)) lvID += $"_{dataID}";
+			if (!string.IsNullOrWhiteSpace(dataID))
+			{
+				lvID += $"_{dataID}";
+			}
 
 			DirectoryInfo di = (@directory != null)
 				? new(@directory)
@@ -1241,10 +1323,15 @@ namespace uom.controls
 			{
 				states = LoadGroupsCollapsedStateFromStorage(@directory, dataID) ?? [];
 				var currentStates = GetCurrentGroupsCollapsedStates();
-				foreach (var kvp in currentStates) states[kvp.Key] = kvp.Value;
+				foreach (var kvp in currentStates)
+				{
+					states[kvp.Key] = kvp.Value;
+				}
 			}
 			else//Just only save groups existing in the listview
+			{
 				states = GetCurrentGroupsCollapsedStates();
+			}
 
 			_knownGroupsStates = states;
 
@@ -1278,7 +1365,10 @@ namespace uom.controls
 			try
 			{
 				FileInfo fi = GetGroupsCollapsedStateStorage(@directory, dataID);
-				if (!fi.Exists) return null;
+				if (!fi.Exists)
+				{
+					return null;
+				}
 
 				return fi
 					.eReadAsText()!
@@ -1875,7 +1965,7 @@ namespace uom.Extensions
 
 
 	[DebuggerNonUserCode, DebuggerStepThrough]
-	internal static partial class Extensions_Controls_Listview
+	internal static partial class Extensions_WinForms_Controls_Listview
 	{
 
 
@@ -1962,11 +2052,18 @@ namespace uom.Extensions
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static void eSaveGroupCollapsedState_Reg(this ListViewGroup grp, string listViewID = "")
 		{
-			if (string.IsNullOrWhiteSpace(grp.Name)) throw new ArgumentNullException(ERROR_LIST_VIEW_GROUP_NAME_NULL);
+			if (string.IsNullOrWhiteSpace(grp.Name))
+			{
+				throw new ArgumentNullException(ERROR_LIST_VIEW_GROUP_NAME_NULL);
+			}
 
 			if (string.IsNullOrWhiteSpace(listViewID))
 			{
-				if (grp.ListView == null) return; // Группе не назначен ListView - Просто игнорируем
+				if (grp.ListView == null)
+				{
+					return; // Группе не назначен ListView - Просто игнорируем
+				}
+
 				listViewID = grp.ListView.eCreateListViewID();
 			}
 
@@ -1982,11 +2079,18 @@ namespace uom.Extensions
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static void eLoadGroupCollapsedState_Reg(this ListViewGroup grp, string listViewID = "", bool SearchPreVersion = false)
 		{
-			if (string.IsNullOrWhiteSpace(grp.Name)) throw new ArgumentNullException(ERROR_LIST_VIEW_GROUP_NAME_NULL);
+			if (string.IsNullOrWhiteSpace(grp.Name))
+			{
+				throw new ArgumentNullException(ERROR_LIST_VIEW_GROUP_NAME_NULL);
+			}
 
 			if (string.IsNullOrWhiteSpace(listViewID))
 			{
-				if (grp.ListView == null) return; // Группе не назначен ListView - Просто игнорируем
+				if (grp.ListView == null)
+				{
+					return; // Группе не назначен ListView - Просто игнорируем
+				}
+
 				listViewID = grp.ListView.eCreateListViewID();
 			}
 
@@ -2257,7 +2361,11 @@ namespace uom.Extensions
 		public static bool SetSubItemImage(this ListViewItem li, int col, int iconIndex)
 		{
 			//ListViewItem.ListViewSubItem? lsi = li.SubItems[col];
-			if (li.ListView == null) return false;// throw new ArgumentNullException(nameof(li), "ListViewItem.ListView = NULL!");
+			if (li.ListView == null)
+			{
+				return false;// throw new ArgumentNullException(nameof(li), "ListViewItem.ListView = NULL!");
+			}
+
 			LV_ITEM lvi = new()
 			{
 				iItem = li.Index,

@@ -1,1 +1,0 @@
-P:/_Pro.2/Win/MIkrotik/MIkrotik AddressList Manager/CommonMP/UI/DevicesListUI_Multiplatform.cs

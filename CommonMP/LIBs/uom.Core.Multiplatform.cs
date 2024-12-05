@@ -2,10 +2,6 @@
 
 #nullable enable
 
-global using uom.Extensions;
-global using static uom.constants;
-global using static uom.Extensions.Extensions_DebugAndErrors;
-
 global using System;
 global using System.Collections;
 global using System.Collections.Generic;
@@ -15,6 +11,8 @@ global using System.Diagnostics;
 global using System.Globalization;
 global using System.IO;
 global using System.Linq;
+global using System.Net;
+global using System.Numerics;
 global using System.Reflection;
 global using System.Runtime.CompilerServices;
 global using System.Runtime.InteropServices;
@@ -26,13 +24,19 @@ global using System.Text.RegularExpressions;
 global using System.Threading;
 global using System.Threading.Tasks;
 global using System.Xml;
-global using System.Net;
 global using System.Xml.Linq;
-global using System.Numerics;
 
+global using uom.Extensions;
+
+global using static uom.constants;
+global using static uom.Extensions.Extensions_DebugAndErrors;
+
+using System.Drawing;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.NetworkInformation;
+//using Windows.Foundation.Metadata;
+//using Microsoft.Win32;
 
 
 
@@ -42,6 +46,31 @@ using System.Net.NetworkInformation;
 
 
 #region Code Snippets
+
+
+
+/*
+ 
+ 
+ 
+ <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+		<DefineConstants>WINDOWS;WINFORMS</DefineConstants>
+	</PropertyGroup>
+	<PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+		<DefineConstants>LINUX</DefineConstants>
+	</PropertyGroup>
+	<PropertyGroup Condition="$([MSBuild]::IsOSPlatform('FreeBSD'))">
+		<DefineConstants>FREEBSD</DefineConstants>
+	</PropertyGroup>
+	<PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+		<DefineConstants>MAC</DefineConstants>
+	</PropertyGroup>
+ 
+ 
+ */
+
+
+
 
 #region NET Versions
 //https://docs.microsoft.com/ru-ru/dotnet/standard/frameworks
@@ -1689,6 +1718,8 @@ namespace uom
 		//    return UOM.Globalization_.mGlobalization.PhoneParse(sPhone, CNT);
 		//}
 
+
+
 		public enum CHAR_MODE : int
 		{
 			Auto = 0,
@@ -1737,7 +1768,11 @@ namespace uom
 			get => new byte[] { Byte_0, Byte_1 };
 			set
 			{
-				if (value.Length != 2) throw new ArgumentException($"{nameof(_Int16)} Constructor failed! byteArray lenght is wrong!");
+				if (value.Length != 2)
+				{
+					throw new ArgumentException($"{nameof(_Int16)} Constructor failed! byteArray lenght is wrong!");
+				}
+
 				(Byte_0, Byte_1) = (value[0], value[1]);
 			}
 		}
@@ -1810,7 +1845,11 @@ namespace uom
 			get => new byte[] { Byte_0, Byte_1, Byte_2, Byte_3 };
 			set
 			{
-				if (value.Length != 4) throw new ArgumentException($"{nameof(_Int32)} Constructor failed! byteArray lenght is wrong!");
+				if (value.Length != 4)
+				{
+					throw new ArgumentException($"{nameof(_Int32)} Constructor failed! byteArray lenght is wrong!");
+				}
+
 				(Byte_0, Byte_1, Byte_2, Byte_3) = (value[0], value[1], value[2], value[3]);
 			}
 		}
@@ -1895,7 +1934,11 @@ namespace uom
 			get => new byte[] { Byte_0, Byte_1, Byte_2, Byte_3, Byte_4, Byte_5, Byte_6, Byte_7 };
 			set
 			{
-				if (value.Length != 8) throw new ArgumentException($"{nameof(_Int64)} Constructor failed! byteArray lenght is wrong!");
+				if (value.Length != 8)
+				{
+					throw new ArgumentException($"{nameof(_Int64)} Constructor failed! byteArray lenght is wrong!");
+				}
+
 				(Byte_0, Byte_1, Byte_2, Byte_3, Byte_4, Byte_5, Byte_6, Byte_7) = (value[0], value[1], value[2], value[3], value[4], value[5], value[6], value[7]);
 			}
 		}
@@ -1941,6 +1984,12 @@ namespace uom
 	#endregion
 
 
+
+
+
+
+
+
 	/// <summary>Application Tools</summary>
 	internal static class OSInfo
 	{
@@ -1956,30 +2005,87 @@ namespace uom
 
 		public static Assembly Assembly => Assembly.GetExecutingAssembly();
 
-		public static string? Title => Assembly.GetCustomAttribute<AssemblyTitleAttribute>()?.Title;
-		public static string? Company => Assembly.GetCustomAttribute<AssemblyCompanyAttribute>()?.Company;
+
+
+		public static string? Title
+#if (UWP)
+			=> Assembly.GetCustomAttribute<AssemblyTitleAttribute>()?.Title;
+#else
+			=> ProductName;
+#endif
+
+
+		public static string? CompanyName
+#if (UWP)
+			=> Assembly.GetCustomAttribute<AssemblyCompanyAttribute>()?.Company;
+#else
+			=> Application.CompanyName;
+#endif
+
+
+
+		public static string StartupPath
+#if (UWP)
+		=> new FileInfo(Assembly.Location).DirectoryName!;
+#else
+			=> System.Windows.Forms.Application.StartupPath;
+#endif
+
+
+
+#if (!ANDROID)
+
+
+		public static string? ProductName
+#if (UWP)
+			=> Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyProductAttribute>()?.Product;
+#else
+			=> Application.ProductName;
+#endif
+
+
+		public static string? ProductVersion
+#if (UWP)
+			=> AssemblyFileVersionInfo?.ProductVersion;
+#else
+			=> Application.ProductVersion;
+#endif
+
+
+
+
 		public static string? Description => Assembly.GetCustomAttribute<AssemblyDescriptionAttribute>()?.Description;
 		public static string? Copyright => Assembly.GetCustomAttribute<AssemblyCopyrightAttribute>()?.Copyright;
-		public static string? Product => Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyProductAttribute>()?.Product;
 		public static string? Trademark => Assembly.GetCustomAttribute<AssemblyTrademarkAttribute>()?.Trademark;
+
+
 
 		public static string? @AssemblyVersionAttribute => Assembly.GetCustomAttribute<AssemblyVersionAttribute>()?.Version;
 		public static AssemblyName @AssemblyName => Assembly.GetName();
 		public static Version? @AssemblyVersion => AssemblyName.Version;
 
 
-#if !ANDROID
-
-		public static string? ProductVersion => AssemblyFileVersionInfo?.ProductVersion;
 		public static string? Comments => AssemblyFileVersionInfo?.Comments;
 
 
-		public static string FormatFormTitle(string title) => $"{title} ({uom.AppInfo.AssemblyFileVersionAttribute})" + (uom.AppInfo.IsProcessElevated() ? " [Admin]" : string.Empty);
+		/// <summary>ProductName + ProductVersion</summary>
+		internal static string AppProductNameAndVersion
+			=> (ProductName + " " + ProductVersion);
+
+
+
 
 
 		public static FileInfo File => new(Assembly.Location);
 		public static FileVersionInfo AssemblyFileVersionInfo => FileVersionInfo.GetVersionInfo(Assembly.Location);
+
+
 #endif
+
+
+
+
+
 		public static string? @AssemblyFileVersionAttribute => Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version;
 
 
@@ -1996,6 +2102,13 @@ namespace uom
 
 
 
+
+
+
+
+
+
+
 		public static T? GetAssemblyAttribute<T>() where T : Attribute => GetAssemblyAttribute<T>(Assembly);
 
 		public static T? GetAssemblyAttribute<T>(Assembly asmbl) where T : Attribute
@@ -2007,14 +2120,38 @@ namespace uom
 
 
 
+		/// <summary>Gets dir like: 'C:\Users\user\AppData\Roaming_or_Local\company\product\AssemblyName' (no version number included)'</summary>
+		public static DirectoryInfo UserAppDataPath(bool roaming, bool createIfNotExist = true, string company = "", string product = "", bool useAssemblyName = true, string assemblymName = "")
+		{
+			if (company.eIsNullOrWhiteSpace()) company = AppInfo.CompanyName!;
+			if (string.IsNullOrWhiteSpace(company)) throw new ArgumentNullException(nameof(company));
 
-		/// <summary>в режиме дизайнера WPF?</summary>
-		private static bool IsInDesignerMode_WPF => (LicenseManager.UsageMode == LicenseUsageMode.Designtime);
+			if (product.eIsNullOrWhiteSpace()) product = AppInfo.ProductName!;
+			if (string.IsNullOrWhiteSpace(product)) throw new ArgumentNullException(nameof(product));
 
-		/// <summary>в режиме дизайнера WinForms?</summary>
-		private static bool IsInDesignerMode_WinForms => (Process.GetCurrentProcess().ProcessName.ToLower() ?? "") == ("devenv".ToLower());
+			string rootPath = roaming
+				? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+				: Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+			if (useAssemblyName)
+			{
+				if (assemblymName.eIsNullOrWhiteSpace())
+				{
+#if NET
+					assemblymName = Assembly.GetExecutingAssembly().GetName().Name!;
+#endif
+				}
+				if (string.IsNullOrWhiteSpace(assemblymName)) throw new ArgumentNullException(nameof(assemblymName));
+			}
 
 
+			string fullPath = Path.Combine(rootPath, company, product);
+			if (useAssemblyName && assemblymName.eIsNotNullOrWhiteSpace()) fullPath = Path.Combine(fullPath, assemblymName);
+
+			DirectoryInfo di = new(fullPath);
+			if (createIfNotExist) di.eCreateIfNotExist();
+			return di;
+		}
 
 
 		public static string? TitleHeader => Title + ((@AssemblyFileVersionAttribute == null)
@@ -2025,41 +2162,26 @@ namespace uom
 
 
 
-#if NET && !WINDOWS
+
+#if NET
 
 
-		/*
-	. AppendLine( $ "Имя: {AppInfo.Current.Name} ")
-   .AppendLine( $ "Пакет: {AppInfo.Current.PackageName} ")
-   .AppendLine( $ "Версия: {AppInfo.Current.VersionString} ")
-   .AppendLine( $ "Build: {AppInfo.Current.BuildString} ")
-   .AppendLine( $ "LayoutDirection: {AppInfo.RequestedLayoutDirection} ")
-   .AppendLine( $ "Тема: {AppInfo.RequestedTheme} ").На
-	 */
-
+#if !WINDOWS
 		internal static bool IsEmulator => DeviceInfo.Current.DeviceType == DeviceType.Virtual;
-
 
 		/// <summary> AppInfo.Product</summary>
 		internal static string TitleShort => AppInfo.Product!;
 
 		internal static Page? CurrentUIContext => Application.Current!.MainPage!;
 
-
-
 #endif
-
-
-#if NET
 
 		/// <summary>
 		/// In Net & Core we need to RegisterEncodingProvider to use encodigs like Win-1251 or other
 		/// </summary>
 		internal static void RegisterEncodingProvider()
-		{
-			System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+			=> System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
-		}
 
 #endif
 
@@ -2128,28 +2250,153 @@ namespace uom
 		}
 
 
-#if !ANDROID
-
-		/// <param name="fileNameEndsWith">Format: <c>"{Namespace}.{Folder}.{filename}.{Extension}"</c></param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Image LoadResourceFileAsImage(string fileNameEndsWith)
-		{
-			using Stream stream = GetResourceStreamForFile(fileNameEndsWith);
-			return Image.FromStream(stream);
-		}
-
-		/// <param name="fileNameEndsWith">Format: <c>"{Namespace}.{Folder}.{filename}.{Extension}"</c></param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task<Image> LoadResourceFileAsImageAsync(string fileNameEndsWith)
-		{
-			using Stream stream = GetResourceStreamForFile(fileNameEndsWith);
-			return await Task.Factory.StartNew(() => Image.FromStream(stream));
-		}
-
-#endif
-
 		#endregion
 	}
+
+
+
+
+
+	internal static partial class AppTools
+	{
+
+
+
+
+
+
+
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static FileInfo GetFileIn_AppStartupDir(string FileName)
+			=> new(Path.Combine(AppInfo.StartupPath, FileName));
+
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static FileInfo GetFileIn_AppData(string filePath, bool roaming)
+			=> new(Path.Combine(AppInfo.UserAppDataPath(roaming).FullName, filePath));
+
+
+		internal static TypeInfo[] GetAllAssemblyClassesDerivedFrom(Type T)
+			=> Assembly
+			.GetExecutingAssembly()
+			.DefinedTypes
+			.Where(rT => ReferenceEquals(rT.BaseType, T))
+			.ToArray();
+
+
+		internal static string GetCallingMethodNamespacePart(int Count)
+		{
+			StackTrace ST = new();
+			var lF = ST.GetFrames().ToList();
+			lF.RemoveAt(0);
+			var aF = lF.ToArray();
+			var CallingFrame = aF.First();
+			var M = CallingFrame.GetMethod();
+			var T = M!.DeclaringType!;
+			string NS = T.Namespace!;
+			var aNS = NS.Split('.').Reverse().Take(Count).Reverse();
+			return aNS.eJoin(".", NS)!;
+		}
+
+
+		public static Process[] GetAllInstancesOfMyself()
+		{
+			using Process cp = Process.GetCurrentProcess();
+			return Process.GetProcessesByName(cp.ProcessName);
+		}
+
+
+		public static bool HasOtherInstancesOfMyself()
+		{
+			using Process cp = Process.GetCurrentProcess();
+			return GetAllInstancesOfMyself()
+				.SingleOrDefault(p => (p.Id != cp.Id)) != null;
+		}
+
+		#region StartProcess...
+
+		public enum ConsoleAppErrorMode : int
+		{
+			ErrorMustThrowException,
+			ErrorReturnsAsOutput
+		}
+
+		internal static string StartConsoleAppAndCaptureOutput(
+			string sExe,
+			string? sArguments = null,
+			string? workingDirectory = null,
+			int WAIT_TIMEOUT_SEC = 5,
+			bool SUPRESS_DEBUG_INFO = false,
+			Encoding? StandardOutputEncoding = null,
+			ConsoleAppErrorMode cem = ConsoleAppErrorMode.ErrorMustThrowException)
+		{
+			Debug.WriteLine("*** erun '" + sExe + "' with args: '" + sArguments + "'");
+			FileInfo fiExe = new(sExe);
+			var PSI = new ProcessStartInfo
+			{
+				FileName = sExe,
+				WorkingDirectory = workingDirectory ?? fiExe.DirectoryName,
+				Arguments = sArguments,
+				UseShellExecute = false,
+				RedirectStandardOutput = true,
+				RedirectStandardError = true
+			};
+
+			if (StandardOutputEncoding != null)
+			{
+				PSI.StandardOutputEncoding = StandardOutputEncoding;
+			}
+
+			int iWaitMilliseconds = WAIT_TIMEOUT_SEC * 1000;
+			using var prcExe = Process.Start(PSI);
+			_ = prcExe ?? throw new Exception($"Process.Start({fiExe}) Failed!");
+
+			string sError = prcExe.StandardError.ReadToEnd();
+			if (sError.eIsNotNullOrWhiteSpace() && cem == ConsoleAppErrorMode.ErrorMustThrowException)
+			{
+				throw new Exception(sError);
+			}
+
+			string sOutput = prcExe.StandardOutput.ReadToEnd();
+			if (sOutput.eIsNullOrWhiteSpace())
+			{
+				sOutput = "";
+			}
+			else
+			{
+				sOutput = sOutput
+					.Replace(constants.vbCrCrLf, constants.vbCrLf)
+					.Trim();
+			}
+
+			bool bWaitResult = prcExe.WaitForExit(iWaitMilliseconds);
+			if (!bWaitResult || !prcExe.HasExited)
+			{
+				Debug.WriteLine($"{fiExe} - Failed to finish for {WAIT_TIMEOUT_SEC} sec. Answer: '{sOutput}'");
+				Debug.WriteLine($"{fiExe} - Force Closing...");
+				prcExe.Close();
+				Debug.WriteLine($"{fiExe} - Force Closed!");
+			}
+			// Call PRC.WaitForExit()
+			else if (!SUPRESS_DEBUG_INFO)
+			{
+				Debug.WriteLine($"{fiExe} - finished ok. Output = '{sOutput}'");
+			}
+
+			return sOutput;
+		}
+
+
+		#endregion
+
+
+	}
+
+
+
+
+
 
 
 	internal class DateTimeInterval : Stopwatch
@@ -2164,15 +2411,22 @@ namespace uom
 		public DateTime StartTime { get; set; } = DateTime.Now;
 		public DateTime StopTime { get; set; } = DateTime.Now;
 
-		DateTimeInterval() : base() { UpdateFromTime(); }
+		private DateTimeInterval() : base() { UpdateFromTime(); }
 
 		public override string ToString() => $"с {StartTime} по {StopTime}";
 
 		private void UpdateFromTime(TimeParts flg = TimeParts.Start | TimeParts.Stop)
 		{
 			var dtNow = DateTime.Now;
-			if (flg.HasFlag(TimeParts.Start)) StartTime = dtNow;
-			if (flg.HasFlag(TimeParts.Stop)) StopTime = dtNow;
+			if (flg.HasFlag(TimeParts.Start))
+			{
+				StartTime = dtNow;
+			}
+
+			if (flg.HasFlag(TimeParts.Stop))
+			{
+				StopTime = dtNow;
+			}
 		}
 
 		/// <summary>Starts, or resumes, measuring elapsed time for an interval.</summary>
@@ -2272,28 +2526,28 @@ namespace uom
 
 
 		/*
-internal interface INotifyPropertyChangedEx : INotifyPropertyChanged
-{
+	internal interface INotifyPropertyChangedEx : INotifyPropertyChanged
+	{
 
-[MethodImpl(MethodImplOptions.NoInlining)]
-protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-{
+	[MethodImpl(MethodImplOptions.NoInlining)]
+	protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+	{
 	var pea = new PropertyChangedEventArgs(propertyName ?? throw new ArgumentNullException(nameof(propertyName)));
 
 	INotifyPropertyChanged npc = this;
 	//this.PropertyChanged
 	var dd = npc.PropertyChanged;
 	dd?.Invoke(this, pea);
-}
+	}
 
 
-[MethodImpl(MethodImplOptions.NoInlining)]
-protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? propertyName = null)
-{
+	[MethodImpl(MethodImplOptions.NoInlining)]
+	protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? propertyName = null)
+	{
 	this.OnPropertyChanged(propertyName);
 	return newValue;
-}
-}
+	}
+	}
 		 */
 
 	}
@@ -2325,7 +2579,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			/// <param name="maxDegreeOfParallelism">The maximum degree of parallelism provided by this scheduler.</param>
 			public _LimitedConcurrencyLevelTaskScheduler(int maxDegreeOfParallelism)
 			{
-				if (maxDegreeOfParallelism < 1) throw new ArgumentOutOfRangeException(nameof(maxDegreeOfParallelism));
+				if (maxDegreeOfParallelism < 1)
+				{
+					throw new ArgumentOutOfRangeException(nameof(maxDegreeOfParallelism));
+				}
+
 				_maxDegreeOfParallelism = maxDegreeOfParallelism;
 			}
 
@@ -2390,10 +2648,16 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			protected sealed override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
 			{
 				// If this thread isn't already processing a task, we don't support inlining
-				if (!s_currentThreadIsProcessingItems) return false;
+				if (!s_currentThreadIsProcessingItems)
+				{
+					return false;
+				}
 
 				// If the task was previously queued, remove it from the queue
-				if (taskWasPreviouslyQueued) TryDequeue(task);
+				if (taskWasPreviouslyQueued)
+				{
+					TryDequeue(task);
+				}
 
 				// Try to run the task.
 				return TryExecuteTask(task);
@@ -2404,7 +2668,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			/// <returns>Whether the task could be found and removed.</returns>
 			protected sealed override bool TryDequeue(Task task)
 			{
-				lock (_tasks) return _tasks.Remove(task);
+				lock (_tasks)
+				{
+					return _tasks.Remove(task);
+				}
 			}
 
 			/// <summary>Gets the maximum concurrency level supported by this scheduler.</summary>
@@ -2418,12 +2685,21 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				try
 				{
 					Monitor.TryEnter(_tasks, ref lockTaken);
-					if (lockTaken) return _tasks.ToArray();
-					else throw new NotSupportedException();
+					if (lockTaken)
+					{
+						return _tasks.ToArray();
+					}
+					else
+					{
+						throw new NotSupportedException();
+					}
 				}
 				finally
 				{
-					if (lockTaken) Monitor.Exit(_tasks);
+					if (lockTaken)
+					{
+						Monitor.Exit(_tasks);
+					}
 				}
 			}
 		}
@@ -2481,18 +2757,32 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 			public AutoDisposableUniversal(Action? rManagedDisposeCallBack = null, Action? rUnManagedDisposeCallBack = null) : base()
 			{
-				if (null != rManagedDisposeCallBack) RegisterDisposeCallback(rManagedDisposeCallBack);
-				if (null != rUnManagedDisposeCallBack) RegisterDisposeCallback(rUnManagedDisposeCallBack);
+				if (null != rManagedDisposeCallBack)
+				{
+					RegisterDisposeCallback(rManagedDisposeCallBack);
+				}
+
+				if (null != rUnManagedDisposeCallBack)
+				{
+					RegisterDisposeCallback(rUnManagedDisposeCallBack);
+				}
 			}
 
 			/// <summary>Регистрируем объекты, которые надо будет уничтожить, при уничтожении родительского объекта</summary>
 			protected internal void RegisterDisposableObject(IDisposable MDO, bool IsManaged = true)
 			{
 				_ = MDO ?? throw new ArgumentNullException(nameof(MDO));
-				if (ManagedObjectsToDispose.Contains(MDO) || UnManagedObjectsToDispose.Contains(MDO)) throw new ArgumentException("Object already added to dispose list!", nameof(MDO));
+				if (ManagedObjectsToDispose.Contains(MDO) || UnManagedObjectsToDispose.Contains(MDO))
+				{
+					throw new ArgumentException("Object already added to dispose list!", nameof(MDO));
+				}
 
 				var rListToAdd = UnManagedObjectsToDispose;
-				if (IsManaged) rListToAdd = ManagedObjectsToDispose;
+				if (IsManaged)
+				{
+					rListToAdd = ManagedObjectsToDispose;
+				}
+
 				rListToAdd.Push(MDO);
 			}
 
@@ -2502,12 +2792,18 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			{
 				_ = onDispose ?? throw new ArgumentNullException(nameof(onDispose));
 				if (ManagedDisposeCallBacks.Contains(onDispose) || UnManagedDisposeCallBacks.Contains(onDispose))
+				{
 					throw new ArgumentException($"'{nameof(onDispose)}' Already regidtered!", nameof(onDispose));
+				}
 
 				if (IsManaged)
+				{
 					ManagedDisposeCallBacks.Push(onDispose);
+				}
 				else
+				{
 					UnManagedDisposeCallBacks.Push(onDispose);
+				}
 			}
 
 			protected virtual void FreeManagedObjects()
@@ -2622,7 +2918,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					{
 						var EA = new ValueChangedEventArgs(_UnsafeValue, value);
 						OnBeforeValueChanged(EA);
-						if (EA.Cancel) OnValueChangeCanceled(EA);
+						if (EA.Cancel)
+						{
+							OnValueChangeCanceled(EA);
+						}
 						else
 						{
 							_UnsafeValue = value;
@@ -2653,8 +2952,20 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 				public override T? Value
 				{
-					get { lock (_MTSyncObject) return UnsafeValue; }
-					set { lock (_MTSyncObject) UnsafeValue = value; }
+					get
+					{
+						lock (_MTSyncObject)
+						{
+							return UnsafeValue;
+						}
+					}
+					set
+					{
+						lock (_MTSyncObject)
+						{
+							UnsafeValue = value;
+						}
+					}
 				}
 			}
 
@@ -2677,9 +2988,13 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				protected void RunInSafeLock(Action a, bool write)
 				{
 					if (write)
+					{
 						MTSyncObject?.EnterWriteLock();
+					}
 					else
+					{
 						MTSyncObject?.EnterReadLock();
+					}
 
 					try
 					{
@@ -2688,9 +3003,13 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					finally
 					{
 						if (write)
+						{
 							MTSyncObject?.ExitWriteLock();
+						}
 						else
+						{
 							MTSyncObject?.ExitReadLock();
+						}
 					}
 				}
 
@@ -2780,11 +3099,17 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 				public void Put(IDisposable ObjectToDispose)
 				{
-					if (ObjectToDispose == null) return;
+					if (ObjectToDispose == null)
+					{
+						return;
+					}
 
 					lock (_lock)
 					{
-						if (_Q.Contains(ObjectToDispose)) return;
+						if (_Q.Contains(ObjectToDispose))
+						{
+							return;
+						}
 
 						_Q.Enqueue(ObjectToDispose);
 
@@ -2825,7 +3150,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 		internal class SlidingWindow<T>(ArraySegment<T> mem, int startPos = 0, int windowSize = 1)
 		{
-			ArraySegment<T> _mem = mem;
+			private ArraySegment<T> _mem = mem;
 			private int _startPos = startPos;
 			private int _windowSize = windowSize;
 
@@ -2844,8 +3169,16 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				set
 				{
 					int sp = value;
-					if (sp < 0) throw new ArgumentOutOfRangeException(nameof(StartPos));
-					if (sp > MaxStartPos) sp = MaxStartPos;
+					if (sp < 0)
+					{
+						throw new ArgumentOutOfRangeException(nameof(StartPos));
+					}
+
+					if (sp > MaxStartPos)
+					{
+						sp = MaxStartPos;
+					}
+
 					_startPos = sp;
 				}
 			}
@@ -2858,8 +3191,16 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				set
 				{
 					int ws = value;
-					if (ws < 1) throw new ArgumentOutOfRangeException(nameof(WindowSize));
-					if (ws > MaxWindowSize) ws = MaxWindowSize;
+					if (ws < 1)
+					{
+						throw new ArgumentOutOfRangeException(nameof(WindowSize));
+					}
+
+					if (ws > MaxWindowSize)
+					{
+						ws = MaxWindowSize;
+					}
+
 					_windowSize = ws;
 				}
 			}
@@ -2887,11 +3228,22 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 			public bool SlideRight(bool allowShrinkWindowSize = true)
 			{
-				if (!CanExpandRight) return false; // Window size already include all elements to the end! no more space rigth to move
-				if (StartPos > MaxStartPos && !allowShrinkWindowSize) return false;
+				if (!CanExpandRight)
+				{
+					return false; // Window size already include all elements to the end! no more space rigth to move
+				}
+
+				if (StartPos > MaxStartPos && !allowShrinkWindowSize)
+				{
+					return false;
+				}
 
 				_startPos += WindowSize;
-				if (_startPos > MaxStartPos) ExpandToEnd();//Recalculate new Window Size
+				if (_startPos > MaxStartPos)
+				{
+					ExpandToEnd();//Recalculate new Window Size
+				}
+
 				return true;
 			}
 		}
@@ -2932,7 +3284,9 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					.Where(ip => ip.Address != null);
 
 				foreach (var ip in ual)
+				{
 					yield return ip;
+				}
 			}
 
 			/// <summary>Gets IP of installed network adapters</summary>
@@ -3220,7 +3574,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					byte[] b1 = this.GetAddressBytes();
 					byte[] b2 = value.GetAddressBytes();
 
-					for (int i = 0; i < b1.Length; i++)
+					for (int i = 0 ; i < b1.Length ; i++)
 					{
 						if (b1[i] < b2[i])
 						{
@@ -3252,8 +3606,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				bool returnVal = false;
 				// ensure that all addresses are of the same type otherwise reject //
 				if (rangeStartAddress.AddressFamily != rangeEndAddress.AddressFamily)
+				{
 					throw new ArgumentOutOfRangeException(nameof(rangeStartAddress),
 						  $"The Start Range type {rangeStartAddress.AddressFamily} and End Range type {rangeEndAddress.AddressFamily} are not compatible ip address families.");
+				}
 
 				if (rangeStartAddress.AddressFamily == this.AddressFamily)
 				{
@@ -3272,7 +3628,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			{
 				string hostName = System.Net.Dns.GetHostName();
 				System.Net.IPHostEntry entry = System.Net.Dns.GetHostEntry(hostName);
-				List<IPAddressEx> list = new List<IPAddressEx>();
+				List<IPAddressEx> list = [];
 				foreach (System.Net.IPAddress address in entry.AddressList)
 				{
 					list.Add(new IPAddressEx(address.GetAddressBytes()));
@@ -3327,18 +3683,26 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			internal static IEnumerable<IP4AddressWithMask> ParseIPs(string multiIPString)
 			{
 				MatchCollection result = _rxMaskedIP.Value.Matches(multiIPString);
-				if (result.Count < 1) yield break;
+				if (result.Count < 1)
+				{
+					yield break;
+				}
 
 				foreach (Match m in result)
 				{
 					string ip = m.Groups["IP"].Value;
 					string prefixSizeString = m.Groups["Mask"].Value;
 
-					if (!IPAddress.TryParse(ip, out IPAddress? ipa)) continue;
+					if (!IPAddress.TryParse(ip, out IPAddress? ipa))
+					{
+						continue;
+					}
 
 					uint prefixSize = PREFIX_32;
 					if (prefixSizeString.eIsNotNullOrWhiteSpace() && uint.TryParse(prefixSizeString.Substring(1), out var parsedPrefixSize))
+					{
 						prefixSize = parsedPrefixSize;
+					}
 
 					yield return new IP4AddressWithMask(ipa!, prefixSize);
 				}
@@ -3364,10 +3728,20 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 			public static int CompareIPAddress(IPAddress? x, IPAddress? y)
 			{
-				if (x == y && x == null) return 0;
+				if (x == y && x == null)
+				{
+					return 0;
+				}
 
-				if (x == null) return -1;
-				if (y == null) return 1;
+				if (x == null)
+				{
+					return -1;
+				}
+
+				if (y == null)
+				{
+					return 1;
+				}
 
 				uint uX = x.eToUInt32CalculableOrder(), uY = y.eToUInt32CalculableOrder();
 				return uX.CompareTo(uY);
@@ -3394,8 +3768,16 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 			public int Compare(IP4AddressWithMask? x, IP4AddressWithMask? y)
 			{
-				if (x == null && y == null) return 0;
-				if (x == null) return -1;
+				if (x == null && y == null)
+				{
+					return 0;
+				}
+
+				if (x == null)
+				{
+					return -1;
+				}
+
 				return x.CompareTo(y);
 			}
 		}
@@ -3466,17 +3848,27 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					totalBytesRead += bytesRead;
 					readCount += 1;
 
-					if (readCount % 100 == 0) TriggerProgressChanged(totalDownloadSize, totalBytesRead);
+					if (readCount % 100 == 0)
+					{
+						TriggerProgressChanged(totalDownloadSize, totalBytesRead);
+					}
 				}
 				while (isMoreToRead);
 			}
 
 			private void TriggerProgressChanged(long? totalDownloadSize, long totalBytesRead)
 			{
-				if (ProgressChanged == null) return;
+				if (ProgressChanged == null)
+				{
+					return;
+				}
 
 				double? progressPercentage = null;
-				if (totalDownloadSize.HasValue) progressPercentage = Math.Round((double)totalBytesRead / totalDownloadSize.Value * 100, 2);
+				if (totalDownloadSize.HasValue)
+				{
+					progressPercentage = Math.Round((double)totalBytesRead / totalDownloadSize.Value * 100, 2);
+				}
+
 				ProgressChanged(totalDownloadSize, totalBytesRead, progressPercentage);
 			}
 
@@ -3601,7 +3993,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			private uom.Paralel._LimitedConcurrencyLevelTaskScheduler? _lcts = null;
 			//private TaskFactory? _TF = null;
 
-			protected List<Task> _lTasks = new();
+			protected List<Task> _lTasks = [];
 			protected CancellationToken _cts = new();
 
 			public CancellationToken StopFlag { get => _cts; }
@@ -3625,7 +4017,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				{
 					//Not specidef Root Dirs for scan
 					var aDisks = Environment.GetLogicalDrives();
-					if (!aDisks.Any()) throw new Exception("Failed to get logical drives!");
+					if (!aDisks.Any())
+					{
+						throw new Exception("Failed to get logical drives!");
+					}
+
 					aRootDirsToScan = (from sDir in aDisks
 									   orderby sDir
 									   let fiDir = sDir.eToDirectoryInfo(true)
@@ -3639,7 +4035,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				_cts = new CancellationToken();
 				_lcts = new((int)maxDegreeOfParallelism);
 				//_TF = _lcts.CreateTaskFactory();
-				_lTasks = new();
+				_lTasks = [];
 
 				//Start Main Scan Core
 				ScanDirs(aRootDirsToScan);
@@ -3668,11 +4064,17 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 			private void ScanDirs(DirectoryInfo[] aDirs)
 			{
-				if (_cts.IsCancellationRequested) return;
+				if (_cts.IsCancellationRequested)
+				{
+					return;
+				}
 
 				aDirs.eForEach((d) =>
 				{
-					if (_cts.IsCancellationRequested) return;
+					if (_cts.IsCancellationRequested)
+					{
+						return;
+					}
 
 					lock (_lTasks)
 					{
@@ -3695,16 +4097,25 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 					//lock (_ConsoleLock) Console.WriteLine($"Start scan dir '{fiDir.FullName}'");
 
-					if (!OnEnterDir(fiDir)) return;
-					if (_cts.IsCancellationRequested) return;
+					if (!OnEnterDir(fiDir))
+					{
+						return;
+					}
 
+					if (_cts.IsCancellationRequested)
+					{
+						return;
+					}
 
 					FileSystemInfo[] aChildrens = Array.Empty<FileSystemInfo>();
 					try { aChildrens = fiDir.GetFileSystemInfos(); }
 					catch (Exception exGetFiles)
 					{
 						var ERR = new SCAN_ERROR(fiDir, exGetFiles, ERROR_SOURCES.FAILED_GET_FOLDER_CONTENT);
-						if (!OnError(ERR)) return;
+						if (!OnError(ERR))
+						{
+							return;
+						}
 					}
 
 
@@ -3713,16 +4124,25 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 						var aFiles = aChildrens.Where(fsi => fsi.eIsFileInfo()).Cast<FileInfo>().ToArray();
 						foreach (var F in aFiles)
 						{
-							if (!OnFileFound(F)) break;
+							if (!OnFileFound(F))
+							{
+								break;
+							}
 						}
 					}
 					catch (Exception exGetFiles)
 					{
 						var ERR = new SCAN_ERROR(fiDir, exGetFiles, ERROR_SOURCES.Unknown);
-						if (!OnError(ERR)) return;
+						if (!OnError(ERR))
+						{
+							return;
+						}
 					}
 
-					if (_cts.IsCancellationRequested) return;
+					if (_cts.IsCancellationRequested)
+					{
+						return;
+					}
 
 					try
 					{
@@ -3732,14 +4152,20 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 							.ToArray();
 
 						aDirs = OnBeforeCheckSubDirs(aDirs);
-						if (null == aDirs || !aDirs.Any()) return;
+						if (null == aDirs || !aDirs.Any())
+						{
+							return;
+						}
 
 						ScanDirs(aDirs);
 					}
 					catch (Exception exGetDirs)
 					{
 						var ERR = new SCAN_ERROR(fiDir, exGetDirs, ERROR_SOURCES.Unknown);
-						if (!OnError(ERR)) return;
+						if (!OnError(ERR))
+						{
+							return;
+						}
 					}
 
 
@@ -3808,7 +4234,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			{
 				_ = aFilesToFind ?? throw new ArgumentNullException(nameof(aFilesToFind));
 				_aFilesToFind = aFilesToFind.Where((f) => f.eIsNotNullOrWhiteSpace()).ToArray();
-				if (!_aFilesToFind.Any()) throw new ArgumentNullException(nameof(aFilesToFind));
+				if (!_aFilesToFind.Any())
+				{
+					throw new ArgumentNullException(nameof(aFilesToFind));
+				}
 
 				_cbOnOnEnterDir = fuOnEnterDir;
 				_cbOnBeforeCheckSubDirs = fuOnBeforeCheckSubDirs;
@@ -3826,7 +4255,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 			protected override bool OnEnterDir(DirectoryInfo D)
 			{
-				if (!base.OnEnterDir(D)) return false;
+				if (!base.OnEnterDir(D))
+				{
+					return false;
+				}
+
 				var bContinueToSearch = _cbOnOnEnterDir?.Invoke(D);
 				return bContinueToSearch.eToBool();
 			}
@@ -3836,9 +4269,16 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 			protected override bool OnFileFound(FileInfo F)
 			{
-				if (!base.OnFileFound(F)) return false;
+				if (!base.OnFileFound(F))
+				{
+					return false;
+				}
+
 				var aFound = _aFilesToFind.Where((s) => s.ToLower().Equals(F.Name.ToLower()));
-				if (!aFound.Any()) return true;
+				if (!aFound.Any())
+				{
+					return true;
+				}
 
 				_lResult.Add(F);
 
@@ -3981,7 +4421,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					{
 						try { _SR!.Dispose(); } catch { }
 						if (DeleteFileOnFinish)
+						{
 							try { _File!.Delete(); } catch { }
+						}
+
 						_SR = null;
 						_File = null;
 					}
@@ -3997,8 +4440,14 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					try
 					{
 						string? sLine = _SR!.ReadLine();
-						if (null != sLine) LineRead?.Invoke(this, sLine!);
-						else Thread.Sleep(100);
+						if (null != sLine)
+						{
+							LineRead?.Invoke(this, sLine!);
+						}
+						else
+						{
+							Thread.Sleep(100);
+						}
 					}
 					catch { }// Just Ignore error on read single line and try read next line
 				}
@@ -4021,16 +4470,18 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 	namespace Extensions
 	{
 
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		internal static class Extensions_NumericConversions
-		{
 
+		internal static partial class Extensions_NumericConversions
+		{
 
 			/// <summary>Checks if new value is not equal to old value and updates old value to new value.</summary>
 			/// <returns>true if value was updated</returns>
 			public static bool eUpdateIfNotEquals<T>(this ref T oldValue, T newValue, Action? onUpdatedCallback) where T : struct
 			{
-				if (oldValue.Equals(newValue)) return false;
+				if (oldValue.Equals(newValue))
+				{
+					return false;
+				}
 
 				oldValue = newValue;
 				onUpdatedCallback?.Invoke();
@@ -4140,10 +4591,13 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				try
 				{
 					if (null != MinLimit && MinLimit.HasValue && Value.CompareTo(MinLimit.Value) < 0)
+					{
 						Value = MinLimit.Value;
-
+					}
 					else if (null != MaxLimit && MaxLimit.HasValue && Value.CompareTo(MaxLimit.Value) > 0)
+					{
 						Value = MaxLimit.Value;
+					}
 
 					return Value;
 				}
@@ -4211,7 +4665,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static T eParseAsNumeric<T>(this string stringValue, T defaultValue, NumberStyles style = NumberStyles.None) where T : struct
 			{
-				if (stringValue.eIsNullOrWhiteSpace()) return defaultValue;
+				if (stringValue.eIsNullOrWhiteSpace())
+				{
+					return defaultValue;
+				}
 
 				object numericValue = Type.GetTypeCode(typeof(T)) switch
 				{
@@ -4260,7 +4717,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				UInt64 result = 1;
 				while (exponent > 0)
 				{
-					if ((exponent & 1) == 1) result *= baseNumber;
+					if ((exponent & 1) == 1)
+					{
+						result *= baseNumber;
+					}
+
 					baseNumber *= baseNumber;
 					exponent >>= 1;
 				}
@@ -4273,7 +4734,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				UInt32 result = 1;
 				while (exponent > 0)
 				{
-					if ((exponent & 1) == 1) result *= baseNumber;
+					if ((exponent & 1) == 1)
+					{
+						result *= baseNumber;
+					}
+
 					baseNumber *= baseNumber;
 					exponent >>= 1;
 				}
@@ -4317,8 +4782,6 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 		}
 
 
-
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		internal static partial class Extensions_Debug_Dump
 		{
 
@@ -4327,7 +4790,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static string eDumpHexToString(this byte[] data, ulong startAddress = ulong.MinValue, int elementsInLine = 16)
 			{
-				if (data == null || data.Length < 1) return "[NULL OR EMPTY]";
+				if (data == null || data.Length < 1)
+				{
+					return "[NULL OR EMPTY]";
+				}
 
 				StringBuilder sbResult = new();
 
@@ -4436,7 +4902,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				[System.Runtime.CompilerServices.CallerArgumentExpression("value")] string? valueName = null,
 				params string[] excludeMembers) where T : class
 			{
-				if (value == null) return $"{valueName} = null";
+				if (value == null)
+				{
+					return $"{valueName} = null";
+				}
+
 				StringBuilder sb = new(2048);
 
 				System.Type t = value.GetType();
@@ -4502,9 +4972,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 						memberDump += $" = '{objMemberValue ?? string.Empty}'";
 
 						bool isOwn = (mi.DeclaringType == t);
-						if (!isOwn) memberDump = $"->[inherit from: {mi.DeclaringType}]-> " + memberDump;
-
-
+						if (!isOwn)
+						{
+							memberDump = $"->[inherit from: {mi.DeclaringType}]-> " + memberDump;
+						}
 					}
 					catch (Exception ex)
 					{
@@ -4559,7 +5030,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 						memberDump += $" = '{objMemberValue ?? string.Empty}'";
 
 						bool isOwn = (mi.DeclaringType == t);
-						if (!isOwn) memberDump = $"->[inherit from: {mi.DeclaringType}]-> " + memberDump;
+						if (!isOwn)
+						{
+							memberDump = $"->[inherit from: {mi.DeclaringType}]-> " + memberDump;
+						}
 					}
 					catch (Exception ex)
 					{
@@ -4578,7 +5052,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				[System.Runtime.CompilerServices.CallerArgumentExpression("value")] string? valueName = null) where T : class
 			{
 
-				if (value == null) return $"{valueName} = null";
+				if (value == null)
+				{
+					return $"{valueName} = null";
+				}
+
 				StringBuilder sb = new();
 
 				//WARNING!!! NOT WORKING!!!
@@ -4604,11 +5082,16 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 							_ => ""
 						};
 
-						if (memberDump.eIsNullOrWhiteSpace()) continue;
+						if (memberDump.eIsNullOrWhiteSpace())
+						{
+							continue;
+						}
 
 						bool isOwn = (mi.DeclaringType == t);
-						if (!isOwn) memberDump = $"->[{mi.DeclaringType}]-> " + memberDump;
-
+						if (!isOwn)
+						{
+							memberDump = $"->[{mi.DeclaringType}]-> " + memberDump;
+						}
 					}
 					catch (Exception ex)
 					{
@@ -4635,8 +5118,15 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				[System.Runtime.CompilerServices.CallerArgumentExpression("src")] string? arrayName = null
 				)
 			{
-				if (src == null) return $"{arrayName} = null";
-				if (!src.Any()) return $"{arrayName} = {typeof(T)}[0]";
+				if (src == null)
+				{
+					return $"{arrayName} = null";
+				}
+
+				if (!src.Any())
+				{
+					return $"{arrayName} = {typeof(T)}[0]";
+				}
 
 				string result = $"{arrayName} = {typeof(T)}[{src.Count()}]";
 
@@ -4718,12 +5208,12 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 		   List<string> l = new();
 		   foreach (var o in ie)
 		   {
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+	#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
 			   string s = (o ?? "null").ToString();
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8604 // Possible null reference argument.
+	#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+	#pragma warning disable CS8604 // Possible null reference argument.
 			   l.Add(s);
-#pragma warning restore CS8604 // Possible null reference argument.
+	#pragma warning restore CS8604 // Possible null reference argument.
 			   if (l.Count >= limitArrayItemsOutput) break;
 		   }
 		   result += l.ToArray().eJoin(itemSeparator)!;
@@ -4737,10 +5227,9 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 		}
 
-		[EditorBrowsable(EditorBrowsableState.Never)]
+
 		internal static partial class Extensions_Binary_Hex
 		{
-
 
 
 			#region From BitArray Source (https://github.com/dotnet/corefx/blob/76f566a281bbe979e80cbbb3a48ddf522cdcb4e1/src/System.Collections/src/System/Collections/BitArray.cs#L19)
@@ -4815,7 +5304,6 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			#endregion
 
 
-
 			#region HIWORD/LOWORD/MAKELPARAM
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -4875,7 +5363,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static string eNormalizeHexString(this string HexString, string? BadSeparators = null, char? GoodHexSeparator = null)
 			{
-				if (HexString.eIsNullOrWhiteSpace()) return HexString;
+				if (HexString.eIsNullOrWhiteSpace())
+				{
+					return HexString;
+				}
 
 				BadSeparators ??= C_BAD_BYTE_SEPARATOR_CHARS;
 				GoodHexSeparator ??= constants.SystemDefaultHexByteSeparator;
@@ -4889,14 +5380,20 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static byte[] eHexStringToBytes(this string HexString, string ByteSeparatorChars = C_BAD_BYTE_SEPARATOR_CHARS)
 			{
-				if (HexString.eIsNullOrWhiteSpace()) return Array.Empty<byte>();
+				if (HexString.eIsNullOrWhiteSpace())
+				{
+					return Array.Empty<byte>();
+				}
 
 				string[] hexBytedStrings = HexString
 					.eNormalizeHexString(ByteSeparatorChars, constants.SystemDefaultHexByteSeparator)
 					.Trim()
 					.Split(constants.SystemDefaultHexByteSeparator); // Делим по разделителю на отдельные элементы
 
-				if (!hexBytedStrings.Any()) return Array.Empty<byte>();
+				if (!hexBytedStrings.Any())
+				{
+					return Array.Empty<byte>();
+				}
 
 				return hexBytedStrings
 					.Select(sByte => byte.Parse(sByte, NumberStyles.HexNumber))
@@ -4919,9 +5416,13 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			internal static void eSetBitRef(this ref byte a, int bitIndex, bool bitValue = true)
 			{
 				if (bitValue)
+				{
 					a |= (byte)(0x1 << bitIndex);
+				}
 				else
+				{
 					a &= (byte)~(0x1 << bitIndex);
+				}
 			}
 
 			/// <inheritdoc cref="eSetBitRef(ref byte, int, bool)" />
@@ -4929,9 +5430,13 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			internal static void eSetBitRef(this ref UInt32 a, int bitIndex, bool bitValue = true)
 			{
 				if (bitValue)
+				{
 					a |= (1U << bitIndex);
+				}
 				else
+				{
 					a &= ~(1U << bitIndex);
+				}
 			}
 
 			/// <inheritdoc cref="eSetBitRef(ref byte, int, bool)" />
@@ -4939,9 +5444,13 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			internal static void eSetBitRef(this ref Int32 a, int bitIndex, bool bitValue = true)
 			{
 				if (bitValue)
+				{
 					a |= (1 << bitIndex);
+				}
 				else
+				{
 					a &= ~(1 << bitIndex);
+				}
 			}
 
 			/// <inheritdoc cref="eSetBitRef(ref byte, int, bool)" />
@@ -4949,9 +5458,13 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			internal static void eSetBitRef(this ref UInt64 a, int bitIndex, bool bitValue = true)
 			{
 				if (bitValue)
+				{
 					a |= (1UL << bitIndex);
+				}
 				else
+				{
 					a &= ~(1UL << bitIndex);
+				}
 			}
 
 			/// <inheritdoc cref="eSetBitRef(ref byte, int, bool)" />
@@ -4959,9 +5472,13 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			internal static void eSetBitRef(this ref Int64 a, int bitIndex, bool bitValue = true)
 			{
 				if (bitValue)
+				{
 					a |= (1L << bitIndex);
+				}
 				else
+				{
 					a &= ~(1L << bitIndex);
+				}
 			}
 
 
@@ -5036,7 +5553,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			{
 				uint floor = value % divideTo;
 				uint newVal = value / divideTo;
-				if (floor > 0) newVal++;
+				if (floor > 0)
+				{
+					newVal++;
+				}
+
 				return newVal;
 			}
 
@@ -5046,7 +5567,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			{
 				int floor = value % divideTo;
 				int newVal = value / divideTo;
-				if (floor > 0) newVal++;
+				if (floor > 0)
+				{
+					newVal++;
+				}
+
 				return newVal;
 			}
 
@@ -5147,7 +5672,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static void eSetBitsFromStartToEnd(this BitArray bits, int startIndex, int endIndex, bool value = true)
 			{
-				for (int i = startIndex; i < endIndex; i++) bits.Set(i, value);
+				for (int i = startIndex ; i < endIndex ; i++)
+				{
+					bits.Set(i, value);
+				}
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -5192,7 +5720,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				}
 				while (slicePos < bitsSpan.Length);
 				string r = octetsList.eJoin(groupsSeparator)!.Trim();
-				if (reorderToHumanReadableView) r = new string(r.Reverse().ToArray());
+				if (reorderToHumanReadableView)
+				{
+					r = new string(r.Reverse().ToArray());
+				}
+
 				return r;
 			}
 
@@ -5247,8 +5779,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 		}
 
 
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		internal static class Extensions_RegEx
+		internal static partial class Extensions_RegEx
 		{
 
 
@@ -5263,8 +5794,8 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 		}
 
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		internal static class Extensions_StringAndFormat
+
+		internal static partial class Extensions_StringAndFormat
 		{
 
 			// (parenthesis)
@@ -5349,7 +5880,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			/// <summary>true if 'A' and 'a'</summary>
 			internal static bool eIsDifferOnlyByCase(this string? s1, string? s2)
 			{
-				if (null == s1 || null == s2) return false;
+				if (null == s1 || null == s2)
+				{
+					return false;
+				}
+
 				return s1.Equals(s2, StringComparison.OrdinalIgnoreCase) && !s1.Equals(s2, StringComparison.InvariantCulture);
 			}
 
@@ -5363,9 +5898,16 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				bool enquoteAllStrings = false
 				)
 			{
-				if ((null == source) || !source!.Any()) return emptyOrNullValue;
+				if ((null == source) || !source!.Any())
+				{
+					return emptyOrNullValue;
+				}
 
-				if (enquoteAllStrings) source = [.. source.Select(s => '"' + s + '"')];
+				if (enquoteAllStrings)
+				{
+					source = [.. source.Select(s => '"' + s + '"')];
+				}
+
 				return string.Join(separator, source);
 			}
 
@@ -5391,7 +5933,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static IEnumerable<string> eIndent(this string source, int level = 1, Char indentChar = '\t')
 			{
-				foreach (var s in source.eReadLines()) yield return (new string(indentChar, level) + s);
+				foreach (var s in source.eReadLines())
+				{
+					yield return (new string(indentChar, level) + s);
+				}
 			}
 
 
@@ -5406,8 +5951,16 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				string nullValue = "null",
 				string emptyValue = "''")
 			{
-				if (source == null) return nullValue;
-				if (string.IsNullOrEmpty(source)) return emptyValue;
+				if (source == null)
+				{
+					return nullValue;
+				}
+
+				if (string.IsNullOrEmpty(source))
+				{
+					return emptyValue;
+				}
+
 				return source;
 			}
 
@@ -5435,11 +5988,31 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					: TIMESPAN_PARTS_EN;
 
 				StringBuilder sb = new(200);
-				if (source.Days > 0) sb.Append($"{source.Days}{parts[0]},");
-				if (source.Hours > 0) sb.Append($"{source.Hours}{parts[1]}:");
-				if (source.Minutes > 0) sb.Append($"{source.Minutes}{parts[2]}:");
-				if (source.Seconds > 0) sb.Append($"{source.Seconds}{parts[3]}");
-				if (useMilliseconds) sb.Append($":{source.Milliseconds}{parts[4]}");
+				if (source.Days > 0)
+				{
+					sb.Append($"{source.Days}{parts[0]},");
+				}
+
+				if (source.Hours > 0)
+				{
+					sb.Append($"{source.Hours}{parts[1]}:");
+				}
+
+				if (source.Minutes > 0)
+				{
+					sb.Append($"{source.Minutes}{parts[2]}:");
+				}
+
+				if (source.Seconds > 0)
+				{
+					sb.Append($"{source.Seconds}{parts[3]}");
+				}
+
+				if (useMilliseconds)
+				{
+					sb.Append($":{source.Milliseconds}{parts[4]}");
+				}
+
 				return sb
 					.ToString()
 					.eReplaceAll("::", ":")
@@ -5496,7 +6069,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string eFormatPercent(this float value, int decimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS, bool alignRight = true)
 			{
-				if (float.IsNaN(value)) value = 0F;
+				if (float.IsNaN(value))
+				{
+					value = 0F;
+				}
+
 				var format = $"P{decimalPlaces}";
 				var sValue = value.ToString(format);
 				if (alignRight)
@@ -5513,7 +6090,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string eFormatPercent(this double value, int decimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS)
 			{
-				if (double.IsNaN(value)) value = 0d;
+				if (double.IsNaN(value))
+				{
+					value = 0d;
+				}
+
 				return ((float)value).eFormatPercent(decimalPlaces);
 			}
 
@@ -5547,6 +6128,12 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			public static string eFormatReadable(this double value, int decimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS)
 				=> value.ToString($"N{decimalPlaces}").Trim();
 
+			/// <inheritdoc cref="eFormatReadable(float,int)" />
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string eFormatReadable(this uint value, int decimalPlaces = constants.C_DEFAULT_DECIMAL_DIGITS)
+				=> value.ToString($"N{decimalPlaces}").Trim();
+
+
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -5568,7 +6155,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			internal static string eFormatProgress(this int progressValue, int maxValue, int percentDigits = 2)
 			{
 				float sngProgress = 0f;
-				if (maxValue > 0) sngProgress = progressValue / (float)maxValue;
+				if (maxValue > 0)
+				{
+					sngProgress = progressValue / (float)maxValue;
+				}
+
 				return "{0} из {1} ({2})".eFormat(progressValue, maxValue, sngProgress.eFormatPercent(percentDigits));
 			}
 
@@ -5581,6 +6172,21 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				return "{0} из {1}".eFormat(sACurrent, sBTotal);
 			}
 
+
+			internal const char C_UNICODE_MODIFERS_StrikeThrough = '\u0336';
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static string eFormatUnicode_StrikeThrough(this string src)
+			{
+				List<char> cc = new(src.Length * 2);
+				foreach (var character in src)
+				{
+					cc.Add(character);
+					cc.Add(C_UNICODE_MODIFERS_StrikeThrough);
+				}
+				return new string([.. cc]);
+			}
 
 
 
@@ -5641,9 +6247,16 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static string eToStringHex(this IEnumerable<byte>? data, bool reverseRTL = false, string? bytesSeparator = null)
 			{
-				if (null == data || data.Count() < 1) return string.Empty;
+				if (null == data || data.Count() < 1)
+				{
+					return string.Empty;
+				}
 
-				if (reverseRTL) data = data.Reverse();
+				if (reverseRTL)
+				{
+					data = data.Reverse();
+				}
+
 				string sResult = BitConverter.ToString(data.ToArray());
 
 				if (null != bytesSeparator)
@@ -5729,8 +6342,15 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static string eReplaceAll(this string source, string search, string replaceWith = DEFAULT_REPLACE_WITH, StringComparison comparison = DEFAULT_STRING_COMPARSION)
 			{
-				if (search.eIsNullOrEmpty()) throw new ArgumentNullException(nameof(search));
-				if (replaceWith.Contains(search, comparison)) throw new ArgumentException($"{nameof(replaceWith)} = '{replaceWith}', and contains search = '{search}'");
+				if (search.eIsNullOrEmpty())
+				{
+					throw new ArgumentNullException(nameof(search));
+				}
+
+				if (replaceWith.Contains(search, comparison))
+				{
+					throw new ArgumentException($"{nameof(replaceWith)} = '{replaceWith}', and contains search = '{search}'");
+				}
 
 				while (source.Contains(search, comparison))
 				{
@@ -5744,10 +6364,15 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static string eReplacePairs(this string source, IEnumerable<(string search, string replaceWith)> replacePairs, StringComparison comparison = DEFAULT_STRING_COMPARSION)
 			{
-				if (!replacePairs.Any()) throw new ArgumentNullException(nameof(replacePairs));
+				if (!replacePairs.Any())
+				{
+					throw new ArgumentNullException(nameof(replacePairs));
+				}
 
 				foreach (var frp in replacePairs)
+				{
 					source = source.eReplaceAll(frp.search, frp.replaceWith, comparison);
+				}
 
 				return source;
 			}
@@ -5799,9 +6424,16 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static string eReplaceAll(this string source, IEnumerable<string> search, string replaceWith = DEFAULT_REPLACE_WITH, StringComparison comparison = DEFAULT_STRING_COMPARSION)
 			{
-				if (null == search || !search.Any()) throw new ArgumentNullException(nameof(search));
+				if (null == search || !search.Any())
+				{
+					throw new ArgumentNullException(nameof(search));
+				}
 
-				foreach (var sFind in search) source = source.eReplaceAll(search, replaceWith, comparison);
+				foreach (var sFind in search)
+				{
+					source = source.eReplaceAll(search, replaceWith, comparison);
+				}
+
 				return source;
 			}
 
@@ -5811,10 +6443,16 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static KeyValuePair<string, string> eToKeyValuePair(this string source, string separator, StringComparison comparison = DEFAULT_STRING_COMPARSION, bool trim = true)
 			{
-				if (source.eIsNullOrWhiteSpace()) throw new ArgumentNullException(nameof(source));
+				if (source.eIsNullOrWhiteSpace())
+				{
+					throw new ArgumentNullException(nameof(source));
+				}
 
 				int sepPos = source.IndexOf(separator, comparison);
-				if (sepPos < 1) throw new ArgumentException("Separator pos < 1!");
+				if (sepPos < 1)
+				{
+					throw new ArgumentException("Separator pos < 1!");
+				}
 
 				string key = source.Substring(0, sepPos);
 				string value = source.Substring(sepPos + separator.Length);
@@ -5847,9 +6485,21 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static string? eLeft(this string? source, int charCount)
 			{
-				if (source == null) return null;
-				if (charCount <= 0) throw new ArgumentOutOfRangeException(nameof(charCount));
-				if (source.Length < charCount) charCount = source.Length;
+				if (source == null)
+				{
+					return null;
+				}
+
+				if (charCount <= 0)
+				{
+					throw new ArgumentOutOfRangeException(nameof(charCount));
+				}
+
+				if (source.Length < charCount)
+				{
+					charCount = source.Length;
+				}
+
 				return source[..charCount];
 			}
 
@@ -5871,9 +6521,21 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static (string Left, string Right)? eSplitByIndex(this string source, int leftPartLen)
 			{
-				if (source == null) return null;
-				if (source.eIsNullOrWhiteSpace() || leftPartLen <= 0) return (string.Empty, string.Empty);
-				if (leftPartLen >= source.Length) return (source, string.Empty);
+				if (source == null)
+				{
+					return null;
+				}
+
+				if (source.eIsNullOrWhiteSpace() || leftPartLen <= 0)
+				{
+					return (string.Empty, string.Empty);
+				}
+
+				if (leftPartLen >= source.Length)
+				{
+					return (source, string.Empty);
+				}
+
 				string left = source.Substring(0, leftPartLen);
 				string right = source.Substring(leftPartLen);
 				return (left, right);
@@ -5883,17 +6545,31 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static (string Left, string Right, int SplitCharIndex)? eSplitByChar(this string source, char separatorChar, bool excludeSeparatorChar)
 			{
-				if (source == null) return null;
-				if (source.eIsNullOrWhiteSpace()) return (string.Empty, string.Empty, -1);
+				if (source == null)
+				{
+					return null;
+				}
+
+				if (source.eIsNullOrWhiteSpace())
+				{
+					return (string.Empty, string.Empty, -1);
+				}
+
 				int separatorCharIndex = source.IndexOf(separatorChar);
-				if (separatorCharIndex < 0) return (source, string.Empty, separatorCharIndex);
+				if (separatorCharIndex < 0)
+				{
+					return (source, string.Empty, separatorCharIndex);
+				}
 
 				string left = source.Substring(0, separatorCharIndex);
 				string right = source.Substring(separatorCharIndex);
 
-				if (excludeSeparatorChar) right = (right.Length > 1)
+				if (excludeSeparatorChar)
+				{
+					right = (right.Length > 1)
 						? right.Substring(1)
 						: string.Empty;
+				}
 
 				return (left, right, separatorCharIndex);
 			}
@@ -5902,7 +6578,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static bool eContains(this string sourceText, string search, StringComparison comparison = DEFAULT_STRING_COMPARSION)
 			{
-				if (null == sourceText || null == search) return false;
+				if (null == sourceText || null == search)
+				{
+					return false;
+				}
+
 				return sourceText.IndexOf(search, comparison) >= 0;
 			}
 
@@ -5910,7 +6590,13 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static bool eContains(this string sourceText, IEnumerable<string> search, StringComparison comparison = DEFAULT_STRING_COMPARSION)
 			{
-				foreach (var S in search) { if (sourceText.eContains(S, comparison)) return true; }
+				foreach (var S in search)
+				{
+					if (sourceText.eContains(S, comparison))
+					{
+						return true;
+					}
+				}
 				return false;
 			}
 
@@ -5941,7 +6627,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			internal static string eAppend(this string? source, string append, string separator = constants.vbCrLf)
 			{
 				source ??= string.Empty;
-				if (source.Length > 0) source += separator;
+				if (source.Length > 0)
+				{
+					source += separator;
+				}
+
 				return (source + append);
 			}
 
@@ -6008,20 +6698,29 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static IEnumerable<string> eSplitLines(this string? source, bool skipEmptyLines = false, bool trimEachLine = false)
 			{
-				if (source.eIsNullOrEmpty()) yield break;
+				if (source.eIsNullOrEmpty())
+				{
+					yield break;
+				}
 
 				using (StringReader sr = new(source!))
 				{
 					string? line = sr.ReadLine();
 					while (null != line)
 					{
-						if (trimEachLine) line = line.Trim();
+						if (trimEachLine)
+						{
+							line = line.Trim();
+						}
 
-						bool bAdd = skipEmptyLines
-							? line.eIsNotNullOrWhiteSpace()
-							: true;
+						bool bAdd = !skipEmptyLines
+|| line.eIsNotNullOrWhiteSpace();
 
-						if (bAdd) yield return line;
+						if (bAdd)
+						{
+							yield return line;
+						}
+
 						line = sr.ReadLine();
 					}
 				}
@@ -6051,12 +6750,18 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static string eTrimStart(this string source, string trimPrefix, bool onlyOnce = false, StringComparison comparison = DEFAULT_STRING_COMPARSION)
 			{
-				if (trimPrefix.eIsNullOrEmpty()) return source;
+				if (trimPrefix.eIsNullOrEmpty())
+				{
+					return source;
+				}
 
 				while (source.StartsWith(trimPrefix, comparison) && source.Length >= trimPrefix.Length)
 				{
 					source = source.Substring(trimPrefix.Length);
-					if (onlyOnce) break;
+					if (onlyOnce)
+					{
+						break;
+					}
 				}
 				return source;
 			}
@@ -6071,14 +6776,24 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static string eTrimEnd(this string source, string trimSuffix, bool onlyOnce = false, StringComparison comparison = DEFAULT_STRING_COMPARSION)
 			{
-				if (trimSuffix.eIsNullOrEmpty()) return source;
+				if (trimSuffix.eIsNullOrEmpty())
+				{
+					return source;
+				}
+
 				while (source.EndsWith(trimSuffix, comparison) && source.Length >= trimSuffix.Length)
 				{
 					int charsToTake = source.Length - trimSuffix.Length;
-					if (charsToTake == 0) return string.Empty;
+					if (charsToTake == 0)
+					{
+						return string.Empty;
+					}
 
 					source = source.Substring(0, charsToTake);
-					if (onlyOnce) break;
+					if (onlyOnce)
+					{
+						break;
+					}
 				}
 				return source;
 			}
@@ -6100,10 +6815,17 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static string eSubstring(this string source, string startWithString, StringComparison comparison = DEFAULT_STRING_COMPARSION)
 			{
-				if (startWithString.eIsNullOrWhiteSpace()) return source;
+				if (startWithString.eIsNullOrWhiteSpace())
+				{
+					return source;
+				}
 
 				int pos = source.IndexOf(startWithString, comparison);
-				if (pos < 0) return source;
+				if (pos < 0)
+				{
+					return source;
+				}
+
 				string S = source.Substring(pos + startWithString.Length);
 				return S;
 			}
@@ -6113,13 +6835,23 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static string? eSubstringBetween(this string? source, string prefix, string suffix, StringComparison comparison = DEFAULT_STRING_COMPARSION)
 			{
-				if (source.eIsNullOrWhiteSpace()) return null;
+				if (source.eIsNullOrWhiteSpace())
+				{
+					return null;
+				}
 
 				var s = source!.eSubstring(prefix, comparison);
-				if (s.eIsNullOrWhiteSpace() || suffix.eIsNullOrWhiteSpace()) return null;
+				if (s.eIsNullOrWhiteSpace() || suffix.eIsNullOrWhiteSpace())
+				{
+					return null;
+				}
 
 				int pos = s.IndexOf(suffix, comparison);
-				if (pos <= 0) return null;
+				if (pos <= 0)
+				{
+					return null;
+				}
+
 				s = s.Substring(0, pos);
 				return s;
 			}
@@ -6155,7 +6887,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				do
 				{
 					// Если Первый байт нулевой, текста нету
-					if (Marshal.ReadByte(Ptr) == 0) break;
+					if (Marshal.ReadByte(Ptr) == 0)
+					{
+						break;
+					}
+
 					var sLine = Marshal.PtrToStringUni(Ptr);
 					if (string.IsNullOrEmpty(sLine) || sLine.Length < 1)
 					{
@@ -6179,7 +6915,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static IEnumerable<int> eAllIndexesOf(this string? source, string search, StringComparison comparison = DEFAULT_STRING_COMPARSION)
 			{
-				if (null == source) yield break;
+				if (null == source)
+				{
+					yield break;
+				}
 
 				int minIndex = source.IndexOf(search!, comparison);
 				while (minIndex != -1)
@@ -6199,7 +6938,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static IEnumerable<int> eAllIndexesOf(this string? source, char c)
 			{
-				if (null == source) yield break;
+				if (null == source)
+				{
+					yield break;
+				}
 
 				var result2 = source?
 					.Select((b, i) => b.Equals(c) ? i : -1)?
@@ -6239,7 +6981,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				while (iCharCount < countAtLeast)
 				{
 					int iCharNew = Array.IndexOf(cc, c, iCharOld + 1);
-					if (iCharNew == -1) return false;//Not found Next
+					if (iCharNew == -1)
+					{
+						return false;//Not found Next
+					}
+
 					iCharOld = iCharNew;
 				}
 				return true;//Found all
@@ -6258,8 +7004,16 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				bool atStart = true,
 				bool atEnd = true)
 			{
-				if (!notEncloseIfExist | !source.StartsWith(encloseString) && atStart) source = encloseString + source;
-				if (!notEncloseIfExist | !source.EndsWith(encloseString) && atEnd) source += encloseString;
+				if (!notEncloseIfExist | !source.StartsWith(encloseString) && atStart)
+				{
+					source = encloseString + source;
+				}
+
+				if (!notEncloseIfExist | !source.EndsWith(encloseString) && atEnd)
+				{
+					source += encloseString;
+				}
+
 				return source;
 			}
 
@@ -6289,13 +7043,19 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				while (sourceText.eIsNotNullOrWhiteSpace() && sourceText.StartsWith(Convert.ToString(encloseChar)))
 				{
 					sourceText = sourceText.eTrimStart(encloseChar);
-					if (onlyOnePass) break;
+					if (onlyOnePass)
+					{
+						break;
+					}
 				}
 
 				while (sourceText.eIsNotNullOrWhiteSpace() && sourceText.EndsWith(Convert.ToString(encloseChar)))
 				{
 					sourceText = sourceText.eTrimEnd(encloseChar);
-					if (onlyOnePass) break;
+					if (onlyOnePass)
+					{
+						break;
+					}
 				}
 				return sourceText;
 			}
@@ -6304,11 +7064,19 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static int eTakeWhile_Count(this string sourceText, char firstCharToSelect)
 			{
-				if (sourceText.eIsNullOrWhiteSpace() || !sourceText.StartsWith(firstCharToSelect.ToString())) return 0;
+				if (sourceText.eIsNullOrWhiteSpace() || !sourceText.StartsWith(firstCharToSelect.ToString()))
+				{
+					return 0;
+				}
+
 				int iCount = 0;
 				foreach (char C in sourceText)
 				{
-					if (C != firstCharToSelect) break;
+					if (C != firstCharToSelect)
+					{
+						break;
+					}
+
 					iCount += 1;
 				}
 
@@ -6368,7 +7136,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static string eInsertSpacesBeforeUpperCaseChars(this string source)
 			{
-				if (source.eIsNullOrWhiteSpace() || source.Length < 2) return source;
+				if (source.eIsNullOrWhiteSpace() || source.Length < 2)
+				{
+					return source;
+				}
+
 				return source.Select(c => char.IsUpper(c) ? (" " + c.ToString()) : c.ToString()).ToArray().eJoin("")!.TrimStart();
 
 				/*
@@ -6415,7 +7187,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static string? eGetDigitChars(this string S)
 			{
-				if (S.eIsNullOrWhiteSpace()) return null;
+				if (S.eIsNullOrWhiteSpace())
+				{
+					return null;
+				}
+
 				var AB = S.ToArray().eGetDigitChars();
 				return (!AB.Any())
 					? null
@@ -6608,22 +7384,51 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 				var abX = x.GetAddressBytes();
 				var abY = y.GetAddressBytes();
-				if (abX.Length != 4) throw new ArgumentOutOfRangeException("IP4 only can be compared!");
-				if (abX.Length != abX.Length) throw new ArgumentOutOfRangeException("asfd");
+				if (abX.Length != 4)
+				{
+					throw new ArgumentOutOfRangeException("IP4 only can be compared!");
+				}
 
-				for (int i = 0; i < 4; i++)
+				if (abX.Length != abX.Length)
+				{
+					throw new ArgumentOutOfRangeException("asfd");
+				}
+
+				for (int i = 0 ; i < 4 ; i++)
 				{
 					int res = abX[i].CompareTo(abY[i]);
-					if (res != 0) return res;
+					if (res != 0)
+					{
+						return res;
+					}
 				}
 				return 0;
+			}
+
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static (string Result, bool StringWasTrimmed) eLimitLenght(this string source, int maxLen, bool addHorizontalEllipsisChar = false)
+			{
+				if (source.eIsNotNullOrWhiteSpace() && (source.Length > maxLen))
+				{
+					string s = source.Substring(0, maxLen);
+
+					if (addHorizontalEllipsisChar)
+					{
+						s = source.Substring(0, s.Length - 1);
+						s += (char)0x2026;
+						//
+					}
+					return (s, true);
+				}
+				return (source, false);
 			}
 
 		}
 
 
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		internal static class Extensions_Dictionary
+		internal static partial class Extensions_Dictionary
 		{
 
 
@@ -6665,8 +7470,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 		}
 
 
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		internal static class Extensions_Arrays
+		internal static partial class Extensions_Arrays
 		{
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -6676,7 +7480,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				int index = 0;
 				foreach (T item in objList.eOrEmptyIfNull())
 				{
-					if (item.CompareTo(itemToSearch!) == 0) return index;
+					if (item.CompareTo(itemToSearch!) == 0)
+					{
+						return index;
+					}
+
 					index++;
 				}
 				return -1;
@@ -6689,7 +7497,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				int index = 0;
 				foreach (T item in objList.eOrEmptyIfNull())
 				{
-					if (item.Equals(itemToSearch)) return index;
+					if (item.Equals(itemToSearch))
+					{
+						return index;
+					}
+
 					index++;
 				}
 				return -1;
@@ -6699,7 +7511,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static void eForEach<T>(this IEnumerable<T>? objList, Action<T>? action)
 			{
-				foreach (T item in objList?.eOrEmptyIfNull()!) action?.Invoke(item);
+				foreach (T item in objList?.eOrEmptyIfNull()!)
+				{
+					action?.Invoke(item);
+				}
 			}
 
 
@@ -6773,11 +7588,17 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				Next
 				Return Nothing
 				 */
-				if (!A.Any()) return default;
+				if (!A.Any())
+				{
+					return default;
+				}
 
 				foreach (var R in A)
 				{
-					if (ContainCheck.Invoke(R)) return R;
+					if (ContainCheck.Invoke(R))
+					{
+						return R;
+					}
 				}
 				return default;
 			}
@@ -6817,7 +7638,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				=> dic
 				.Select<KeyValuePair<string, T>, string?>(kvp =>
 				{
-					if (kvp.Value == null && skipNullValues) return null;
+					if (kvp.Value == null && skipNullValues)
+					{
+						return null;
+					}
+
 					object val = kvp.Value!;
 
 					var vt = val.GetType();
@@ -6878,7 +7703,12 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			internal static bool eContainsAnyOf<T>(this IEnumerable<T> Arr1, IEnumerable<T> Arr2)
 			{
 				foreach (var Element2 in Arr2)
-					if (Arr1.Contains(Element2)) return true;
+				{
+					if (Arr1.Contains(Element2))
+					{
+						return true;
+					}
+				}
 
 				return false;
 			}
@@ -6894,7 +7724,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static T[] eTakeFrom<T>(this T[] A, int iStartTakeIndex)
 			{
-				if (A.Length <= iStartTakeIndex) return Array.Empty<T>();
+				if (A.Length <= iStartTakeIndex)
+				{
+					return Array.Empty<T>();
+				}
+
 				var L = A.Length - iStartTakeIndex;
 				var aResult = new T[L];
 				Array.Copy(A, iStartTakeIndex, aResult, 0, L);
@@ -6931,8 +7765,16 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			internal static T[] eRemoveLast<T>(this IEnumerable<T> ie, int countOfRemodevFirstItems = 1)
 			{
 				List<T> l = ie.ToList();
-				if (countOfRemodevFirstItems > l.Count) countOfRemodevFirstItems = l.Count;
-				for (int n = 1; n <= countOfRemodevFirstItems; n++) l.RemoveAt(l.Count - 1);
+				if (countOfRemodevFirstItems > l.Count)
+				{
+					countOfRemodevFirstItems = l.Count;
+				}
+
+				for (int n = 1 ; n <= countOfRemodevFirstItems ; n++)
+				{
+					l.RemoveAt(l.Count - 1);
+				}
+
 				return l.ToArray();
 			}
 
@@ -6959,11 +7801,15 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 			/// <summary>Объединяет двумерный массив в одномерный. !!!БЕЗ СОРТИРОВКИ!!!</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static T[] eMerge2Dto1D<T>(this IEnumerable<IEnumerable<T>> Array2D)
+			[Obsolete("Use array.SelectMany instead!", true)]
+			public static T[] eMerge2Dto1D<T>(this IEnumerable<IEnumerable<T>> array2D)
 			{
+				/* OLD NET
 				var lResult = new List<T>();
 				Array2D.eForEach(arrSecondLevel => lResult.AddRange(arrSecondLevel.ToArray()));
 				return lResult.ToArray();
+				 */
+				return [.. array2D.SelectMany(a => a)];
 			}
 
 
@@ -6972,7 +7818,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			internal static T? ePeekFirstOrDefault<T>(this List<T> L)
 			{
 				var firstItem = L.FirstOrDefault();
-				if (firstItem != null) L.RemoveAt(0);
+				if (firstItem != null)
+				{
+					L.RemoveAt(0);
+				}
+
 				return firstItem;
 			}
 
@@ -7062,7 +7912,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool eCompareArrays_SIMD<T>(this Span<T> a, Span<T> b) where T : unmanaged, IComparable<T>
 			{
-				if (a.Length != b.Length) return false;
+				if (a.Length != b.Length)
+				{
+					return false;
+				}
 
 				int vectorSize = Vector<T>.Count;
 				int numVectors = a.Length / vectorSize;
@@ -7072,15 +7925,21 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				ReadOnlySpan<Vector<T>> leftVecArray = MemoryMarshal.Cast<T, Vector<T>>(a);
 				ReadOnlySpan<Vector<T>> rightVecArray = MemoryMarshal.Cast<T, Vector<T>>(b);
 
-				for (int i = 0; i < numVectors; i++)
+				for (int i = 0 ; i < numVectors ; i++)
 				{
-					if (!System.Numerics.Vector.EqualsAll(leftVecArray[i], rightVecArray[i])) return false;
+					if (!System.Numerics.Vector.EqualsAll(leftVecArray[i], rightVecArray[i]))
+					{
+						return false;
+					}
 				}
 
 				// Finish operation with any numbers leftover
-				for (int i = ceiling; i < a.Length; i++)
+				for (int i = ceiling ; i < a.Length ; i++)
 				{
-					if (a[i].CompareTo(b[i]) != 0) return false;
+					if (a[i].CompareTo(b[i]) != 0)
+					{
+						return false;
+					}
 				}
 				return true;
 			}
@@ -7117,7 +7976,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool eCompareArrays_SIMD_Byte(this ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
 			{
-				if (a.Length != b.Length) return false;
+				if (a.Length != b.Length)
+				{
+					return false;
+				}
 
 				int vectorSize = Vector<byte>.Count;
 				int numVectors = a.Length / vectorSize;
@@ -7126,17 +7988,23 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				ReadOnlySpan<Vector<byte>> leftVecArray = MemoryMarshal.Cast<byte, Vector<byte>>(a);
 				ReadOnlySpan<Vector<byte>> rightVecArray = MemoryMarshal.Cast<byte, Vector<byte>>(b);
 				//Vector<byte> zeroVector = Vector<byte>.Zero;
-				for (int i = 0; i < numVectors; i++)
+				for (int i = 0 ; i < numVectors ; i++)
 				{
 					//Comparing two vectors by XOR them. This must be very fast. Result must be zero if vectors is equal
 					//if ((leftVecArray[i] ^ rightVecArray[i]) != zeroVector) return false;
-					if (leftVecArray[i] != rightVecArray[i]) return false;
+					if (leftVecArray[i] != rightVecArray[i])
+					{
+						return false;
+					}
 				}
 
 				// Finish operation with any numbers leftover
-				for (int i = ceiling; i < a.Length; i++)
+				for (int i = ceiling ; i < a.Length ; i++)
 				{
-					if (a[i] != b[i]) return false;
+					if (a[i] != b[i])
+					{
+						return false;
+					}
 				}
 				return true;
 			}
@@ -7158,13 +8026,28 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static bool eCompareArrays_ByElements<T>(this T[] arrA, T[] arrB, int iCompareCount = 0) where T : IComparable<T>
 			{
-				if (arrA.Length != arrB.Length) return false;
-				if (!arrA.Any()) return true;
+				if (arrA.Length != arrB.Length)
+				{
+					return false;
+				}
 
-				if (iCompareCount < 1) iCompareCount = arrA.Length;
+				if (!arrA.Any())
+				{
+					return true;
+				}
 
-				for (int n = 0; n < iCompareCount; n++)
-					if (arrA[n].CompareTo(arrB[n]) != 0) return false;
+				if (iCompareCount < 1)
+				{
+					iCompareCount = arrA.Length;
+				}
+
+				for (int n = 0 ; n < iCompareCount ; n++)
+				{
+					if (arrA[n].CompareTo(arrB[n]) != 0)
+					{
+						return false;
+					}
+				}
 
 				return true;
 			}
@@ -7174,8 +8057,15 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static bool eCompareArrays_Linq<T>(this T[] arrA, T[] arrB) where T : class //, IComparable<T>
 			{
-				if (arrA.Length != arrB.Length) return false;
-				if (!arrA.Any()) return true;
+				if (arrA.Length != arrB.Length)
+				{
+					return false;
+				}
+
+				if (!arrA.Any())
+				{
+					return true;
+				}
 
 				return arrA.SequenceEqual(arrB);
 			}
@@ -7186,8 +8076,15 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static bool eCompareArrays_StructuralEquatable<T>(this T[] arrA, T[] arrB) where T : IStructuralEquatable, IComparable<T>
 			{
-				if (arrA.Length != arrB.Length) return false;
-				if (!arrA.Any()) return true;
+				if (arrA.Length != arrB.Length)
+				{
+					return false;
+				}
+
+				if (!arrA.Any())
+				{
+					return true;
+				}
 
 				return (arrA as IStructuralEquatable).Equals(arrB as IStructuralEquatable, StructuralComparisons.StructuralEqualityComparer);
 			}
@@ -7217,7 +8114,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			/// </summary>'
 			internal static bool eCompareArrays_Vector<T>(this T[] arrA, T[] arrB) where T : struct
 			{
-				if (arrA.Length != arrB.Length) return false;
+				if (arrA.Length != arrB.Length)
+				{
+					return false;
+				}
 
 				int platformVectorSize = System.Numerics.Vector<T>.Count;   //On x64 Windows platformVectorSize = 32 byte
 																			//bool hwa = System.Numerics.Vector.IsHardwareAccelerated;
@@ -7228,11 +8128,14 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				// Compare main body by blocks,
 				// with block size = hardware accelerated platformVectorSize
 				int iMax = (arrA.Length - platformVectorSize);
-				for (; i <= iMax; i += platformVectorSize)
+				for (; i <= iMax ; i += platformVectorSize)
 				{
 					va = new(arrA, i);
 					vb = new(arrB, i);
-					if (!System.Numerics.Vector.EqualsAll(va, vb)) return false;
+					if (!System.Numerics.Vector.EqualsAll(va, vb))
+					{
+						return false;
+					}
 				}
 
 				// Compare Tail
@@ -7313,7 +8216,8 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 		}
 
-		internal static class Extensions_ListsSync
+
+		internal static partial class Extensions_ListsSync
 		{
 
 			#region SYNC Engine
@@ -7343,7 +8247,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				Action<TCurrent>? OnItemObsolete = null,
 				Action<TNew>? OnNewItemNeedToAdd = null)
 			{
-				if (!OldList.Any() && !NewList.Any()) return;
+				if (!OldList.Any() && !NewList.Any())
+				{
+					return;
+				}
 
 				// В старом списке ищем записи, кторорых нет в новых данных, для пометки как устаревшие и возможного удаления
 				foreach (var rOld in OldList)
@@ -7354,10 +8261,14 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					{
 						// New list contains any elements as in Old list
 						if (UpdateOldItemCallback != null)
+						{
 							OldRecordsNeedToBeUpdated.eForEach(rNewItem => UpdateOldItemCallback?.Invoke(rOld, rNewItem));// Обновляем элемент старого списка новыми значениями
+						}
 					}
 					else // В новом списке нет этого старого элемента
+					{
 						OnItemObsolete?.Invoke(rOld);// Сообщаем что элемент устарел (РЕШИТЬ ВОПРОС С ВОЗМОЖНОСТЬЮ УДАЛЕНИЯ!!!) Внутри вызова можно удалять элемент, т.к. щас смотрим array-копию старого списка и это безопасно
+					}
 				}
 
 				// Ищем новые элементы, которых нет в старом списке
@@ -7371,7 +8282,9 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					}
 					// В старом списке есть такой же элемент (элементы уже обновлены в первом абзаце)
 					else // В старом списке нет этого нового элемента
+					{
 						OnNewItemNeedToAdd?.Invoke(rNew);
+					}
 				}
 			}
 			#endregion
@@ -7379,8 +8292,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 		}
 
 
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		internal static class Extensions_Enum
+		internal static partial class Extensions_Enum
 		{
 
 
@@ -7403,7 +8315,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				Int64 val = Convert.ToInt64(initialValue);
 				foreach (var item in flags)
 				{
-					if (item.flagCondition) val |= Convert.ToInt64(item.flagToSet);
+					if (item.flagCondition)
+					{
+						val |= Convert.ToInt64(item.flagToSet);
+					}
 				}
 				T TResult = (T)Enum.ToObject(typeof(T), val);
 				return TResult;
@@ -7415,7 +8330,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				Int64 val = Convert.ToInt64(initialValue);
 				foreach (var item in flags)
 				{
-					if (item.value.HasFlag(item.flagToCheck)) val |= Convert.ToInt64(item.flagToSet);
+					if (item.value.HasFlag(item.flagToCheck))
+					{
+						val |= Convert.ToInt64(item.flagToSet);
+					}
 				}
 				T1 TResult = (T1)Enum.ToObject(typeof(T1), val);
 				return TResult;
@@ -7447,7 +8365,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 			public static Int32 eMixFlagsAsInt32<T>(this T flag, params T[] flagsToExclude) where T : Enum
 			{
-				if (flag == null) throw new ArgumentNullException(nameof(flag));
+				if (flag == null)
+				{
+					throw new ArgumentNullException(nameof(flag));
+				}
 
 				var allValues = Enum
 					.GetValues(typeof(T))
@@ -7457,7 +8378,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					.ToArray();
 
 				Int32 mixResult = 0;
-				foreach (var f in allValues) mixResult |= f;
+				foreach (var f in allValues)
+				{
+					mixResult |= f;
+				}
+
 				return mixResult;
 			}
 
@@ -7489,7 +8414,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					.Where(enumFieldValue => eValue.HasFlag(enumFieldValue))
 					.Select(enumFieldValue => (MaskValue: enumFieldValue, MaskFieldInfo: T.GetField(enumFieldValue.ToString())!));
 
-				if (!fields.Any()) return (false, null, false, Array.Empty<Enum>(), Array.Empty<FieldInfo>());
+				if (!fields.Any())
+				{
+					return (false, null, false, Array.Empty<Enum>(), Array.Empty<FieldInfo>());
+				}
 
 				Enum[] maskValue = fields.Select(ff => ff.MaskValue).ToArray();
 				FieldInfo[] maskInfo = fields
@@ -7503,10 +8431,17 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			public static T[] eGetEnumFieldCustomAttributes<T>(this Enum eValue, bool inherit = true) where T : System.Attribute
 			{
 				(bool isDirectDefinedEnumValue, FieldInfo? efi, _, _, _) = eValue.eGetEnumValueInfo();
-				if (!isDirectDefinedEnumValue || efi == null) throw new ArgumentOutOfRangeException(nameof(eValue));
+				if (!isDirectDefinedEnumValue || efi == null)
+				{
+					throw new ArgumentOutOfRangeException(nameof(eValue));
+				}
 
 				var attrs = efi!.GetCustomAttributes<T>(inherit);
-				if (!attrs.Any()) return Array.Empty<T>();
+				if (!attrs.Any())
+				{
+					return Array.Empty<T>();
+				}
+
 				return attrs.ToArray();
 			}
 
@@ -7526,7 +8461,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				}
 
 				var T = value.GetType();
-				if (Enum.IsDefined(T, value)) return cbGetEnumFiledDescr(T, value);//This value id direct defined in ENUM! not bit mask
+				if (Enum.IsDefined(T, value))
+				{
+					return cbGetEnumFiledDescr(T, value);//This value id direct defined in ENUM! not bit mask
+				}
 
 				/*
 		 string sFieldName = rEnumValue.ToString();
@@ -7584,7 +8522,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					.Cast<TEnum>()
 					.FirstOrDefault(v => v.ToString()!.Equals(valueName, StringComparison.InvariantCultureIgnoreCase));
 
-				if (found != null) return found;
+				if (found != null)
+				{
+					return found;
+				}
+
 				return defaultValue;
 			}
 
@@ -7747,7 +8689,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 
 
-# Region "OLD"
+	# Region "OLD"
 
 
 		//    //////<summary>Возвращает значение атрибута<see cref="System.ComponentModel.DescriptionAttribute"/> </summary>    
@@ -7801,7 +8743,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 		//    End Function
 
 
-# End Region
+	# End Region
 
 
 
@@ -7899,7 +8841,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					End Sub
 				End Class
 
-# Region "EnumTypeConverter"
+	# Region "EnumTypeConverter"
 				Friend Class EnumTypeConverter
 					Inherits System.ComponentModel.EnumConverter
 					Public Sub New(ByVal type As System.Type)
@@ -8026,9 +8968,9 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 							}
 
 						Catch ex As Exception
-#if DEBUG {
+	#if DEBUG {
 							ex.eLogError(true)
-#}
+	#}
 						End Try
 						return MyBase.ConvertFrom(context, culture, value)
 					End Function
@@ -8052,13 +8994,13 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 							 }
 						 }
 
-#if DEBUG {
+	#if DEBUG {
 							var MSG = string.Format("!!! Enum_GetEnumCommentAttributeValue, для одиночного значения: //{0}// (тип: //{1}//) нет поля //EnumCommentAttribute//! - используем текстовое значение .ToString = //{0}//",
 													V.ToString,
 													VType.ToString)
 
 							Call DEBUG_SHOW_LINE(MSG)
-#}
+	#}
 
 						}else{ //Это составной тип ENUM (Собранный через OR)
 							var aEnumFlags = ExtEnum_SplitToFlags(V)
@@ -8072,13 +9014,13 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 							}
 
 
-#if DEBUG {
+	#if DEBUG {
 							var MSG = string.Format("!!! Enum_GetEnumCommentAttributeValue, для систавного значения: //{0}// (тип: //{1}//) нет полей //EnumCommentAttribute//! - используем текстовое значение .ToString = //{0}//",
 													V.ToString,
 													VType.ToString)
 
 							Call DEBUG_SHOW_LINE(MSG)
-#}
+	#}
 
 						}
 
@@ -8090,7 +9032,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 
 				End Class
-# End Region
+	# End Region
 
 
 
@@ -8100,11 +9042,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 		}
 
 
-
-
-		/// <summary>Network Extensions</summary>
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		internal static class Extensions_DateTime
+		internal static partial class Extensions_DateTime
 		{
 			internal const string CS_DATETIME_YEAR = "yyyy";
 			internal const string CS_DATETIME_MONTH_NUM = "MM";
@@ -8196,8 +9134,6 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 		}
 
 
-		/// <summary>Network Extensions</summary>
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		internal static partial class Extensions_IO
 		{
 
@@ -8207,7 +9143,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			public static void ethrowIfNotExist(this string path)
 			{
 				var fsi = path.eToFileSystemInfo();
-				if (!fsi!.Exists) throw new System.IO.FileNotFoundException(null, path);
+				if (!fsi!.Exists)
+				{
+					throw new System.IO.FileNotFoundException(null, path);
+				}
 				//var atr = System.IO.File.GetAttributes(path);
 				//return !(atr.HasFlag(FileAttributes.Directory));
 			}
@@ -8216,7 +9155,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string ePathAddLongPathPrefix(this string sPath)
 			{
-				if (OSInfo.IsOSPlatform_Windows && sPath != null && !sPath.StartsWith(uom.I_O.CS_PATH_PREFIX_WIN_LONG_PATH)) sPath = uom.I_O.CS_PATH_PREFIX_WIN_LONG_PATH + sPath;
+				if (OSInfo.IsOSPlatform_Windows && sPath != null && !sPath.StartsWith(uom.I_O.CS_PATH_PREFIX_WIN_LONG_PATH))
+				{
+					sPath = uom.I_O.CS_PATH_PREFIX_WIN_LONG_PATH + sPath;
+				}
+
 				return sPath!;
 			}
 
@@ -8225,7 +9168,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string ePathRemoveLongPathPrefix(this string sPath)
 			{
-				if (OSInfo.IsOSPlatform_Windows && (sPath != null) && sPath!.StartsWith(uom.I_O.CS_PATH_PREFIX_WIN_LONG_PATH)) sPath = sPath.Substring(I_O.CS_PATH_PREFIX_WIN_LONG_PATH.Length);
+				if (OSInfo.IsOSPlatform_Windows && (sPath != null) && sPath!.StartsWith(uom.I_O.CS_PATH_PREFIX_WIN_LONG_PATH))
+				{
+					sPath = sPath.Substring(I_O.CS_PATH_PREFIX_WIN_LONG_PATH.Length);
+				}
+
 				return sPath!;
 			}
 
@@ -8237,14 +9184,22 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static DirectoryInfo eToDirectoryInfo(this string sPath, bool AddLongPathSupportIfNeed = false)
 			{
-				if (AddLongPathSupportIfNeed) sPath = sPath.ePathAddLongPathPrefix();
+				if (AddLongPathSupportIfNeed)
+				{
+					sPath = sPath.ePathAddLongPathPrefix();
+				}
+
 				return new DirectoryInfo(sPath);
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static FileInfo eToFileInfo(this string sPath, bool AddLongPathSupportIfNeed = false)
 			{
-				if (AddLongPathSupportIfNeed) sPath = sPath.ePathAddLongPathPrefix();
+				if (AddLongPathSupportIfNeed)
+				{
+					sPath = sPath.ePathAddLongPathPrefix();
+				}
+
 				return new FileInfo(sPath);
 			}
 
@@ -8290,16 +9245,28 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				lInvalidChars.AddRange(Path.GetInvalidPathChars());
 				lInvalidChars.AddRange(Path.GetInvalidFileNameChars());
 				lInvalidChars.AddRange("%");
-				if (replaceDots) lInvalidChars.AddRange(".");
+				if (replaceDots)
+				{
+					lInvalidChars.AddRange(".");
+				}
 
 				var aInvalidChars = lInvalidChars.Distinct().ToArray();
 
 				foreach (var C in aInvalidChars)
-					while (src.Contains(Convert.ToString(C))) src = src.Replace(C, cReplaceWith);
+				{
+					while (src.Contains(Convert.ToString(C)))
+					{
+						src = src.Replace(C, cReplaceWith);
+					}
+				}
 
 				// Заменяем двойные символы на одинарные
 				string C_REPLACE_CHAR2 = new(cReplaceWith, 2);//.ToString() + cReplaceWith;
-				while (src.Contains(C_REPLACE_CHAR2)) src = src.Replace(C_REPLACE_CHAR2, cReplaceWith.ToString());
+				while (src.Contains(C_REPLACE_CHAR2))
+				{
+					src = src.Replace(C_REPLACE_CHAR2, cReplaceWith.ToString());
+				}
+
 				return src;
 			}
 
@@ -8314,8 +9281,15 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static FileSystemInfo eToFileSystemInfo(this string path)
 			{
-				if (File.Exists(path)) return new FileInfo(path);
-				if (Directory.Exists(path)) return new DirectoryInfo(path);
+				if (File.Exists(path))
+				{
+					return new FileInfo(path);
+				}
+
+				if (Directory.Exists(path))
+				{
+					return new DirectoryInfo(path);
+				}
 				// invalid path or does not exist
 				throw new System.IO.FileNotFoundException($"'{path}' was not found!");
 			}
@@ -8344,7 +9318,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				//Find last dir separator from the end
 				string pathRev = path.eReverseString();
 				int sepIndex = pathRev.IndexOf(System.IO.Path.PathSeparator);
-				if (sepIndex < 1 || sepIndex >= pathRev.Length) return null;
+				if (sepIndex < 1 || sepIndex >= pathRev.Length)
+				{
+					return null;
+				}
+
 				pathRev = pathRev.Substring(sepIndex + 1);
 				return pathRev.eReverseString();
 			}
@@ -8354,17 +9332,27 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			internal static FileSystemInfo? eFindFirstExistingFileSystemInfo(this string path)
 			{
 				//First think this is file
-				if (File.Exists(path)) return new FileInfo(path);
+				if (File.Exists(path))
+				{
+					return new FileInfo(path);
+				}
 
 				//Not exist or this is directory
-				if (Directory.Exists(path)) return new DirectoryInfo(path);
+				if (Directory.Exists(path))
+				{
+					return new DirectoryInfo(path);
+				}
 
 				//Not exist!
 
 				string? parentDir = path.eGetFileSystemParent();
 				while (parentDir != null)
 				{
-					if (Directory.Exists(parentDir)) return new DirectoryInfo(path);
+					if (Directory.Exists(parentDir))
+					{
+						return new DirectoryInfo(path);
+					}
+
 					parentDir = parentDir!.eGetFileSystemParent();
 				}
 				return null;
@@ -8417,14 +9405,22 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static FileInfo? eMakeBackUpIfExist(this FileInfo fi, bool moveInsteadOfCopy = false)
 			{
-				if (!fi.Exists) return null;
+				if (!fi.Exists)
+				{
+					return null;
+				}
+
 				FileInfo fiBak = new($"{fi.FullName}.{DateTime.Now.eToFileName()}.bak.");
 				fiBak.eDeleteIfExist();
 
 				if (moveInsteadOfCopy)
+				{
 					fi.MoveTo(fiBak.FullName);
+				}
 				else
+				{
 					fi.CopyTo(fiBak.FullName);
+				}
 
 				return fiBak;
 			}
@@ -8445,11 +9441,18 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			}
 
 
+
+
+
+
 			/// <returns>Arhived FileInfo if file backup success or null if source file not exist</returns>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static FileInfo? eMoveToArhive(this FileInfo source, int maxArhiveFileCount = 10, string arhiveFilesExt = BAK_EXT)
 			{
-				if (!source.Exists) return null;
+				if (!source.Exists)
+				{
+					return null;
+				}
 
 				FileInfo fiBackup = source.eMoveToArhive_Core(arhiveFilesExt);
 
@@ -8481,7 +9484,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static FileInfo? eMoveToArhive(this FileInfo file, DateTime killBefore, string arhiveFilesExt = BAK_EXT)
 			{
-				if (!file.Exists) return null;
+				if (!file.Exists)
+				{
+					return null;
+				}
 
 				FileInfo fiBackup = file.eMoveToArhive_Core(arhiveFilesExt);
 
@@ -8499,6 +9505,8 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				return fiBackup;
 			}
 
+#if !UWP
+#endif
 
 
 			/*
@@ -8544,15 +9552,32 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void eCreateIfNotExist(this DirectoryInfo di) { if (!di.Exists) di.Create(); }
+			internal static void eCreateIfNotExist(this DirectoryInfo di)
+			{
+				if (!di.Exists)
+				{
+					di.Create();
+				}
+			}
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void eDeleteIfExist(this FileSystemInfo fsi) { if (fsi.Exists) fsi.Delete(); }
+			internal static void eDeleteIfExist(this FileSystemInfo fsi)
+			{
+				if (fsi.Exists)
+				{
+					fsi.Delete();
+				}
+			}
 
+
+
+
+#if !UWP
+#endif
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static void eDeleteIfExistSafe(this FileSystemInfo? fsi)
-				=> uom.Extensions.Extensions_DebugAndErrors.etryCatch(() => fsi?.eDeleteIfExist());
+				=> uom.Extensions.Extensions_DebugAndErrors.eTryCatch(() => fsi?.eDeleteIfExist());
 
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -8630,7 +9655,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static byte[] eReadAllBytes(this Stream s)
 			{
-				if (s.Length < 1L) return Array.Empty<byte>();
+				if (s.Length < 1L)
+				{
+					return Array.Empty<byte>();
+				}
+
 				s.Seek(0L, SeekOrigin.Begin);
 				using BinaryReader br = new(s);
 				return br.ReadBytes((int)s.Length);
@@ -8654,7 +9683,9 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				while (sLine != null)
 				{
 					if (!string.IsNullOrWhiteSpace(sLine) || !skipEmptyLines)
+					{
 						yield return sLine;
+					}
 
 					sLine = src.ReadLine();
 				}
@@ -8690,8 +9721,15 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static string? eReadAsText(this FileInfo fi, System.Text.Encoding? @encoding = null, bool detectEncodingFromByteOrderMarks = false)
 			{
-				if (!fi.Exists) return null;
-				if (!detectEncodingFromByteOrderMarks || @encoding != null) return File.ReadAllText(fi.FullName, @encoding ?? Encoding.Unicode);
+				if (!fi.Exists)
+				{
+					return null;
+				}
+
+				if (!detectEncodingFromByteOrderMarks || @encoding != null)
+				{
+					return File.ReadAllText(fi.FullName, @encoding ?? Encoding.Unicode);
+				}
 
 				using FileStream fs = fi.eCreateStreamR(FileMode.Open, FileAccess.Read, FileShare.Read);
 				using StreamReader sr = new(fs, true);
@@ -8701,7 +9739,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static async Task<string?> eReadAsTextAsync(this FileInfo fi, System.Text.Encoding? @encoding = null, bool detectEncodingFromByteOrderMarks = false)
 			{
-				if (!fi.Exists) return null;
+				if (!fi.Exists)
+				{
+					return null;
+				}
+
 				if (!detectEncodingFromByteOrderMarks || @encoding != null)
 				{
 					return await Task.Factory.StartNew(() => File.ReadAllText(fi.FullName, @encoding ?? Encoding.Unicode));
@@ -8743,7 +9785,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static char[] eReadAllChars(this StreamReader sr)
 			{
-				List<char> lBuffer = new();
+				List<char> lBuffer = [];
 				char[] cBuffer = new char[1024];
 				int iReadCount;
 				do
@@ -8788,7 +9830,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static void eWriteAllBytes(this Stream s, byte[] data, bool truncateBeforeWrite = true)
 			{
-				if (truncateBeforeWrite) s.eTruncate();
+				if (truncateBeforeWrite)
+				{
+					s.eTruncate();
+				}
+
 				if (data.Any())
 				{
 					s.Seek(0L, SeekOrigin.Begin);
@@ -8808,10 +9854,18 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static void eWriteAllText(this FileInfo fi, string text, Encoding? @encoding = null)
 			{
-				if (!fi.Directory!.Exists) fi.Directory.Create();
+				if (!fi.Directory!.Exists)
+				{
+					fi.Directory.Create();
+				}
+
 				using StreamWriter sw = fi.eCreateWriter(FileMode.OpenOrCreate, encoding: @encoding ?? Encoding.Unicode);
 				sw.BaseStream.eTruncate();
-				if (!string.IsNullOrEmpty(text)) sw.Write(text);
+				if (!string.IsNullOrEmpty(text))
+				{
+					sw.Write(text);
+				}
+
 				sw.Flush();
 			}
 
@@ -8837,7 +9891,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			{
 				@encoding ??= Encoding.Unicode;
 				var sw = new StreamWriter(fs, @encoding);
-				if (null != autoFlush) sw.AutoFlush = autoFlush.eToBool();
+				if (null != autoFlush)
+				{
+					sw.AutoFlush = autoFlush.eToBool();
+				}
+
 				return sw;
 			}
 
@@ -8925,8 +9983,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 
 		/// <summary>Network Extensions</summary>
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		internal static class Extensions_Network
+		internal static partial class Extensions_Network
 		{
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -9026,7 +10083,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			{
 				uint @start = ipStart.eToUInt32CalculableOrder();
 				uint @end = ipEnd.eToUInt32CalculableOrder();
-				for (uint ip = @start; ip <= @end; ip++)
+				for (uint ip = @start ; ip <= @end ; ip++)
 				{
 					IPAddress ipa = new(ip.eReverseBytes());
 					yield return ipa;
@@ -9052,8 +10109,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				uint uIP = ipa.eToUInt32CalculableOrder();
 				uint uSubnetZeroIP = uIP & uMask;
 				IPAddress ipaSubnetZeroIP = uSubnetZeroIP.eFromIPCalculableOrderToIP4Address();
-				if (subnetMask.Equals(IPAddress.Broadcast)) return (ipaSubnetZeroIP, ipaFirst, ipaLast, ipaBroadcast, uSubnetIPCount, null);
-
+				if (subnetMask.Equals(IPAddress.Broadcast))
+				{
+					return (ipaSubnetZeroIP, ipaFirst, ipaLast, ipaBroadcast, uSubnetIPCount, null);
+				}
 
 				{
 					uint uMaskNot = ~uMask;
@@ -9066,11 +10125,14 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				ipaLast = ipaFirst;
 
 				uint uPrefixLen = subnetMask.eGetIP4SubnetPrefixSizeFromMask();
-				if (uPrefixLen >= 31) return (ipaSubnetZeroIP, ipaFirst, ipaLast, ipaBroadcast, uSubnetIPCount, ipaFirst.eToArrayOf());
+				if (uPrefixLen >= 31)
+				{
+					return (ipaSubnetZeroIP, ipaFirst, ipaLast, ipaBroadcast, uSubnetIPCount, ipaFirst.eToArrayOf());
+				}
 
 				uint uChangeableBits = 32u - uPrefixLen;
 				uSubnetIPCount = 0;
-				for (uint i = 0; i < uChangeableBits; i++)
+				for (uint i = 0 ; i < uChangeableBits ; i++)
 				{
 					uSubnetIPCount <<= 1;
 					uSubnetIPCount++;
@@ -9115,7 +10177,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				var localSubnet = host.eCalculateIP4Subnet();
 				var remoteSubnet = targetSubnet.eCalculateIP4Subnet();
 
-				if (localSubnet.BroadcastIP.Equals(remoteSubnet.BroadcastIP)) return true;
+				if (localSubnet.BroadcastIP.Equals(remoteSubnet.BroadcastIP))
+				{
+					return true;
+				}
+
 				return false;
 			}
 
@@ -9127,7 +10193,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				foreach (UnicastIPAddressInformation uaLocal in uom.Network.Helpers.GelLocalIP4())
 				{
 					uom.Network.IP4AddressWithMask subnetLocal = uaLocal.eToIP4AddressWithMask();
-					if (ip.eIsInSubnet(subnetLocal)) return true;
+					if (ip.eIsInSubnet(subnetLocal))
+					{
+						return true;
+					}
 				}
 				return false;
 			}
@@ -9212,7 +10281,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					}
 					finally
 					{
-						if (null == fiDownloaded) fiTMP.Delete();
+						if (null == fiDownloaded)
+						{
+							fiTMP.Delete();
+						}
 					}
 				});
 				return fiDownloaded;
@@ -9309,20 +10381,36 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 		}
 
 
-
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		internal static partial class Extensions_Object
 		{
 			/// <summary>Compares Classes via ReferenceEquals, and unmanaged via Equals</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool eEqualsUniversal<T>(this T? A, T? B)
 			{
-				if (A == null && B == null) return true;
-				if ((A == null && B != null) || (B == null && A != null)) return false;
+				if (A == null && B == null)
+				{
+					return true;
+				}
 
-				if (A!.GetType().IsClass) return Object.ReferenceEquals(A, B);
-				if (A is IEquatable<T> ea) return ea.Equals(B!);
-				if (A is IComparable<T> ca) return ca.CompareTo(B!) == 0;
+				if ((A == null && B != null) || (B == null && A != null))
+				{
+					return false;
+				}
+
+				if (A!.GetType().IsClass)
+				{
+					return Object.ReferenceEquals(A, B);
+				}
+
+				if (A is IEquatable<T> ea)
+				{
+					return ea.Equals(B!);
+				}
+
+				if (A is IComparable<T> ca)
+				{
+					return ca.CompareTo(B!) == 0;
+				}
 
 				return A.Equals(B);
 			}
@@ -9339,7 +10427,13 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			internal static void eDisposeAndSetNothing<T>(this T ObjToDispose, bool ThrowExceptionOnError = false) where T : IDisposable
 			{
 				try { ObjToDispose?.Dispose(); }
-				catch { if (ThrowExceptionOnError) throw; }
+				catch
+				{
+					if (ThrowExceptionOnError)
+					{
+						throw;
+					}
+				}
 			}
 
 			//[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -9387,9 +10481,242 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 		}
 
 
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		internal static partial class Extensions_Async_MT
 		{
+
+
+			/// <summary>
+			/// Awaiting specifed total 'timeToWait' with delays by 'stepInterval' and checking periodicaly cancelationFunc
+			/// </summary>
+			public static async Task eDelayWithCancelation(this int timeToWait, int stepInterval, Func<bool> cancelationFunc)
+			{
+				if (stepInterval >= timeToWait)
+				{
+					throw new ArgumentOutOfRangeException(nameof(stepInterval), "stepInterval must be < than timeToWait");
+				}
+
+				int timeSpent = 0;
+				while (true)
+				{
+					if (cancelationFunc.Invoke())
+					{
+						return;
+					}
+
+					await Task.Delay(stepInterval);
+					timeSpent += stepInterval;
+					if (timeSpent >= timeToWait)
+					{
+						break;
+					}
+				}
+			}
+
+
+
+
+
+			/// <summary>Run Task synchronously, using SynchronizationContext helpers</summary>
+			/// <param name="func">Task<T> method to run</param>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void eRunSync(this Func<Task> func)
+			{
+				SynchronizationContext? oldContext = SynchronizationContext.Current;
+				ExclusiveSynchronizationContext synCtx = new();
+				SynchronizationContext.SetSynchronizationContext(synCtx);
+				synCtx.Post(async _ =>
+				{
+					try
+					{
+						await func();
+					}
+					catch (Exception e)
+					{
+						synCtx.InnerException = e;
+						throw;
+					}
+					finally
+					{ synCtx.EndMessageLoop(); }
+				}, null);
+				synCtx.BeginMessageLoop();
+				SynchronizationContext.SetSynchronizationContext(oldContext);
+			}
+
+
+			/// <inheritdoc cref="eRunSync(Func[Task])"/>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static T? eRunSync<T>(this Func<Task<T?>> func)
+			{
+				var oldContext = SynchronizationContext.Current;
+				var synch = new ExclusiveSynchronizationContext();
+				SynchronizationContext.SetSynchronizationContext(synch);
+				T? ret = default;
+				synch.Post(async _ =>
+				{
+					try
+					{
+						ret = await func.Invoke();
+					}
+					catch (Exception e)
+					{
+						synch.InnerException = e;
+						throw;
+					}
+					finally
+					{
+						synch.EndMessageLoop();
+					}
+				}, null);
+				synch.BeginMessageLoop();
+				SynchronizationContext.SetSynchronizationContext(oldContext);
+				return ret;
+			}
+
+
+
+
+			/// <inheritdoc cref="eRunSync"/>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void eRunSync(this Task tsk)
+				=> eRunSync(() => tsk);
+
+
+			/// <inheritdoc cref="eRunSync"/>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static T eRunSync<T>(this Task<T> task)
+				=> eRunSync(() => task!)!;
+
+
+
+
+
+			/// <summary>Run Task synchronously using Task.Run helpers</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void eRunSync2(this Task t1)
+			{
+				using Task t2 = Task.Run(async () => await t1);
+				t2.Wait();
+			}
+
+			/// <inheritdoc cref="eRunSync2"/>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static T eRunSync2<T>(this Task<T> t1)
+			{
+				using Task t2 = Task.Run(async () => await t1);
+				t2.Wait();
+				return t1.Result;
+			}
+
+
+
+			private class ExclusiveSynchronizationContext : SynchronizationContext
+			{
+				private bool done;
+				public Exception? InnerException { get; set; }
+
+				private readonly AutoResetEvent workItemsWaiting = new(false);
+				private readonly Queue<Tuple<SendOrPostCallback, object?>> items = new();
+
+				public override void Send(SendOrPostCallback d, object? state)
+				{
+					throw new NotSupportedException("We cannot send to our same thread");
+				}
+
+				public override void Post(SendOrPostCallback d, object? state)
+				{
+					lock (items)
+					{
+						items.Enqueue(Tuple.Create(d, state));
+					}
+					workItemsWaiting.Set();
+				}
+
+				public void EndMessageLoop() => Post(_ => done = true, null);
+
+				public void BeginMessageLoop()
+				{
+					while (!done)
+					{
+						Tuple<SendOrPostCallback, object?>? task = null;
+						lock (items)
+						{
+							if (items.Count > 0)
+							{
+								task = items.Dequeue();
+							}
+						}
+						if (task != null)
+						{
+							task.Item1(task.Item2);
+							if (InnerException != null) // the method threw an exeption
+							{
+								//throw new AggregateException("AsyncHelpers.Run method threw an exception.", InnerException);
+								throw InnerException;
+							}
+						}
+						else
+						{
+							workItemsWaiting.WaitOne();
+						}
+					}
+				}
+
+				public override SynchronizationContext CreateCopy()
+				{
+					return this;
+				}
+			}
+
+
+
+
+
+
+
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static Task eAsTask(this WaitHandle handle, int timeout = Timeout.Infinite)
+			{
+				TaskCompletionSource<object> tcs = new();
+				RegisteredWaitHandle registration = ThreadPool.RegisterWaitForSingleObject(handle,
+					(state, timedOut) =>
+					{
+						//if (state == null) throw new ArgumentNullException(nameof(state));
+						var localTcs = (TaskCompletionSource<object>)state!;
+
+						if (timedOut)
+						{
+							localTcs.TrySetCanceled();
+						}
+						else
+						{
+#pragma warning disable CS8600, CS8625 // Possible null reference argument for parameter.
+							localTcs.TrySetResult(null);
+						}
+#pragma warning restore CS8600, CS8625 // Possible null reference argument for parameter.
+
+					},
+				tcs, timeout, executeOnlyOnce: true);
+
+				tcs.Task.ContinueWith((_, state) => ((RegisteredWaitHandle)(state!)).Unregister(null), registration, TaskScheduler.Default);
+				return tcs.Task;
+			}
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static Task eWaitAsync(this WaitHandle handle, int timeout = Timeout.Infinite) => handle.eAsTask(timeout);
+
+
+
+
+
+
+
+
+
+
+
 
 			public static void eInvoke(this SynchronizationContext sc, Action a)
 				=> sc.Send(_ => a.Invoke(), null);
@@ -9459,7 +10786,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static T eRunSyncLock<T>(this object rLockObject, Func<T> f)
 			{
-				lock (rLockObject) return f.Invoke();
+				lock (rLockObject)
+				{
+					return f.Invoke();
+				}
 			}
 
 
@@ -9501,7 +10831,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			internal static async Task eWhenAll<T>(this IEnumerable<Task<T?>> aTasks, bool startTasks, Action<T?> onEachTaskCompleted)
 			{
 				List<Task<T?>> lTasks = aTasks.ToList();
-				if (startTasks) lTasks.ForEach(TSK => TSK.Start()); // Start All Tasks
+				if (startTasks)
+				{
+					lTasks.ForEach(TSK => TSK.Start()); // Start All Tasks
+				}
 
 				while (lTasks.Any())
 				{
@@ -9522,18 +10855,18 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 		}
 
 
-
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		internal static partial class Extensions_DebugAndErrors
 		{
 
 
-			#region etryCatch
+			#region eTryCatch
 
 
-			/// <inheritdoc cref="etryCatch" />
+
+
+			/// <inheritdoc cref="eTryCatch" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Exception? etryCatch(
+			internal static Exception? eTryCatch(
 				this Action a,
 				bool errorUI = true,
 				[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0)
@@ -9545,7 +10878,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				}
 				catch (Exception ex)
 				{
-#if !ANDROID
+#if (!ANDROID && !UWP)
 					ex.eLogError(errorUI, debugErrorUI: false, callerName: callerName, callerFile: callerFile, callerLine: callerLine);
 #endif
 					return ex;
@@ -9553,16 +10886,17 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			}
 
 
+
 			/// <summary>Exec FUNC. Return result</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static (T? Result, Exception? Error) etryCatch<T>(this Func<T?> func, T? defaultValue = default,
+			public static (T? Result, Exception? Error) eTryCatch<T>(this Func<T?> func, T? defaultValue = default,
 				bool errorUI = true,
 				[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0)
 			{
 				try { return (func.Invoke(), null); }
 				catch (Exception ex)
 				{
-#if !ANDROID
+#if (!ANDROID && !UWP)
 					ex.eLogError(errorUI, debugErrorUI: false, callerName: callerName, callerFile: callerFile, callerLine: callerLine);
 #endif
 					return (defaultValue, ex);
@@ -9570,12 +10904,15 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			}
 
 
-			#region etryCatchAsync
 
 
-			/// <inheritdoc cref="etryCatch" />
+
+			#region eTryCatchAsync
+
+
+			/// <inheritdoc cref="eTryCatch" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static async Task<(bool Result, Exception? Error)> etryCatchAsync(this Task tsk,
+			internal static async Task<(bool Result, Exception? Error)> eTryCatchAsync(this Task tsk,
 				bool errorUI = true,
 				[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0)
 			{
@@ -9592,7 +10929,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 						default:
 							{
-#if !ANDROID
+#if (!ANDROID && !UWP)
 								ex.eLogError(errorUI, debugErrorUI: false, callerName: callerName, callerFile: callerFile, callerLine: callerLine);
 #endif
 								break;
@@ -9603,9 +10940,9 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			}
 
 
-			/// <inheritdoc cref="etryCatch" />
+			/// <inheritdoc cref="eTryCatch" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static async Task<(T? Result, Exception? Error)> etryCatchAsync<T>(this Task<T> tsk, T? defaultValue = default,
+			internal static async Task<(T? Result, Exception? Error)> eTryCatchAsync<T>(this Task<T> tsk, T? defaultValue = default,
 				bool errorUI = true,
 				[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0)
 			{
@@ -9618,7 +10955,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 						default:
 							{
-#if !ANDROID
+#if (!ANDROID && !UWP)
 								ex.eLogError(errorUI, debugErrorUI: false, callerName: callerName, callerFile: callerFile, callerLine: callerLine);
 #endif
 								break;
@@ -9629,18 +10966,22 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			}
 
 
-			/// <inheritdoc cref="etryCatch" />
+			/// <inheritdoc cref="eTryCatch" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static async Task<(T? Result, Exception? Error)> etryCatchStartAsync<T>(this Func<T> func, T? defaultValue = default, CancellationTokenSource? cancel = null,
+			internal static async Task<(T? Result, Exception? Error)> eTryCatchStartAsync<T>(this Func<T> func, T? defaultValue = default, CancellationTokenSource? cancel = null,
 				bool errorUI = true,
 				[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0)
 			{
 				try
 				{
 					if (cancel != null)
+					{
 						return (await Task.Factory.StartNew(func, cancel.Token), null);
+					}
 					else
+					{
 						return (await Task.Factory.StartNew(func), null);
+					}
 				}
 				catch (Exception ex)
 				{
@@ -9653,7 +10994,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 								//			ex.eLogError(onErrorShowUI, supressAnyModalPopEvenInDEBUG: true, callerName: callerName, callerFile: callerFile, callerLine: callerLine);
 								if (cancel == null || !cancel.IsCancellationRequested)
 								{
-#if !ANDROID
+#if (!ANDROID && !UWP)
 									ex.eLogError(errorUI, debugErrorUI: false, callerName: callerName, callerFile: callerFile, callerLine: callerLine);
 #endif
 								}
@@ -9673,9 +11014,9 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 
 			/*
-			/// <inheritdoc cref="etryCatch" />
+			/// <inheritdoc cref="eTryCatch" />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static (bool result, Exception? ex) etryCatchWithErrorUI(
+			internal static (bool result, Exception? ex) eTryCatchWithErrorUI(
 				this Action a,
 				[CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLine = 0)
 			{
@@ -9712,10 +11053,80 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				Debug.Write(sMessage);
 #endif
 			}
+
+
+
+
+
+
+			#region eFullDump
+
+
+			// ''<summary>Фиксация ошибки в журнале и в DEBUG MODE вывод сообщения</summary>
+			//[MethodImpl(MethodImplOptions.AggressiveInlining)]			internal static string eDumpTree(this Exception ex, [CallerMemberName] string caller = "")				=> ex.eDumpExceptionTree(caller) + CS_CONSOLE_SEPARATOR;
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static string eFullDump(this Exception? ex,
+				[CallerMemberName] string callerName = "",
+				[CallerFilePath] string callerFile = "",
+				[CallerLineNumber] int callerLine = 0)
+			{
+				if (ex == null)
+				{
+					return string.Empty;
+				}
+
+				StringBuilder sbExceptionTree = new();
+				using StringWriter sw = new(sbExceptionTree);
+
+				sw.WriteLine($"{ex.GetType()}: '{ex.Message}'");
+				sw.WriteLine($"Caller: '{callerName}', File: '{callerFile}', Line: {callerLine}");
+				sw.WriteLine($"StackTrace:\n{ex.StackTrace}");
+
+				if (ex.InnerException != null)
+				{
+					sw.WriteLine($"Exception Stack Tree:");
+					while (ex.InnerException != null)
+					{
+						ex = ex.InnerException;
+						sw.WriteLine($"{ex.GetType()}\n{ex.Message}");
+					}
+				}
+				return sbExceptionTree.ToString();
+			}
+
+
+			#endregion
+
+
+
+
+
+
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static void eLogError_CONSOLE(this Exception ex,
+				bool fullDump = false,
+				[CallerMemberName] string callerName = "",
+				[CallerFilePath] string callerFile = "",
+				[CallerLineNumber] int callerLine = 0)
+			{
+				const string C_CONSOLE_ERROR_HEADER = "*** ERROR:\n";
+				string msg = C_CONSOLE_ERROR_HEADER + ex.Message;
+
+				if (fullDump)
+				{
+					msg = C_CONSOLE_ERROR_HEADER + ex.eFullDump(callerName, callerFile, callerLine);
+				}
+				Console.WriteLine($"{CS_CONSOLE_SEPARATOR}/n{msg}/n{CS_CONSOLE_SEPARATOR}");
+			}
+
+
+
+
 		}
 
 
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		internal static partial class Extensions_Handle
 		{
 
@@ -9759,7 +11170,6 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 		}
 
 
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		internal static partial class Extensions_Globalization
 		{
 
@@ -9770,7 +11180,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static CultureInfo eGetTopParent(this CultureInfo Cult)
 			{
-				while (Cult.Parent != null && Cult.Parent.Name.eIsNotNullOrWhiteSpace()) Cult = Cult.Parent;
+				while (Cult.Parent != null && Cult.Parent.Name.eIsNotNullOrWhiteSpace())
+				{
+					Cult = Cult.Parent;
+				}
+
 				return Cult;
 			}
 
@@ -9782,7 +11196,6 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 		}
 
 
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		internal static partial class Extensions_Resources
 		{
 
@@ -9825,6 +11238,15 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			}
 
 
+
+			/// <summary>Searches specifed assembly for file and load it
+			/// Sample:
+			/// txtTextBox.Text = uom.AppInfo.Assembly.eReadResourceFileAsString("EULA.txt");
+			/// </summary>
+			/// <param name="asm">assembly that contains file resource</param>
+			/// <param name="nameSuffix">Resource File Name</param>
+			/// <param name="e">Resource File Encoding</param>
+			/// <returns></returns>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string eReadResourceFileAsString(this Assembly asm, string nameSuffix, Encoding? e = null, bool detectEncodingFromByteOrderMarks = false)
 			{
@@ -9846,7 +11268,6 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 
 		}
-
 
 		internal static partial class Extensions_Process
 		{
@@ -9893,11 +11314,19 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					SetConsoleCtrlHandler(null, true);
 					try
 					{
-						if (!GenerateConsoleCtrlEvent(CtrlEvents.CTRL_C_EVENT, 0)) return false;
+						if (!GenerateConsoleCtrlEvent(CtrlEvents.CTRL_C_EVENT, 0))
+						{
+							return false;
+						}
+
 						if (wait)
+						{
 							p.WaitForExit();
+						}
 						else
+						{
 							Thread.Sleep(1000);
+						}
 					}
 					finally
 					{
@@ -9911,7 +11340,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 		}
 
-		[EditorBrowsable(EditorBrowsableState.Never)]
+
 		internal static partial class Extensions_Reflection
 		{
 
@@ -10037,7 +11466,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				// Dim rInst = rConstructor.Invoke(New Object() {BTSD})
 
 
-				if (ConstructorArgs.Length < 1) throw new Exception("use Typed eCreateInstance(Of XXX) instead!");
+				if (ConstructorArgs.Length < 1)
+				{
+					throw new Exception("use Typed eCreateInstance(Of XXX) instead!");
+				}
 
 				var aParamsTypes = (from rArg in ConstructorArgs
 									let tArg = rArg.GetType()
@@ -10045,7 +11477,9 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 				var rConstructor = t.GetConstructor(aParamsTypes);
 				if (null == rConstructor)
+				{
 					throw new AmbiguousMatchException($"Cant find class constructor for type '{t.FullName}' with specifed args count ('{ConstructorArgs.Length}') and arg types!");
+				}
 
 				return rConstructor.Invoke(ConstructorArgs);
 			}
@@ -10078,7 +11512,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				)
 			{
 				Dictionary<string, string> dicMembers = [];
-				if (obj == null) return dicMembers;
+				if (obj == null)
+				{
+					return dicMembers;
+				}
 
 				var t = obj.GetType();
 				var members = t.GetMembers(bindingAttr);
@@ -10090,11 +11527,18 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					{
 						case PropertyInfo pi:
 							{
-								if (!memberType.HasFlag(MemberTypes.Property)) continue;
+								if (!memberType.HasFlag(MemberTypes.Property))
+								{
+									continue;
+								}
+
 								if (pi.CanRead)
 								{
 									object? val = pi.GetValue(obj, []);
-									if (val == null && skipNullValuedPropertiesAndFields) continue;
+									if (val == null && skipNullValuedPropertiesAndFields)
+									{
+										continue;
+									}
 
 									/*
 									if (val != null)
@@ -10122,9 +11566,16 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 						case FieldInfo fi:
 							{
-								if (!memberType.HasFlag(MemberTypes.Field)) continue;
+								if (!memberType.HasFlag(MemberTypes.Field))
+								{
+									continue;
+								}
+
 								object? val = fi.GetValue(obj);
-								if (val == null && skipNullValuedPropertiesAndFields) continue;
+								if (val == null && skipNullValuedPropertiesAndFields)
+								{
+									continue;
+								}
 
 								valStr = valueToStringConverter?.Invoke(val, mi)
 										?? (val ?? nullValuePlaceholder).ToString()
@@ -10134,7 +11585,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 						case MethodInfo:
 							{
-								if (!memberType.HasFlag(MemberTypes.Method)) continue;
+								if (!memberType.HasFlag(MemberTypes.Method))
+								{
+									continue;
+								}
 							}
 							break;
 
@@ -10153,7 +11607,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			public static object? eGetPropertyValue(this object obj, string propertyName, object? defaultValue = null, BindingFlags bf = DEFAULT_BF)
 			{
 				PropertyInfo? piID = obj.GetType().GetProperty(propertyName, bf);
-				if (null == piID) return defaultValue; //throw new ArgumentOutOfRangeException($"Object '{obj.GetType()}' does not have property '{propertyName}' or wrong BindingFlags!");
+				if (null == piID)
+				{
+					return defaultValue; //throw new ArgumentOutOfRangeException($"Object '{obj.GetType()}' does not have property '{propertyName}' or wrong BindingFlags!");
+				}
+
 				return piID.GetValue(obj, null);
 			}
 
@@ -10238,7 +11696,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				{
 					if (!srcPropsDic.TryGetValue(propTarget.Name, out var propSource) || propSource == null)
 					{
-						if (throwIfNotFound) throw new ArgumentOutOfRangeException(nameof(source), $"Property '{propTarget.Name}' was not found in '{source}' object!");
+						if (throwIfNotFound)
+						{
+							throw new ArgumentOutOfRangeException(nameof(source), $"Property '{propTarget.Name}' was not found in '{source}' object!");
+						}
 					}
 
 					object? val = propSource!.GetValue(source);
@@ -10263,7 +11724,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 								var objVal = rFirstProp.GetValue(source);
 								tarpetProp.SetValue(target, objVal);
 
-		#if DEBUG
+	#if DEBUG
 								var sVal = "[Nothing]".ToUpper();
 								var sType = sVal;
 								if (null != objVal)
@@ -10272,15 +11733,15 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 									sVal = objVal.ToString();
 								}
 								$"Copied '{propName}' = {sType}:('{sVal}')".eDebugWriteLine();
-		#endif
+	#endif
 							}
 							else
 							{
 								// Свойство с таким именем не найдено в объекте-источнике
 								string err = $"Свойство '{propName}' не найдено в объекте-источнике!";
-		#if DEBUG
+	#if DEBUG
 								err.eDebugWriteLine();
-		#endif
+	#endif
 								if (throwIfNotFound) throw new ArgumentOutOfRangeException(nameof(propertyNames), err);
 							}
 						}
@@ -10388,7 +11849,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				) where TAttr : System.Attribute
 			{
 
-				if (!propName.Contains(".")) throw new ArgumentOutOfRangeException(nameof(propertyValue));
+				if (!propName.Contains("."))
+				{
+					throw new ArgumentOutOfRangeException(nameof(propertyValue));
+				}
 
 				propName = propName.Split('.').Last();
 
@@ -10396,7 +11860,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				props = [.. props.Where(pd => pd.Name == propName)];
 
 				PropertyDescriptor? pd = props.FirstOrDefault();
-				if (pd == null) throw new ArgumentOutOfRangeException(nameof(propertyValue));
+				if (pd == null)
+				{
+					throw new ArgumentOutOfRangeException(nameof(propertyValue));
+				}
 
 				string attrPrefix = @"<" + typeof(TAttr).Name;
 				//pd.eSetAttributeValueOf<TAttribute>(attrPrefix, attributeValue);
@@ -10417,7 +11884,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				Func<PropertyDescriptor, bool>? wherePredicate = null)
 			{
 				PropertyDescriptor[] aProps = [.. TypeDescriptor.GetProperties(o!.GetType()).Cast<PropertyDescriptor>()];
-				if (wherePredicate != null) aProps = [.. aProps.Where(pd => wherePredicate(pd))];
+				if (wherePredicate != null)
+				{
+					aProps = [.. aProps.Where(pd => wherePredicate(pd))];
+				}
+
 				aProps.eForEach(pd => pd.eSetAttribute_Browsable(browsable));
 			}
 
@@ -10438,7 +11909,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				Func<PropertyDescriptor, bool>? wherePredicate = null)
 			{
 				PropertyDescriptor[] aProps = TypeDescriptor.GetProperties(o!.GetType()).Cast<PropertyDescriptor>().ToArray();
-				if (wherePredicate != null) aProps = aProps.Where(pd => wherePredicate(pd)).ToArray();
+				if (wherePredicate != null)
+				{
+					aProps = aProps.Where(pd => wherePredicate(pd)).ToArray();
+				}
 
 				aProps.eForEach(pd => pd.eSetAttribute_ReadOnly(readOnly));
 			}
@@ -10452,10 +11926,6 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 		}
 
 
-
-
-		/// <summary>Сериализация, клонирование</summary>
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		internal static partial class Extensions_Serialize_Clone
 		{
 
@@ -10475,9 +11945,12 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					return sSourceValue;
 				};
 
-				if (MakeSafeChars) aColumnHeadersArray = (from sColumnValue in aColumnHeadersArray
-														  let S = cbPrepareValue(sColumnValue)
-														  select S).ToArray();
+				if (MakeSafeChars)
+				{
+					aColumnHeadersArray = (from sColumnValue in aColumnHeadersArray
+										   let S = cbPrepareValue(sColumnValue)
+										   select S).ToArray();
+				}
 
 				var sHeaderLine = aColumnHeadersArray.eJoin(C_CSV_SEPARATOR);
 				TW.WriteLine(sHeaderLine);
@@ -10485,7 +11958,9 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				{
 					var aValuesArray = cbGetRowValuesArray(CP);
 					if (aValuesArray.Count() != iColumnCount)
+					{
 						throw new Exception("Current Row aValuesArray.Count <> aColumnHeadersArray.Count!");
+					}
 
 					if (MakeSafeChars)
 					{
@@ -10577,7 +12052,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			{
 				try
 				{
-					if (string.IsNullOrWhiteSpace(xmlString)) return defaultValue;
+					if (string.IsNullOrWhiteSpace(xmlString))
+					{
+						return defaultValue;
+					}
+
 					using StringReader sr = new(xmlString);
 					using System.Xml.XmlTextReader xtr = new(sr);
 					System.Xml.Serialization.XmlSerializer xs = new(deserializeTo);
@@ -10586,7 +12065,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				}
 				catch
 				{
-					if (throwOnError) throw;
+					if (throwOnError)
+					{
+						throw;
+					}
+
 					return defaultValue;
 				}
 			}
@@ -10613,7 +12096,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			{
 				try
 				{
-					if (string.IsNullOrWhiteSpace(xmlString)) return defaultValue;
+					if (string.IsNullOrWhiteSpace(xmlString))
+					{
+						return defaultValue;
+					}
+
 					using StringReader sr = new(xmlString);
 					using System.Xml.XmlTextReader xtr = new(sr);
 					System.Xml.Serialization.XmlSerializer xs = new(typeof(T));
@@ -10622,7 +12109,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				}
 				catch
 				{
-					if (throwOnError) throw;
+					if (throwOnError)
+					{
+						throw;
+					}
+
 					return defaultValue;
 				}
 			}
@@ -10644,7 +12135,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				}
 				catch
 				{
-					if (throwOnError) throw;
+					if (throwOnError)
+					{
+						throw;
+					}
+
 					return defaultValue;
 				}
 			}
@@ -10665,7 +12160,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				}
 				catch
 				{
-					if (throwOnError) throw;
+					if (throwOnError)
+					{
+						throw;
+					}
+
 					return defaultValue;
 				}
 			}
@@ -10686,7 +12185,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				}
 				catch
 				{
-					if (throwOnError) throw;
+					if (throwOnError)
+					{
+						throw;
+					}
+
 					return defaultValue;
 				}
 			}
@@ -10695,7 +12198,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static T[] eDeSerializeXMLArrays<T>(this FileInfo[] fiFiles, bool ThrowExceptionOnError = false)
 			{
-				if (!fiFiles.Any()) return Array.Empty<T>();
+				if (!fiFiles.Any())
+				{
+					return Array.Empty<T>();
+				}
+
 				var lTotalDeserializedObjects = new List<T>();
 				foreach (var fiFileToDeserialize in fiFiles)
 				{
@@ -10715,7 +12222,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			internal static List<T> eDeSerializeXMLLists<T>(this FileInfo[] fiFiles, bool ThrowExceptionOnError = false)
 			{
 				var lTotalDeserializedObjects = new List<T>();
-				if (!fiFiles.Any()) return lTotalDeserializedObjects;
+				if (!fiFiles.Any())
+				{
+					return lTotalDeserializedObjects;
+				}
+
 				foreach (var fiFileToDeserialize in fiFiles)
 				{
 					var ListOfDeserializedObjects = fiFileToDeserialize.eDeSerializeXML<List<T>>(throwOnError: ThrowExceptionOnError);
@@ -10785,11 +12296,6 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 		}
 
 
-
-
-
-
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		internal static class Extensions_Security_Ecryption_AES
 		{
 
@@ -10834,7 +12340,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				}
 				else
 				{
-					if (saltBytes != null && saltBytes.Length < AES_MIN_SALT_SIZE) throw new ArgumentOutOfRangeException(nameof(saltBytes), "The salt size must be 8 bytes or larger!");
+					if (saltBytes != null && saltBytes.Length < AES_MIN_SALT_SIZE)
+					{
+						throw new ArgumentOutOfRangeException(nameof(saltBytes), "The salt size must be 8 bytes or larger!");
+					}
+
 					saltBytes ??= DEFAULT_SALT_AES;
 				}
 
@@ -10909,7 +12419,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				}
 				else
 				{
-					if (saltBytes != null && saltBytes.Length < AES_MIN_SALT_SIZE) throw new ArgumentOutOfRangeException(nameof(saltBytes), "The salt size must be 8 bytes or larger!");
+					if (saltBytes != null && saltBytes.Length < AES_MIN_SALT_SIZE)
+					{
+						throw new ArgumentOutOfRangeException(nameof(saltBytes), "The salt size must be 8 bytes or larger!");
+					}
+
 					saltBytes ??= DEFAULT_SALT_AES;
 				}
 
@@ -10947,7 +12461,6 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 		}
 
 
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		internal static partial class Extensions_Security_SecureString
 		{
 
@@ -10957,7 +12470,11 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			{
 				SecureString sec = new();
 				src.ToCharArray().ToList().ForEach(sec.AppendChar);
-				if (makeReadOnly) sec.MakeReadOnly();
+				if (makeReadOnly)
+				{
+					sec.MakeReadOnly();
+				}
+
 				return sec;
 			}
 
@@ -10983,7 +12500,13 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					Marshal.Copy(ptr, bytes, 0, secureString.Length);
 					return bytes;
 				}
-				finally { if (ptr != IntPtr.Zero) Marshal.ZeroFreeBSTR(ptr); }
+				finally
+				{
+					if (ptr != IntPtr.Zero)
+					{
+						Marshal.ZeroFreeBSTR(ptr);
+					}
+				}
 			}
 
 			/// <summary>Returns an unsafe string in managed memory from SecureString. </summary>
@@ -11002,7 +12525,6 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 		}
 
 
-		//[EditorBrowsable(EditorBrowsableState.Never)]
 		internal static partial class Extensions_Security_Hash
 		{
 
@@ -11071,7 +12593,6 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 		}
 
 
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		internal static partial class Extensions_Security_Random
 		{
 
@@ -11109,7 +12630,6 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 		}
 
 
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		internal static partial class Extensions_Structures_Ptr
 		{
 
@@ -11133,9 +12653,13 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static IEnumerable<T> eToStructuresSequential<T>(this IntPtr Ptr, int structCount, int initialOffset = 0) where T : struct
 			{
-				if (initialOffset != 0) Ptr += initialOffset;
+				if (initialOffset != 0)
+				{
+					Ptr += initialOffset;
+				}
+
 				int structSize = Marshal.SizeOf(typeof(T));
-				for (int structIndex = 1, loopTo = structCount; structIndex <= loopTo; structIndex++)
+				for (int structIndex = 1, loopTo = structCount ; structIndex <= loopTo ; structIndex++)
 				{
 					T structInstance = Ptr.eToStructure<T>();
 					yield return structInstance;
@@ -11172,8 +12696,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 		}
 
 
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		internal static class Extensions_XML
+		internal static partial class Extensions_XML
 		{
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -11261,12 +12784,15 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				XElementToNameCompareDelegate? comparePredicate = null,
 				params string[] nodeTreeNames)
 			{
-				if (nodeTreeNames.Length < 2) throw new ArgumentOutOfRangeException(nameof(nodeTreeNames), $"{nameof(nodeTreeNames)} count must be > 1 !");
+				if (nodeTreeNames.Length < 2)
+				{
+					throw new ArgumentOutOfRangeException(nameof(nodeTreeNames), $"{nameof(nodeTreeNames)} count must be > 1 !");
+				}
 
 				comparePredicate ??= defaultXElementToNameComparer.Value;
 
 				var treesBranches = node.eFindNodes(nodeTreeNames[0], startPointSearchOptions);
-				List<XElement> lFoundLastNodes = new();
+				List<XElement> lFoundLastNodes = [];
 
 
 				void FindNextChildForNode(XContainer x, string[] childrensToFind)
@@ -11315,9 +12841,7 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 #if !ANDROID
 
 
-
-		/// <summary>Console Extensions</summary>
-		internal static class Con
+		internal static partial class Extensions_Console
 		{
 
 			internal static EventArgs _ConsoleLock = new();
@@ -11337,8 +12861,15 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					var clrCurrrentBk = Console.ForegroundColor;
 					try
 					{
-						if (clrFore.HasValue) Console.ForegroundColor = clrFore.Value;
-						if (clrBack.HasValue) Console.BackgroundColor = clrBack.Value;
+						if (clrFore.HasValue)
+						{
+							Console.ForegroundColor = clrFore.Value;
+						}
+
+						if (clrBack.HasValue)
+						{
+							Console.BackgroundColor = clrBack.Value;
+						}
 
 						if (WtiteLine)
 						{
@@ -11365,7 +12896,14 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static void runTryCatchCon(this Action A, string ActionTitle = "")
 			{
-				if (!String.IsNullOrWhiteSpace(ActionTitle)) lock (_ConsoleLock) Console.WriteLine($"{ActionTitle}".Trim());
+				if (!String.IsNullOrWhiteSpace(ActionTitle))
+				{
+					lock (_ConsoleLock)
+					{
+						Console.WriteLine($"{ActionTitle}".Trim());
+					}
+				}
+
 				try { A.Invoke(); }
 				catch (Exception ex)
 				{
@@ -11389,12 +12927,21 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 				fProgress = fProgress.eCheckRange(0, 1);
 
 				var iBarFill = (Int32)((float)ProgressBarLenght * fProgress);
-				if (iBarFill > ProgressBarLenght) iBarFill = ProgressBarLenght;
+				if (iBarFill > ProgressBarLenght)
+				{
+					iBarFill = ProgressBarLenght;
+				}
 
 				var sProgressBar = new string(cProgressBarFillChar, iBarFill);
-				if (iBarFill < ProgressBarLenght) sProgressBar = sProgressBar.PadRight(ProgressBarLenght, cProgressBarEmptyChar);
+				if (iBarFill < ProgressBarLenght)
+				{
+					sProgressBar = sProgressBar.PadRight(ProgressBarLenght, cProgressBarEmptyChar);
+				}
+
 				lock (_ConsoleLock)
+				{
 					Console.Write($"{ProgressPrefixString} [{sProgressBar}] {fProgress.eFormatPercent(iDecimalPlaces)}\r");
+				}
 			}
 
 			/// <summary>Display progress bar</summary>
@@ -11483,7 +13030,10 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 
 			internal static string CreateArgsText(IEnumerable<(string Key, string Value)> ArgsAndDescriptions, int MaxWidth = constants.C_DEFAULT_CONSOLE_WIDTH)
 			{
-				if (null == ArgsAndDescriptions || !ArgsAndDescriptions.Any()) throw new ArgumentException(nameof(ArgsAndDescriptions));
+				if (null == ArgsAndDescriptions || !ArgsAndDescriptions.Any())
+				{
+					throw new ArgumentException(nameof(ArgsAndDescriptions));
+				}
 
 				var sb = new StringBuilder();
 				int iMaxKeyLenght = (from T in ArgsAndDescriptions select T.Key.Length).Max();
@@ -11537,7 +13087,9 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 					var kKey = Console.ReadKey();
 					Console.WriteLine("");
 					if (kKey.Key == ConsoleKey.Y)
+					{
 						return true;
+					}
 				}
 
 				return false;
@@ -11546,8 +13098,15 @@ protected T NotifyPropertyChanged<T>(T newValue, [CallerMemberName] string? prop
 			public static bool Console_IsKeyPressed(ConsoleKey KK = ConsoleKey.Y)
 			{
 				lock (_ConsoleLock)
+				{
 					if (Console.KeyAvailable)
-						if (Console.ReadKey().Key == KK) return true;
+					{
+						if (Console.ReadKey().Key == KK)
+						{
+							return true;
+						}
+					}
+				}
 
 				return false;
 			}

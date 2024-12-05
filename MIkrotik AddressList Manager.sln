@@ -26,7 +26,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UI", "UI", "{813020D0-FC07-
 		CommonMP\UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs = CommonMP\UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mikrotik.Net", "..\..\..\_LIB\CS_UOM\Network\Mikrotik\MikrotikDotNet\MDN_Git\Mikrotik.Net\Mikrotik.Net.csproj", "{F5C5251B-3991-41AE-A8E4-14E50505B66F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mikrotik.Net", "..\..\_LIB\CS_UOM\Network\Mikrotik\MikrotikDotNet\MDN_Git\Mikrotik.Net\Mikrotik.Net.csproj", "{F5C5251B-3991-41AE-A8E4-14E50505B66F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

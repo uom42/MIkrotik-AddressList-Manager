@@ -38,7 +38,7 @@ internal partial class DevicesListUI : Form
 		iml.Images.Add(bmRouter);
 		lvwDevices.SmallImageList = iml;
 
-		string? recent = Extensions_DebugAndErrors.etryCatch(LoadRecent, null).Result;
+		string? recent = Extensions_DebugAndErrors.eTryCatch(LoadRecent, null).Result;
 
 		foreach (var abr in _devices)
 		{
