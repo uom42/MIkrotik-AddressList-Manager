@@ -23,6 +23,8 @@
 		<Description>UOM Mikrotik AddressList Manager</Description>
 		<Copyright>(C)UOM 2010-2024</Copyright>
 
+		<ApplicationIcon>..\CommonMP\Media\Router\Router.ico</ApplicationIcon>
+		
 		<NeutralLanguage>en-US</NeutralLanguage>
 
 		<!--
@@ -31,13 +33,13 @@
 		-->
 
 		<!-- Versions -->
+		<AssemblyName>MALM</AssemblyName>
 		<AssemblyVersion>3.0.0.1</AssemblyVersion>
 		<FileVersion>3.0.0.1</FileVersion>
 		<ProductVersion>3.0.0.1</ProductVersion>
 
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-		<ApplicationIcon>..\CommonMP\Media\Router\Router.ico</ApplicationIcon>
 
 	</PropertyGroup>
 
@@ -52,14 +54,12 @@
 		<EmbeddedResource Include="..\CommonMP\Media\Balls\ball_green.svg" Link="Media\Balls\ball_green.svg" />
 
 
-		
+		<!-- Localization String Resources -->
 		<EmbeddedResource Update="Localization\LStrings.resx">
 			<Generator>ResXFileCodeGenerator</Generator>
 			<LastGenOutput>LStrings.Designer.cs</LastGenOutput>
 		</EmbeddedResource>
 
-		
-		
 		<Compile Update="Localization\LStrings.Designer.cs">
 			<DesignTime>True</DesignTime>
 			<AutoGen>True</AutoGen>
@@ -75,9 +75,8 @@
 		</EmbeddedResource>
 
 
-		
-		
 
+		<!-- Include -->
 
 		<Compile Include="..\CommonMP\OUI\MacRecordInfo.cs" Link="OUI\MacRecordInfo.cs" />
 		<Compile Include="..\CommonMP\OUI\MacRecordsGroup.cs" Link="OUI\MacRecordsGroup.cs" />
@@ -85,11 +84,7 @@
 		<Compile Include="..\CommonMP\OUI\Tools.cs" Link="OUI\Tools.cs" />
 		<Compile Include="..\CommonMP\OUI\OUIDatabase.cs" Link="OUI\OUIDatabase.cs" />
 
-
-
-
-		<!-- Partial UI files -->
-
+		<!-- Include Partial UI files -->
 		<Compile Include="..\CommonMP\UI\MasterKeyUI_Multiplatform.cs" Link="UI\MasterKeyUI_Multiplatform.cs">
 			<DependentUpon>MasterKeyUI.cs</DependentUpon>
 		</Compile>
@@ -103,7 +98,7 @@
 		</Compile>
 
 
-		<!-- Partial Model files -->
+		<!-- Include Partial Model files -->
 		<Compile Include="..\CommonMP\Model\DevicesListRecord_Multiplatform.cs" Link="Model\DevicesListRecord_Multiplatform.cs">
 			<DependentUpon>DevicesListRecord.cs</DependentUpon>
 		</Compile>
@@ -121,6 +116,13 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\..\..\_LIB\CS_UOM\Network\Mikrotik\MikrotikDotNet\MDN_Git\Mikrotik.Net\Mikrotik.Net.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Compile Update="Localization\LStrings.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>LStrings.resx</DependentUpon>
+	  </Compile>
 	</ItemGroup>
 
 

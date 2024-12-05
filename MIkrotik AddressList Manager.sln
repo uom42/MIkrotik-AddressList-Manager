@@ -3,28 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33403.182
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MALM WinDesktop.N8", "WinDesktop\MALM WinDesktop.N8.csproj", "{84341386-62AB-4042-AC5F-A80DCEA0A2F4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MALM WinDesktop", "WinDesktop\MALM WinDesktop.csproj", "{84341386-62AB-4042-AC5F-A80DCEA0A2F4}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MALM MAUI", "MAUI\MALM MAUI.csproj", "{ABFF7288-7608-4BDE-A4C9-54FA7816D2BE}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CommonMP", "CommonMP", "{9786A824-BA0A-48D2-B1D6-8E83F98D5253}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LIBs", "LIBs", "{CF6918A2-3FE5-417A-8C72-71BC53220C1C}"
-	ProjectSection(SolutionItems) = preProject
-		CommonMP\LIBs\uom.Core.Multiplatform.cs = CommonMP\LIBs\uom.Core.Multiplatform.cs
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Model", "Model", "{A5416167-0E1F-4331-BC68-17906FE9B1B0}"
-	ProjectSection(SolutionItems) = preProject
-		CommonMP\Model\DevicesListRecord_Multiplatform.cs = CommonMP\Model\DevicesListRecord_Multiplatform.cs
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UI", "UI", "{813020D0-FC07-4010-B105-49FE91291F5D}"
-	ProjectSection(SolutionItems) = preProject
-		CommonMP\UI\DevicesListUI_Multiplatform.cs = CommonMP\UI\DevicesListUI_Multiplatform.cs
-		CommonMP\UI\MasterKeyUI_Multiplatform.cs = CommonMP\UI\MasterKeyUI_Multiplatform.cs
-		CommonMP\UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs = CommonMP\UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs
-	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mikrotik.Net", "..\..\_LIB\CS_UOM\Network\Mikrotik\MikrotikDotNet\MDN_Git\Mikrotik.Net\Mikrotik.Net.csproj", "{F5C5251B-3991-41AE-A8E4-14E50505B66F}"
 EndProject
@@ -51,11 +34,6 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{CF6918A2-3FE5-417A-8C72-71BC53220C1C} = {9786A824-BA0A-48D2-B1D6-8E83F98D5253}
-		{A5416167-0E1F-4331-BC68-17906FE9B1B0} = {9786A824-BA0A-48D2-B1D6-8E83F98D5253}
-		{813020D0-FC07-4010-B105-49FE91291F5D} = {9786A824-BA0A-48D2-B1D6-8E83F98D5253}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {19A1F6E8-4FA2-4D40-981C-AC58A628EA15}
