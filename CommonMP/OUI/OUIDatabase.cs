@@ -31,8 +31,8 @@ namespace MALM.OUI
 
 		#endregion
 
-		[GeneratedRegex(C_REGEXP, RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.IgnorePatternWhitespace | RegexOptions.CultureInvariant)]
-		private static partial Regex rxOUI();
+		[GeneratedRegex (C_REGEXP, RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.IgnorePatternWhitespace | RegexOptions.CultureInvariant)]
+		private static partial Regex rxOUI ();
 
 		public const int DATABSE_OBSOLETE_DAYS = 10;
 
@@ -48,7 +48,7 @@ namespace MALM.OUI
 		private static readonly Encoding C_OUI_ENCODING = Encoding.UTF8;
 		 */
 
-		private EventArgs _syncObject = new();
+		private EventArgs _syncObject = new ();
 
 		/// <summary>All Records (more than 30K recs...)</summary>
 		ReadOnlyDictionary<string, MacRecordsGroup> _fullList;
@@ -59,11 +59,11 @@ namespace MALM.OUI
 
 		public readonly FileInfo? DatabaseFile;
 
-		public bool UseInternalDatabase => (DatabaseFile == null);
+		public bool UseInternalDatabase => ( DatabaseFile == null );
 
 
 
-		private OUIDatabase(FileInfo? fi, ReadOnlyDictionary<string, MacRecordsGroup> dic)
+		private OUIDatabase ( FileInfo? fi, ReadOnlyDictionary<string, MacRecordsGroup> dic )
 		{
 			DatabaseFile = fi;
 			_fullList = dic;
@@ -73,13 +73,13 @@ namespace MALM.OUI
 		#region TryCreate, Parse
 
 
-		internal static OUIDatabase? TryCreate()
+		internal static OUIDatabase? TryCreate ()
 		{
 			string body = string.Empty;
 			FileInfo? fiBase = null;
 
 #if WINDOWS
-			FileInfo fiDefaultBase = uom.AppTools.GetFileIn_AppData(OUI_FILE, false);
+			FileInfo fiDefaultBase = uom.AppTools.GetFileIn_AppData (OUI_FILE, false);
 			fiBase = fiDefaultBase;
 #endif
 			bool needUpdateDB = false;
@@ -87,37 +87,37 @@ namespace MALM.OUI
 			{
 				//Using DB from Resources
 				//Debug.WriteLine($"External OUI-base '{fiBase}' not found. Using internal base.");
-				body = uom.AppInfo.LoadResourceFileAsString("OUI.oui.txt");
+				body = uom.AppTools.GetEmbeddedResourceAsString ("OUI.oui.txt");
 				fiBase = null;
 				needUpdateDB = true;
 			}
 			else
 			{
 				//Loading
-				body = fiBase.eReadAsText(detectEncodingFromByteOrderMarks: true)!;
+				body = fiBase.eReadAsText (detectEncodingFromByteOrderMarks: true)!;
 				//Debug.WriteLine($"Loaded External OUI-base from '{fiBase}'");
 
 				var baseAge = DateTime.Now - fiBase.LastWriteTime;
-				needUpdateDB = (baseAge.TotalDays >= DATABSE_OBSOLETE_DAYS);
+				needUpdateDB = ( baseAge.TotalDays >= DATABSE_OBSOLETE_DAYS );
 			}
 
 #if WINDOWS
-			if (needUpdateDB) BeginCheckForDatabaseUpdates(fiDefaultBase);
+			if (needUpdateDB) BeginCheckForDatabaseUpdates (fiDefaultBase);
 #endif
-			var records = ParseOUIFile(body);
-			if (!records.Any()) throw new NotSupportedException(Localization.LStrings.E_OUI_FAILED_TO_PARSE_OUI_CONTENT);
-			var db = new OUIDatabase(fiBase, records);
+			var records = ParseOUIFile (body);
+			if (!records.Any ()) throw new NotSupportedException (Localization.LStrings.E_OUI_FAILED_TO_PARSE_OUI_CONTENT);
+			var db = new OUIDatabase (fiBase, records);
 			return db;
 		}
 
 
-		private static ReadOnlyDictionary<string, MacRecordsGroup> ParseOUIFile(string file)
+		private static ReadOnlyDictionary<string, MacRecordsGroup> ParseOUIFile ( string file )
 		{
-			Regex rx = rxOUI();
-			var matches = rx.Matches(file);
+			Regex rx = rxOUI ();
+			var matches = rx.Matches (file);
 
-			var parsed = matches.AsParallel()
-				.Select(m => MacRecordInfo.Parse(m));
+			var parsed = matches.AsParallel ()
+				.Select (m => MacRecordInfo.Parse (m));
 
 			var grouppedByMAC =
 				from ri in parsed
@@ -126,16 +126,16 @@ namespace MALM.OUI
 				select new
 				{
 					MAC = grp.Key,
-					InfoList = (from p in grp select p.Info).ToArray()
+					InfoList = ( from p in grp select p.Info ).ToArray ()
 				};
 
 
 			var mrgList = grouppedByMAC
-				.Select(r => new MacRecordsGroup(r.MAC, r.InfoList));
+				.Select (r => new MacRecordsGroup (r.MAC, r.InfoList));
 
 			var dic = mrgList
-				.ToDictionary(r => r.MFGCode)
-				.AsReadOnly();
+				.ToDictionary (r => r.MFGCode)
+				.AsReadOnly ();
 
 			return dic;
 		}
@@ -148,55 +148,55 @@ namespace MALM.OUI
 
 
 		//Проверяем как давно обновлялась и обновляем если надо
-		public static void BeginCheckForDatabaseUpdates(FileInfo localDBTargetPath)
-			=> Task.Factory.StartNew(() => UpdateDatabase(localDBTargetPath), TaskCreationOptions.LongRunning);
+		public static void BeginCheckForDatabaseUpdates ( FileInfo localDBTargetPath )
+			=> Task.Factory.StartNew (() => UpdateDatabase (localDBTargetPath), TaskCreationOptions.LongRunning);
 
 
-		public static async Task UpdateDatabase(FileInfo localDBTargetPath)
+		public static async Task UpdateDatabase ( FileInfo localDBTargetPath )
 		{
-			Thread.Sleep(5_000);
+			Thread.Sleep (5_000);
 
-			CancellationToken ct = new();
-			TimeSpan downloadTimeout = TimeSpan.FromMinutes(DOWNLOAD_TIMEOUT_MIN);
+			CancellationToken ct = new ();
+			TimeSpan downloadTimeout = TimeSpan.FromMinutes (DOWNLOAD_TIMEOUT_MIN);
 
-			string tempFile = System.IO.Path.GetTempFileName();
+			string tempFile = System.IO.Path.GetTempFileName ();
 #if DEBUG
 			//tempFile = @"t:\_UOI_Database_DownloadTempFile.txt";
 #endif
-			FileInfo fiTemp = new(tempFile);
-			fiTemp.eDeleteIfExistSafe();
+			FileInfo fiTemp = new (tempFile);
+			fiTemp.eDeleteIfExistSafe ();
 
 			try
 			{
-				FileInfo? f = await uom.Network.Helpers.DownloadFile_HttpClient_Async(REMOTE_OIU_DATABASE, tempFile, downloadTimeout, ct);
-				if (f == null || !f.Exists || (UInt64)f.Length < 3u.eMBToBytes())
+				FileInfo? f = await uom.Network.Helpers.DownloadFile_HttpClient_Async (REMOTE_OIU_DATABASE, tempFile, downloadTimeout, ct);
+				if (f == null || !f.Exists || (UInt64) f.Length < 3u.eMBToBytes ())
 				{
-					f?.eDeleteIfExistSafe();
+					f?.eDeleteIfExistSafe ();
 					return;//Failed to download
 				}
-				localDBTargetPath.Refresh();
-				localDBTargetPath.eDeleteIfExist();
+				localDBTargetPath.Refresh ();
+				localDBTargetPath.eDeleteIfExist ();
 				//if (fiDatabaseTarget.Exists) fiDatabaseTarget.eMoveToArhive().eClearArhiveOldFiles(DateTime.Now.AddMonths(-2));
-				f.MoveTo(localDBTargetPath.FullName);
+				f.MoveTo (localDBTargetPath.FullName);
 
 			}
 			catch (HttpRequestException exweb)
 			{
-				fiTemp.eDeleteIfExistSafe();
+				fiTemp.eDeleteIfExistSafe ();
 
 				HttpStatusCode? errCode = exweb.StatusCode;
 
 #if WINDOWS
-				exweb.eLogError(false);
+				exweb.eLogError (false);
 #else
 				exweb.eLogErrorNoUI();
 #endif
 			}
 			catch (Exception ex)
 			{
-				fiTemp.eDeleteIfExistSafe();
+				fiTemp.eDeleteIfExistSafe ();
 #if WINDOWS
-				ex.eLogError(false);
+				ex.eLogError (false);
 #else
 				ex.eLogErrorNoUI();
 #endif
@@ -296,37 +296,37 @@ namespace MALM.OUI
 
 		#endregion
 
-		private MacRecordsGroup? GetMacRecord(PhysicalAddress mac)
+		private MacRecordsGroup? GetMacRecord ( PhysicalAddress mac )
 		{
-			string id = mac.FormatMfgOctets();
+			string id = mac.FormatMfgOctets ();
 
 			lock (_syncObject)
 			{
-				if (_fastCache.TryGetValue(id, out var mrg)) return mrg;
-				if (!_fullList.TryGetValue(id, out mrg)) return null;
+				if (_fastCache.TryGetValue (id, out var mrg)) return mrg;
+				if (!_fullList.TryGetValue (id, out mrg)) return null;
 				//Add found value to fast cache
-				_fastCache.Add(id, mrg);
+				_fastCache.Add (id, mrg);
 				return mrg;
 			}
 		}
 
-		public bool GetMacRecordString(PhysicalAddress mac, out string? mfgString, out MacRecordsGroup? mrg)
+		public bool GetMacRecordString ( PhysicalAddress mac, out string? mfgString, out MacRecordsGroup? mrg )
 		{
 			mfgString = null;
-			mrg = GetMacRecord(mac);
+			mrg = GetMacRecord (mac);
 			if (mrg == null) return false;// null;
 
 			MacRecordInfo[] mriList = mrg.InfoList;
-			mfgString = (mriList.Length == 1)
-							? mriList[0].ToString()
-							: mriList.Select(r => r.ToString()).eJoin(" ,") ?? string.Empty;
+			mfgString = ( mriList.Length == 1 )
+							? mriList[ 0 ].ToString ()
+							: mriList.Select (r => r.ToString ()).eJoin (" ,") ?? string.Empty;
 
 			return true;
 		}
 
 
 
-		public ReadOnlyDictionary<string, MacRecordsGroup> GetRows()
+		public ReadOnlyDictionary<string, MacRecordsGroup> GetRows ()
 		{
 			lock (_syncObject)
 			{

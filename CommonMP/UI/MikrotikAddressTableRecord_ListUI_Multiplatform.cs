@@ -44,29 +44,29 @@ partial class MikrotikAddressTableRecord_ListUI
 	#region Constructors
 
 	/// <summary>Creates new instance with specifed Connection object</summary>
-	public MikrotikAddressTableRecord_ListUI(MKConnection c) : base()
+	public MikrotikAddressTableRecord_ListUI ( MKConnection c ) : base ()
 	{
 		_connection = c;
 
-		InitializeComponent();
+		InitializeComponent ();
 
 		//CommunityToolkit.Maui.Core.Platform.KeyboardExtensions.HideKeyboardAsync();
 		//this.HideKeyboardAsync(CancellationToken.None);
 
 
 #if WINDOWS
-		this.eAttach_PositionAndStateSaver();
+		this.eAttach_PositionAndStateSaver ();
 #endif
 
-		LocalizeUI();
+		LocalizeUI ();
 
 #if WINDOWS
 		{
 			const string URL_FREE_ICONS = "https://www.flaticon.com/free-icons/google-plus";
 
-			llFreeIcons.eSetTextAsLink(
-				string.Format(L_WE_USE_FREE_ICONS, URL_FREE_ICONS),
-				delegate { try { URL_FREE_ICONS.eOpenURLInBrowser(); } catch { } }
+			llFreeIcons.eSetTextAsLink (
+				string.Format (L_WE_USE_FREE_ICONS, URL_FREE_ICONS),
+				delegate { try { URL_FREE_ICONS.eOpenURLInBrowser (); } catch { } }
 				);
 		}
 
@@ -74,49 +74,49 @@ partial class MikrotikAddressTableRecord_ListUI
 		var iconSize = System.Windows.Forms.SystemInformation.SmallIconSize;
 
 		var bmIconGreen = uom.AppInfo.Assembly
-			.eLoadSVGFromResourceFile("ball_green.svg")
-			.eToBitmap(iconSize);
+			.eLoadSVGFromResourceFile ("ball_green.svg")
+			.eToBitmap (iconSize);
 
-		var bmIconGray = bmIconGreen.eToGrayscaled_ToolStripRenderer();
-		var iml = new ImageList()
+		var bmIconGray = bmIconGreen.eToGrayscaled_ToolStripRenderer ();
+		var iml = new ImageList ()
 		{
 			ColorDepth = ColorDepth.Depth32Bit,
 			ImageSize = iconSize,
 		};
-		iml.Images.Add(AddressListItemRow.C_IMAGE_KEY_GRAY, bmIconGray);
-		iml.Images.Add(AddressListItemRow.C_IMAGE_KEY_GREEN, bmIconGreen);
+		iml.Images.Add (AddressListItemRow.C_IMAGE_KEY_GRAY, bmIconGray);
+		iml.Images.Add (AddressListItemRow.C_IMAGE_KEY_GREEN, bmIconGreen);
 		lvwRows.SmallImageList = iml;
 
 
 
-		lvwRows.SelectedIndexChanged += (_, _) => UpdateUIState();
+		lvwRows.SelectedIndexChanged += ( _, _ ) => UpdateUIState ();
 
 
-		lvwRows.Items_NeedRefreshList += async (_, _) => await RefreshList();
-		btnRows_Refresh.Click += async (_, _) => await RefreshList();
+		lvwRows.Items_NeedRefreshList += async ( _, _ ) => await RefreshList ();
+		btnRows_Refresh.Click += async ( _, _ ) => await RefreshList ();
 
 		//btnRows_Enable.Click += async (s, e) => await SelectedRows_EnableDisable(true);
 		//btnRows_Disable.Click += async (s, e) => await SelectedRows_EnableDisable(false);
-		btnRows_Enable.CheckStateChanged += async (s, e) => await SelectedRows_EnableDisable(btnRows_Enable.CheckState == CheckState.Checked);
-		lvwRows.KeyPress += async (_, e) =>
+		btnRows_Enable.CheckStateChanged += async ( s, e ) => await SelectedRows_EnableDisable (btnRows_Enable.CheckState == CheckState.Checked);
+		lvwRows.KeyPress += async ( _, e ) =>
 		{
 			if (e.KeyChar == ' ')
 			{
 				//Inverting selected rows checkstate
-				await SelectedRows_EnableDisable(!(btnRows_Enable.CheckState == CheckState.Checked));
+				await SelectedRows_EnableDisable (!( btnRows_Enable.CheckState == CheckState.Checked ));
 
 				//Refreshing UI State
-				UpdateUIState();
+				UpdateUIState ();
 			}
 		};
 
-		btnRows_Add.Click += async (s, e) => await OnRows_Add();
+		btnRows_Add.Click += async ( s, e ) => await OnRows_Add ();
 
 
-		btnViewARPList.Click += (_, _) => ShowLANDevices();
+		btnViewARPList.Click += ( _, _ ) => ShowLANDevices ();
 
 
-		this.Load += async (s, e) => await OnLoad();
+		this.Load += async ( s, e ) => await OnLoad ();
 
 
 #else
@@ -133,7 +133,7 @@ partial class MikrotikAddressTableRecord_ListUI
 	}
 
 
-	private void LocalizeUI()
+	private void LocalizeUI ()
 	{
 #if WINDOWS
 		Text = $"{Application.ProductName} ({_connection.Host})";
@@ -165,20 +165,20 @@ partial class MikrotikAddressTableRecord_ListUI
 	#endregion
 
 
-	private async Task OnLoad()
+	private async Task OnLoad ()
 	{
 
 #if WINDOWS
-		lvwRows.GroupCollapsedStateChanged += (_, _) =>
+		lvwRows.GroupCollapsedStateChanged += ( _, _ ) =>
 		{
 			if (!_tableRowsReady) return;
-			lvwRows.SaveAllGroupsCollapsedStates(dataID: GetHostDataID());
+			lvwRows.SaveAllGroupsCollapsedStates (dataID: GetHostDataID ());
 		};
 
-		toolBarMain.eEnableItems(false);
-		txtFilter.eAttachDelayedFilter(OnFilterChanged, cueBanner: L_FILTER);
-		this.eRunDelayed_OnShown(QueryDataFromDevice);
-		await Task.Delay(1);
+		toolBarMain.eEnableItems (false);
+		txtFilter.eAttachDelayedFilter (OnFilterChanged, cueBanner: L_FILTER);
+		this.eRunDelayed_OnShown (QueryDataFromDevice);
+		await Task.Delay (1);
 #else
 
 
@@ -192,7 +192,7 @@ partial class MikrotikAddressTableRecord_ListUI
 	/// <summary>
 	/// Called once on form load, and then when user click Refresh button or swipe down list
 	/// </summary>	
-	private async Task RefreshList()
+	private async Task RefreshList ()
 	{
 
 		try
@@ -203,7 +203,7 @@ partial class MikrotikAddressTableRecord_ListUI
 			if (!rvData.IsRefreshing) rvData.IsRefreshing = true;
 #endif
 
-			await QueryDataFromDevice();
+			await QueryDataFromDevice ();
 
 		}
 		finally
@@ -217,15 +217,15 @@ partial class MikrotikAddressTableRecord_ListUI
 
 
 	/// <summary>Queries router for data</summary>
-	private async Task QueryDataFromDevice()
+	private async Task QueryDataFromDevice ()
 	{
 
 #if WINDOWS
 		this.UseWaitCursor = true;
 		lvwRows.EmptyText = L_QUERING_DATA;
 
-		lvwRows.eClearItems();
-		this.toolBarMain.eEnableItems(false);
+		lvwRows.eClearItems ();
+		this.toolBarMain.eEnableItems (false);
 #else
 
 		lvwRows.ItemsSource = null;
@@ -235,12 +235,12 @@ partial class MikrotikAddressTableRecord_ListUI
 		try
 		{
 			//Query router for data
-			var mikrotikRows = (await AddressListItem.GetItemsAsync(_connection!, false))
-				.Where(r => r.Dynamic == false);
+			var mikrotikRows = ( await AddressListItem.GetItemsAsync (_connection!, false) )
+				.Where (r => r.Dynamic == false);
 
 
 #if WINDOWS
-			AddressListItemRow[] uiRows = [.. mikrotikRows.Select(ip => new AddressListItemRow(ip, lvwRows))];
+			AddressListItemRow[] uiRows = [ .. mikrotikRows.Select (ip => new AddressListItemRow (ip, lvwRows)) ];
 
 #else
 			AddressListItemRow[] uiRows = [.. mikrotikRows.Select(ip => new AddressListItemRow(ip))];
@@ -264,7 +264,7 @@ partial class MikrotikAddressTableRecord_ListUI
 
 
 
-			DisplayFilteredMKData();
+			DisplayFilteredMKData ();
 
 		}
 		catch (Exception ex)
@@ -272,7 +272,7 @@ partial class MikrotikAddressTableRecord_ListUI
 
 #if WINDOWS
 			lvwRows.EmptyText = ex.Message;
-			ex.eLogError(true, E_TITLE_DEFAULT);
+			ex.eLogError (true, E_TITLE_DEFAULT);
 #else
 			ex.eLogErrorToast();
 
@@ -291,35 +291,35 @@ partial class MikrotikAddressTableRecord_ListUI
 
 
 	/// <summary>Populates ListView with filtered rows</summary>
-	private void DisplayFilteredMKData()
+	private void DisplayFilteredMKData ()
 	{
 		try
 		{
 
 #if WINDOWS
 
-			lvwRows.EmptyText = _mikrotikRows.Any()
+			lvwRows.EmptyText = _mikrotikRows.Any ()
 				? L_FILTERING_DATA
 				: L_LIST_IS_EMPTY;
 
-			string filter = txtFilter.Text.Trim();
+			string filter = txtFilter.Text.Trim ();
 			var rowsToDisplay = _mikrotikRows
-				.Where(r => r.Filter(filter));
+				.Where (r => r.Filter (filter));
 
-			if (!rowsToDisplay.Any()) lvwRows.EmptyText = rowsToDisplay.Any()
+			if (!rowsToDisplay.Any ()) lvwRows.EmptyText = rowsToDisplay.Any ()
 					? L_FILTERING_DATA
-					: string.Format(L_FILTERED_DATA_EMPTY, filter);
+					: string.Format (L_FILTERED_DATA_EMPTY, filter);
 
-			lvwRows.erunOnLockedUpdate(() =>
+			lvwRows.eRunOnLockedUpdate (() =>
 			{
-				lvwRows.eClearItems();
-				rowsToDisplay.eForEach(r => r.UpdateGroupFromModel(lvwRows));
+				lvwRows.eClearItems ();
+				rowsToDisplay.eForEach (r => r.UpdateGroupFromModel (lvwRows));
 
-				lvwRows.Items.AddRange(rowsToDisplay.ToArray());
+				lvwRows.Items.AddRange (rowsToDisplay.ToArray ());
 
 			}, true, true);
 
-			lvwRows.RestoreAllGroupsCollapsedStateFromStorage(dataID: GetHostDataID());
+			lvwRows.RestoreAllGroupsCollapsedStateFromStorage (dataID: GetHostDataID ());
 #endif
 
 		}
@@ -327,7 +327,7 @@ partial class MikrotikAddressTableRecord_ListUI
 		{
 			_tableRowsReady = true;
 #if WINDOWS
-			UpdateUIState();
+			UpdateUIState ();
 #endif
 		}
 	}

@@ -15,15 +15,49 @@ global using QWORD = System.Int64;
 global using WORD = System.Int16;
 
 using System.IO.IsolatedStorage;
-using System.Linq.Expressions;
 using System.Net.NetworkInformation;
-using System.Runtime.Remoting;
 using System.Security.Permissions;
+//using System.Linq.Expressions;
+//using System.Runtime.Remoting;
+
+
+//https://github.com/dahall/Vanara
+/*
+  <ItemGroup>
+		<PackageReference Include="Vanara.Library" Version="4.0.5" />
+		
+OR 
+
+		<PackageReference Include="Vanara.Pinvoke.Kernel32" Version="4.0.5" />
+		<PackageReference Include="Vanara.Pinvoke.User32" Version="4.0.5" />
+		<PackageReference Include="Vanara.Pinvoke.Gdi32" Version="4.0.5" />
+
+	
+		<PackageReference Include="Vanara.Security" Version="4.0.5" />
+		<PackageReference Include="Vanara.Pinvoke.Security" Version="4.0.5" />		
+
+		<PackageReference Include="Vanara.Pinvoke.Shell32" Version="4.0.5" />
+		<PackageReference Include="Vanara.Pinvoke.ShlwApi" Version="4.0.5" />
+		
+		<PackageReference Include="Vanara.Pinvoke.IpHlpApi" Version="4.0.5" />
+		<PackageReference Include="Vanara.Pinvoke.NtDll" Version="4.0.5" />
+
+		<PackageReference Include="Vanara.PInvoke.Accessibility" Version="4.0.5" />
+
+		<PackageReference Include="Vanara.Pinvoke.DwmApi" Version="4.0.5" />
+		<PackageReference Include="Vanara.Windows.Forms" Version="4.0.5" />
+	</ItemGroup>
+
+ */
+using Vanara.PInvoke;
+using Vanara.Security.AccessControl;
 
 using uom.AutoDisposable;
 
-using Point = System.Drawing.Point;
-using Size = System.Drawing.Size;
+//using Point = System.Drawing.Point;
+//using Size = System.Drawing.Size;
+using uom.WinAPI;
+using System.Diagnostics.CodeAnalysis;
 
 
 #if NET5_0_OR_GREATER || NET6_0_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -47,10 +81,10 @@ namespace uom
 	internal static partial class AppInfo
 	{
 		/// <summary>в режиме дизайнера WPF?</summary>
-		private static bool IsInDesignerMode_WPF => (LicenseManager.UsageMode == LicenseUsageMode.Designtime);
+		private static bool IsInDesignerMode_WPF => ( LicenseManager.UsageMode == LicenseUsageMode.Designtime );
 
 		/// <summary>в режиме дизайнера WinForms?</summary>
-		private static bool IsInDesignerMode_WinForms => (Process.GetCurrentProcess().ProcessName.ToLower() ?? "") == ("devenv".ToLower());
+		private static bool IsInDesignerMode_WinForms => ( Process.GetCurrentProcess ().ProcessName.ToLower () ?? "" ) == ( "devenv".ToLower () );
 
 
 
@@ -70,36 +104,59 @@ namespace uom
 		/// It is different from TokenElevation in that, when UAC is turned off, elevation type always returns TokenElevationTypeDefault even though the process is elevated (Integrity Level == High).<br/>
 		/// In other words, it is not safe to say if the process is elevated based on elevation type. Instead, we should use TokenElevation.
 		/// </remarks>
-		internal static WinAPI.security.TOKEN_ELEVATION_TYPE GetProcessElevation()
+		internal static AdvApi32.TOKEN_ELEVATION_TYPE GetProcessElevation ()
 		{
-			uom.OS.CheckVistaOrLater();
-			using var hToken = WinAPI.security.OpenCurrentProcessToken(TokenAccessLevels.Query);
-			return WinAPI.security.GetTokenInformation_Elevation(hToken);
+			uom.OS.CheckVistaOrLater ();
+			using var hToken = AdvApi32.TokenAccess.TOKEN_QUERY.OpenCurrentProcessToken ();
+			return ( (HTOKEN) hToken.DangerousGetHandle () ).GetTokenInformation_Elevation ();
 		}
 
 
 		/// <inheritdoc cref="GetProcessElevation" />
-		internal static bool IsProcessElevated()
-			=> GetProcessElevation() == WinAPI.security.TOKEN_ELEVATION_TYPE.TokenElevationTypeFull;
+		internal static bool IsElevated ()
+			=> GetProcessElevation () == AdvApi32.TOKEN_ELEVATION_TYPE.TokenElevationTypeFull;
 
 
 		/// <inheritdoc cref="GetProcessElevation" />
-		internal static bool AssertProcessElevated()
-			=> IsProcessElevated()
+		internal static bool AssertIsElevated ()
+			=> IsElevated ()
 			? true
-			: throw new Win32Exception((int)uom.WinAPI.errors.Win32Errors.ERROR_ELEVATION_REQUIRED);
+			: throw new Win32Exception ((int) uom.WinAPI.errors.Win32Errors.ERROR_ELEVATION_REQUIRED);
+
+
+
+		/// <summary>integrity level of the process. Integrity level is only available on Windows Vista and newer operating systems, thus 
+		/// GetProcessIntegrityLevel throws a C++ exception if it is called on systems prior to Windows Vista.</summary>
+		public enum IntegrityLevels : uint
+		{
+			//ERROR = -1,
+
+			/// <summary>SECURITY_MANDATORY_UNTRUSTED_RID - means untrusted level. It is used by processes started by the Anonymous group. Blocks most write access. (SID: S-1-16-0x0)</summary>
+			SECURITY_MANDATORY_UNTRUSTED_RID = 0,
+
+			/// <summary>SECURITY_MANDATORY_LOW_RID - means low integrity level. It is used by Protected Mode Internet Explorer. Blocks write acess to most objects (such as files and registry keys) on the system. (SID: S-1-16-0x1000)</summary>
+			SECURITY_MANDATORY_LOW_RID = 0x1000,
+
+			/// <summary>SECURITY_MANDATORY_MEDIUM_RID - means medium integrity level. It is used by normal applications being launched while UAC is enabled. (SID: S-1-16-0x2000)</summary>
+			SECURITY_MANDATORY_MEDIUM_RID = 0x2000,
+
+			/// <summary>SECURITY_MANDATORY_HIGH_RID - means high integrity level. It is used by administrative applications launched through elevation when UAC is enabled, or normal applications if UAC is disabled and the user is an administrator. (SID: S-1-16-0x3000)</summary>
+			SECURITY_MANDATORY_HIGH_RID = 0x3000,
+
+			/// <summary>SECURITY_MANDATORY_SYSTEM_RID - means system integrity level. It is used by services and other system-level applications (such as Wininit, Winlogon, Smss, etc.)  (SID: S-1-16-0x4000)</summary>
+			SECURITY_MANDATORY_SYSTEM_RID = 0x4000
+		}
 
 
 
 		/// <summary>The function gets the integrity level of the current process.<br/>
 		/// Integrity level is only available on Windows Vista and newer, thus GetProcessIntegrityLevel throws a C++ exception if it is called on systems prior to Windows Vista.</summary>
 		/// <exception cref="System.ComponentModel.Win32Exception">When any native Windows API call fails, the function throws a Win32Exception with the last error code.</exception>
-		internal static WinAPI.security.IntegrityLevels GetProcessIntegrityLevel()
+		internal static IntegrityLevels GetProcessIntegrityLevel ()
 		{
-			OS.CheckVistaOrLater();
+			OS.CheckVistaOrLater ();
 
-			WinAPI.security.IntegrityLevels IL;//= WinAPI.security.IntegrityLevels.ERROR;
-			using var hToken = WinAPI.security.OpenCurrentProcessToken(TokenAccessLevels.Query); // Open the access token of the current process with TOKEN_QUERY.
+			using var hToken = AdvApi32.TokenAccess.TOKEN_QUERY.OpenCurrentProcessToken (); // Open the access token of the current process with TOKEN_QUERY.
 
 			// Then we must query the size of the integrity level information 
 			// associated with the token. Note that we expect GetTokenInformation to 
@@ -107,27 +164,38 @@ namespace uom
 			// have given it a null buffer. On exit cbTokenIL will tell the size of 
 			// the group information.
 
-			int cbTokenIL = 0;
-			WinAPI.security.GetTokenInformation(hToken, WinAPI.security.TOKEN_INFORMATION_CLASS.TokenIntegrityLevel, IntPtr.Zero, 0, ref cbTokenIL)
-				.eThrowLastWin32Exception_AssertFalse(WinAPI.errors.Win32Errors.ERROR_INSUFFICIENT_BUFFER);
+			//WinAPI.security.IntegrityLevels IL;//= WinAPI.security.IntegrityLevels.ERROR;
+
+			AdvApi32.GetTokenInformation (
+				hToken,
+				AdvApi32.TOKEN_INFORMATION_CLASS.TokenIntegrityLevel,
+				IntPtr.Zero,
+				0,
+				out var cbTokenIL)
+				.ThrowLastWin32ErrorIfFailedUnless (WinAPI.errors.Win32Errors.ERROR_INSUFFICIENT_BUFFER);
+
+			//AdvApi32.GetTokenInformation<Int32> (hToken, AdvApi32.TOKEN_INFORMATION_CLASS.TokenIntegrityLevel)				.eThrowLastWin32Exception_AssertFalse (WinAPI.errors.Win32Errors.ERROR_INSUFFICIENT_BUFFER);
 
 
 			// Now we allocate a buffer for the integrity level information.
-			using var rTokenIL = new WinAPI.memory.WinApiMemory(cbTokenIL);
+			using var tokenILMem = new memory.WinApiMemory (cbTokenIL);
 			// Now we ask for the integrity level information again. This may fail if an administrator has added this account to an additional group between our first call to GetTokenInformation and this one.
-			WinAPI.security.GetTokenInformation(hToken,
-				WinAPI.security.TOKEN_INFORMATION_CLASS.TokenIntegrityLevel,
-				(IntPtr)rTokenIL,
+			AdvApi32.GetTokenInformation (hToken,
+				AdvApi32.TOKEN_INFORMATION_CLASS.TokenIntegrityLevel,
+				tokenILMem,
 				cbTokenIL,
-				ref cbTokenIL).eThrowLastWin32Exception_AssertFalse();
+				out cbTokenIL)
+				.ThrowLastWin32ErrorIfFailed ();
 
-			var tokenIL = rTokenIL.DangerousGetHandle().eToStructure<WinAPI.security.TOKEN_MANDATORY_LABEL>();
+			var tokenIL = tokenILMem.DangerousGetHandle ().eToStructure<AdvApi32.TOKEN_MANDATORY_LABEL> ();
 
 			// Integrity Level SIDs are in the form of S-1-16-0xXXXX. (e.g. S-1-16-0x1000 stands for low integrity level SID). There is one and only one subauthority.
-			var pIL = WinAPI.security.GetSidSubAuthority(tokenIL.Label.Sid, 0);
-			int iIL = Marshal.ReadInt32(pIL);
-			IL = (WinAPI.security.IntegrityLevels)iIL;
-			return IL;
+			//var pIL = AdvApi32.GetSidSubAuthority (tokenIL.Label.Sid, 0);
+			//int iIL = Marshal.ReadInt32 (pIL);
+			var il = (IntegrityLevels) AdvApi32.GetSidSubAuthority (tokenIL.Label.Sid, 0);
+			return il;
+			//IL = (AdvApi32.IntegrityLevel) iIL;
+			//return IL;
 		}
 
 
@@ -139,63 +207,105 @@ namespace uom
 	internal static partial class AppTools
 	{
 
-		internal partial class ElevationCanceledByUser : Win32Exception { public ElevationCanceledByUser() : base((int)WinAPI.errors.Win32Errors.ERROR_CANCELLED) { } }
+		internal partial class ElevationCanceledByUser : Win32Exception { public ElevationCanceledByUser () : base ((int) WinAPI.errors.Win32Errors.ERROR_CANCELLED) { } }
 
-
-		internal static IntPtr GetCurrentModuleHandle()
+		internal static Kernel32.SafeHINSTANCE GetCurrentModuleHandle ()
 		{
-			using Process cp = Process.GetCurrentProcess();
+			using Process cp = Process.GetCurrentProcess ();
 			using ProcessModule cm = cp.MainModule!;
-			return uom.WinAPI.safeHandles.Win32LibHandle.GetModuleHandle(cm.ModuleName!);
+			return Kernel32.GetModuleHandle (cm.ModuleName!);
+		}
+
+
+		[MethodImpl (MethodImplOptions.AggressiveInlining)]
+		public static void AdjustProcessPrivilegeAndCloseToken ( Vanara.Security.AccessControl.SystemPrivilege pn )
+			=> pn.AdjustProcessPrivilegeAndCloseToken ();
+
+
+#if !UWP
+
+
+		[Obsolete ("Don't work with windows terminal")]
+		/// <inheritdoc cref="Kernel32.GetConsoleWindow" />
+		[MethodImpl (MethodImplOptions.AggressiveInlining)]
+		public static HWND? GetConsoleWindowForCurrentProcess_Kernel32 ()
+			=> Kernel32.GetConsoleWindow ();
+
+
+		[Obsolete ("Don't work with windows terminal")]
+		[MethodImpl (MethodImplOptions.AggressiveInlining)]
+		public static IntPtr GetConsoleWindowForCurrentProcess_Net ()
+			=> Process.GetCurrentProcess ().MainWindowHandle;
+
+
+		public static IntPtr GetConsoleWindowForCurrentProcess_2 ()
+		{
+			// Fetch current window title.
+			StringBuilder sbOldTitle = new (2048);
+			_ = Kernel32.GetConsoleTitle (sbOldTitle, (uint) sbOldTitle.Capacity);
+
+			// Change current window title.
+			string tempTitle = Guid.NewGuid ().ToString ();
+			Kernel32.SetConsoleTitle (tempTitle);
+			// Ensure window title has been updated.
+			Kernel32.Sleep (40);
+			// Look for NewWindowTitle.
+			HWND hwndFound = User32.FindWindow (null, tempTitle);
+			// Restore original window title.
+			Kernel32.SetConsoleTitle (sbOldTitle.ToString ());
+			return hwndFound.DangerousGetHandle ();
 		}
 
 
 
 
-#if !UWP
-
-		[Obsolete("!NEED TO REDESIGN!!!", true)]
+		[Obsolete ("!NEED TO REDESIGN!!!", true)]
 		/// <summary>Start copy of current process</summary>
-		internal static Process? StartMySelf(
+		internal static Process? StartMySelf (
 			string? Arguments = null,
 			bool elevated = false,
 			bool CloseThisApp = false,
 			bool ThrowExceptionOnError = false,
-			bool WaitExit = false)
-			=> StartProcess(
+			bool WaitExit = false )
+			=> StartProcess (
 				System.Windows.Forms.Application.ExecutablePath,
 				Arguments,
 				elevated: elevated,
 				closeThisApp: CloseThisApp,
 				throwExceptionOnError: ThrowExceptionOnError,
 				waitExit: WaitExit);
+
+
+
+
+
 #endif
 
 
 
 
 
-		internal static Process? StartCMDProcess(
+		internal static Process? StartCMDProcess (
 			string Arguments,
 			bool elevated = false,
 			bool CloseThisApp = false,
 			bool ThrowExceptionOnError = false,
-			bool WaitExit = false)
-			=> StartWinSys32Process(
+			bool WaitExit = false )
+			=> StartWinSys32Process (
 				"cmd.exe",
-				(@"/c " + Arguments),
+				( @"/c " + Arguments ),
 				elevated,
 				CloseThisApp,
 				ThrowExceptionOnError,
 				WaitExit);
 
-		internal static Process? StartMMCProcess(
+		internal static Process? StartMMCProcess (
 			string Оснастка,
 			bool elevated = false,
 			bool CloseThisApp = false,
 			bool ThrowExceptionOnError = false,
-			bool WaitExit = false)
-			=> StartWinSys32Process(
+			bool WaitExit = false )
+			=> StartWinSys32Process (
 				"mmc.exe",
 				Оснастка,
 				elevated,
@@ -205,32 +315,32 @@ namespace uom
 
 
 		/// <returns>Return Process ExitCode</returns>
-		internal static Process? StartWinSys32Process(
+		internal static Process? StartWinSys32Process (
 			string FileName,
 			string? Arguments = null,
 			bool elevated = false,
 			bool CloseThisApp = false,
 			bool ThrowExceptionOnError = false,
-			bool WaitExit = false)
-			=> StartProcess(
-				OS.GetWinSys32Path(FileName),
+			bool WaitExit = false )
+			=> StartProcess (
+				OS.GetWinSys32Path (FileName),
 				Arguments,
-				OS.GetWinSys32Path(),
+				OS.GetWinSys32Path (),
 				elevated,
 				CloseThisApp,
 				ThrowExceptionOnError,
 				WaitExit);
 
 		/// <returns>Return Process ExitCode</returns>
-		internal static Process? StartWinDirProcess(
+		internal static Process? StartWinDirProcess (
 			string FileName,
 			string? Arguments = null,
 			bool elevated = false,
 			bool CloseThisApp = false,
 			bool ThrowExceptionOnError = false,
-			bool WaitExit = false)
-			=> StartProcess(
-				Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), FileName),
+			bool WaitExit = false )
+			=> StartProcess (
+				Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.Windows), FileName),
 				Arguments,
 				null,
 				elevated,
@@ -239,30 +349,30 @@ namespace uom
 				WaitExit);
 
 		/// <returns>Return Process ExitCode</returns>
-		internal static Process? StartProcess(
+		internal static Process? StartProcess (
 			string file,
 			string? arguments = null,
 			string? workingDirectory = null,
 			bool elevated = false,
 			bool closeThisApp = false,
 			bool throwExceptionOnError = false,
-			bool waitExit = false)
+			bool waitExit = false )
 		{
 			try
 			{
-				file = file.eEncloseC();
-				var StartInfo = new ProcessStartInfo() { UseShellExecute = true, FileName = file };
-				if (arguments.eIsNotNullOrWhiteSpace())
+				file = file.eEncloseC ();
+				var StartInfo = new ProcessStartInfo () { UseShellExecute = true, FileName = file };
+				if (arguments.IsNotNullOrWhiteSpace ())
 				{
 					StartInfo.Arguments = arguments;
 				}
 
-				if (workingDirectory.eIsNotNullOrWhiteSpace())
+				if (workingDirectory.IsNotNullOrWhiteSpace ())
 				{
 					StartInfo.WorkingDirectory = workingDirectory;
 				}
 
-				if (elevated && !uom.AppInfo.IsProcessElevated())
+				if (elevated && !uom.AppInfo.IsElevated ())
 				{
 					//needElevation = !uom.AppInfo.IsProcessElevated();
 					//if (needElevation) 
@@ -270,10 +380,10 @@ namespace uom
 				}
 				// .UseShellExecute = False
 				StartInfo.ErrorDialog = false;
-				var prc = Process.Start(StartInfo);
+				var prc = Process.Start (StartInfo);
 				if (waitExit)
 				{
-					prc!.WaitForExit();
+					prc!.WaitForExit ();
 				}
 				else
 				{
@@ -281,7 +391,7 @@ namespace uom
 #if !UWP
 					if (closeThisApp)
 					{
-						System.Windows.Forms.Application.Exit();
+						System.Windows.Forms.Application.Exit ();
 					}
 #endif
 
@@ -290,9 +400,9 @@ namespace uom
 			}
 			catch (Win32Exception wex)
 			{
-				if (wex.eToWin32Error() == WinAPI.errors.Win32Errors.ERROR_CANCELLED)
+				if (wex.eToWin32Error () == WinAPI.errors.Win32Errors.ERROR_CANCELLED)
 				{
-					wex = new ElevationCanceledByUser();// Пользователь нажал 'нет' при запросе на повышение прав
+					wex = new ElevationCanceledByUser ();// Пользователь нажал 'нет' при запросе на повышение прав
 				}
 
 				if (throwExceptionOnError)
@@ -323,21 +433,21 @@ namespace uom
 
 		internal const WindowsExplorerPathModes C_DEFAULT_EXPLORER_MODE = WindowsExplorerPathModes.SelectItem;
 
-		internal static void StartWinSysTool_Explorer(
+		internal static void StartWinSysTool_Explorer (
 			string? pathToShow = null,
-			WindowsExplorerPathModes pathMode = C_DEFAULT_EXPLORER_MODE)
+			WindowsExplorerPathModes pathMode = C_DEFAULT_EXPLORER_MODE )
 		{
 			string? explorerArgs = null;
 
-			FileSystemInfo? fsi = pathToShow?.eFindFirstExistingFileSystemInfo();
+			FileSystemInfo? fsi = pathToShow?.eFindFirstExistingFileSystemInfo ();
 			if (fsi != null)
 			{
-				pathToShow = fsi.FullName.eEnclose();
+				pathToShow = fsi.FullName.eEnclose ();
 				explorerArgs = pathMode switch
 				{
 					WindowsExplorerPathModes.OpenPath => pathToShow,
 					WindowsExplorerPathModes.SelectItem => $@"/select,{pathToShow}",
-					_ => throw new ArgumentOutOfRangeException(nameof(pathMode))
+					_ => throw new ArgumentOutOfRangeException (nameof (pathMode))
 				};
 
 				// /separate 	show in separate EXPLORER process 
@@ -367,43 +477,43 @@ namespace uom
 
 
 			}
-			StartWinDirProcess("explorer.exe", explorerArgs);
+			StartWinDirProcess ("explorer.exe", explorerArgs);
 		}
 
 		#region Control Panel
 
-		internal static void StartWinSysTool_CPL_NetworkAndSharingCenter()
-			=> StartWinSys32Process(
+		internal static void StartWinSysTool_CPL_NetworkAndSharingCenter ()
+			=> StartWinSys32Process (
 				"control.exe",
 				"/name Microsoft.NetworkAndSharingCenter",
 				ThrowExceptionOnError: true);
 
 		/// <summary>Работает и в XP</summary>
-		internal static void StartWinSysTool_CPL_WinFirewall()
-			=> StartWinSys32Process(
+		internal static void StartWinSysTool_CPL_WinFirewall ()
+			=> StartWinSys32Process (
 				"rundll32.exe",
 				"shell32.dll,Control_RunDLL firewall.cpl",
 				true,
 				ThrowExceptionOnError: true);
 
-		internal static void StartWinSysTool_CPL_NetworkConnections()
-			=> StartWinSys32Process(
+		internal static void StartWinSysTool_CPL_NetworkConnections ()
+			=> StartWinSys32Process (
 				"rundll32.exe",
 				"shell32.dll,Control_RunDLL ncpa.cpl",
 				true,
 				ThrowExceptionOnError: true);
 
 		/// <summary>rundll32.exe netplwiz.dll,UsersRunDll</summary>
-		internal static void StartWinSysTool_CPL_UserAccounts_1()
-			=> StartWinSys32Process(
+		internal static void StartWinSysTool_CPL_UserAccounts_1 ()
+			=> StartWinSys32Process (
 				"rundll32.exe",
 				"netplwiz.dll,UsersRunDll",
 				true,
 				ThrowExceptionOnError: true);
 
 		/// <summary>control userpasswords2</summary>
-		internal static void StartWinSysTool_CPL_UserAccounts_2()
-			=> StartWinSys32Process(
+		internal static void StartWinSysTool_CPL_UserAccounts_2 ()
+			=> StartWinSys32Process (
 				"control.exe",
 				"userpasswords2",
 				true,
@@ -412,42 +522,42 @@ namespace uom
 		#endregion
 
 		/// <summary>"sfc /scannow"</summary>
-		internal static void StartWinSysTool_CMD_SFC()
-			=> StartCMDProcess(
+		internal static void StartWinSysTool_CMD_SFC ()
+			=> StartCMDProcess (
 				@"sfc /scannow",
 				true,
 				ThrowExceptionOnError: true);
 
 		#region MMC
 
-		internal static void StartWinSysTool_MMC_WinFirewallRules()
+		internal static void StartWinSysTool_MMC_WinFirewallRules ()
 		{
-			OS.CheckVistaOrLater(); // возможно только начиная с Vist'ы
-			StartMMCProcess("wf.msc", true, ThrowExceptionOnError: true);
+			OS.CheckVistaOrLater (); // возможно только начиная с Vist'ы
+			StartMMCProcess ("wf.msc", true, ThrowExceptionOnError: true);
 		}
 
 		/// <summary>Локальная политика безопасности (там есть Safer)</summary>
-		internal static void StartWinSysTool_MMC_SecPol()
-			=> StartMMCProcess("secpol.msc", true, ThrowExceptionOnError: true);
+		internal static void StartWinSysTool_MMC_SecPol ()
+			=> StartMMCProcess ("secpol.msc", true, ThrowExceptionOnError: true);
 
 		/// <summary>Групповые политики</summary>
-		internal static void StartWinSysTool_MMC_Gpedit()
-			=> StartMMCProcess("gpedit.msc", true, ThrowExceptionOnError: true);
+		internal static void StartWinSysTool_MMC_Gpedit ()
+			=> StartMMCProcess ("gpedit.msc", true, ThrowExceptionOnError: true);
 
 		/// <summary>Консоль службы</summary>
-		internal static void StartWinSysTool_MMC_Services()
-			=> StartMMCProcess("services.msc", true, ThrowExceptionOnError: true);
+		internal static void StartWinSysTool_MMC_Services ()
+			=> StartMMCProcess ("services.msc", true, ThrowExceptionOnError: true);
 
 		/// <summary>Консоль локальные пользователи и группы</summary>
-		internal static void StartWinSysTool_MMC_lusrmgr()
-			=> StartMMCProcess("lusrmgr.msc", true, ThrowExceptionOnError: true);
+		internal static void StartWinSysTool_MMC_lusrmgr ()
+			=> StartMMCProcess ("lusrmgr.msc", true, ThrowExceptionOnError: true);
 
 		/// <summary>Консоль диспетчер устройств</summary>
-		internal static void StartWinSysTool_MMC_devmgmt()
-			=> StartMMCProcess("devmgmt.msc", true, ThrowExceptionOnError: true);
+		internal static void StartWinSysTool_MMC_devmgmt ()
+			=> StartMMCProcess ("devmgmt.msc", true, ThrowExceptionOnError: true);
 
-		internal static void StartWinSysTool_MMC_diskmgmt()
-			=> StartMMCProcess("diskmgmt.msc", true, ThrowExceptionOnError: true);
+		internal static void StartWinSysTool_MMC_diskmgmt ()
+			=> StartMMCProcess ("diskmgmt.msc", true, ThrowExceptionOnError: true);
 
 		#endregion
 
@@ -462,18 +572,18 @@ namespace uom
 		{
 
 			[DebuggerNonUserCode]
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static string RegBuildProductPath(Version? ver = null)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			private static string RegBuildProductPath ( Version? ver = null )
 			{
 				FileVersionInfo fvi = uom.AppInfo.AssemblyFileVersionInfo;
-				if (fvi.CompanyName.eIsNullOrWhiteSpace())
+				if (fvi.CompanyName.IsNullOrWhiteSpace ())
 				{
-					throw new ArgumentNullException("AssemblyFileVersionInfo.CompanyName");
+					throw new ArgumentNullException ("AssemblyFileVersionInfo.CompanyName");
 				}
 
-				if (fvi.ProductName.eIsNullOrWhiteSpace())
+				if (fvi.ProductName.IsNullOrWhiteSpace ())
 				{
-					throw new ArgumentNullException("AssemblyFileVersionInfo.ProductName");
+					throw new ArgumentNullException ("AssemblyFileVersionInfo.ProductName");
 				}
 
 				string productPath = @$"Software\{fvi.CompanyName}\{fvi.ProductName}";
@@ -488,33 +598,33 @@ namespace uom
 
 
 			[DebuggerNonUserCode]
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static RegistryKey? OpenProductKey(string subKey = "", Version? ver = null, bool writable = true)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			private static RegistryKey? OpenProductKey ( string subKey = "", Version? ver = null, bool writable = true )
 			{
 				if (ver == null)
 				{
 					FileVersionInfo fvi = uom.AppInfo.AssemblyFileVersionInfo;
-					if (!Version.TryParse(fvi.FileVersion, out ver))
+					if (!Version.TryParse (fvi.FileVersion, out ver))
 					{
-						throw new ArgumentException($"AssemblyFileVersionInfo.FileVersion = '{fvi.FileVersion}' is invalid!");
+						throw new ArgumentException ($"AssemblyFileVersionInfo.FileVersion = '{fvi.FileVersion}' is invalid!");
 					}
 					//return Application.UserAppDataRegistry;
 				}
-				string path = RegBuildProductPath(ver);
+				string path = RegBuildProductPath (ver);
 
-				if (subKey.eIsNotNullOrWhiteSpace())
+				if (subKey.IsNotNullOrWhiteSpace ())
 				{
 					path += '\\' + subKey;
 				}
 
-				var keyProduct = global::Microsoft.Win32.Registry.CurrentUser.OpenSubKey(path, writable);
+				var keyProduct = global::Microsoft.Win32.Registry.CurrentUser.OpenSubKey (path, writable);
 
 				if (keyProduct == null && writable)
 				{
-					keyProduct = global::Microsoft.Win32.Registry.CurrentUser.CreateSubKey(path, true);
+					keyProduct = global::Microsoft.Win32.Registry.CurrentUser.CreateSubKey (path, true);
 					if (keyProduct == null)
 					{
-						throw new Exception($"Failed to create key '{path}'!");
+						throw new Exception ($"Failed to create key '{path}'!");
 					}
 				}
 
@@ -522,11 +632,11 @@ namespace uom
 			}
 
 			[DebuggerNonUserCode]
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static RegistryKey? OpenProductRootKey(bool writable = true)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			private static RegistryKey? OpenProductRootKey ( bool writable = true )
 			{
-				string path = RegBuildProductPath(null);
-				var keyProduct = global::Microsoft.Win32.Registry.CurrentUser.OpenSubKey(path, writable);
+				string path = RegBuildProductPath (null);
+				var keyProduct = global::Microsoft.Win32.Registry.CurrentUser.OpenSubKey (path, writable);
 				return keyProduct!;
 			}
 
@@ -534,54 +644,54 @@ namespace uom
 			#region Save / Delete
 
 			/// <summary>if value == null, reg value will be deleted!</summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void Save<T>(string name, T? val, string subKey = "") where T : unmanaged
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void Save<T> ( string name, T? val, string subKey = "" ) where T : unmanaged
 			{
-				using RegistryKey keySetting = OpenProductKey(subKey, writable: true)!;
-				keySetting.eSetValue<T>(name, val);
-				keySetting.Flush();
+				using RegistryKey keySetting = OpenProductKey (subKey, writable: true)!;
+				keySetting.eSetValue<T> (name, val);
+				keySetting.Flush ();
 			}
 
 			/// <summary>if value == null, reg value will be deleted!</summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void Save(string name, string? val, string subKey = "")
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void Save ( string name, string? val, string subKey = "" )
 			{
-				using RegistryKey keySetting = OpenProductKey(subKey, writable: true)!;
-				keySetting.eSetValueString(name, val);
-				keySetting.Flush();
+				using RegistryKey keySetting = OpenProductKey (subKey, writable: true)!;
+				keySetting.eSetValueString (name, val);
+				keySetting.Flush ();
 			}
 
 			/// <inheritdoc cref="Save" />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void SaveMultiString(string name, string? val, string subKey = "")
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void SaveMultiString ( string name, string? val, string subKey = "" )
 			{
-				var lines = val.eSplitLines(true);
-				Save(name, lines.ToArray(), subKey);
+				var lines = val.eSplitLines (true);
+				Save (name, lines.ToArray (), subKey);
 			}
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void Save(string name, string[]? val, string subKey = "")
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void Save ( string name, string[]? val, string subKey = "" )
 			{
-				using RegistryKey keySetting = OpenProductKey(subKey, writable: true)!;
-				keySetting.eSetValueStrings(name, val);
-				keySetting.Flush();
+				using RegistryKey keySetting = OpenProductKey (subKey, writable: true)!;
+				keySetting.eSetValueStrings (name, val);
+				keySetting.Flush ();
 			}
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void Save(string name, DateTime? val, string subKey = "")
-				=> Save<DateTime>(name, val, subKey);
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void Save ( string name, DateTime? val, string subKey = "" )
+				=> Save<DateTime> (name, val, subKey);
 
 
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void Delete(string name, string subKey = "")
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void Delete ( string name, string subKey = "" )
 			{
-				using RegistryKey? keySetting = OpenProductKey(subKey, writable: true);
-				keySetting?.DeleteValue(name);
-				keySetting?.Flush();
+				using RegistryKey? keySetting = OpenProductKey (subKey, writable: true);
+				keySetting?.DeleteValue (name);
+				keySetting?.Flush ();
 			}
 
 
@@ -592,13 +702,13 @@ namespace uom
 
 
 			[DebuggerNonUserCode]
-			internal static T? Get_T<T>(string name, T? defaultValue = default, string subKey = "", bool searchPreviousVersions = true)
+			internal static T? Get_T<T> ( string name, T? defaultValue = default, string subKey = "", bool searchPreviousVersions = true )
 			{
-				using (RegistryKey? keyCurrentVersion = OpenProductKey(subKey, writable: false))
+				using (RegistryKey? keyCurrentVersion = OpenProductKey (subKey, writable: false))
 				{
 					if (keyCurrentVersion != null)
 					{
-						var (valueFound, _, value) = keyCurrentVersion.eGetValueT<T>(name, defaultValue);
+						var (valueFound, _, value) = keyCurrentVersion.eGetValueT<T> (name, defaultValue);
 						if (valueFound)
 						{
 							return value;
@@ -616,7 +726,7 @@ namespace uom
 
 				int verCurrent = fvi.FileMajorPart;
 
-				using RegistryKey? keyProductRoot = OpenProductRootKey(false);
+				using RegistryKey? keyProductRoot = OpenProductRootKey (false);
 				if (keyProductRoot == null)
 				{
 					return defaultValue;
@@ -643,12 +753,12 @@ namespace uom
 
 				foreach (var major in foundVersionNumbers)
 				{
-					Version v = new Version(major, 0, 0, 0);
-					using (RegistryKey? keyVersioned = OpenProductKey(subKey, v, false))
+					Version v = new Version (major, 0, 0, 0);
+					using (RegistryKey? keyVersioned = OpenProductKey (subKey, v, false))
 					{
 						if (keyVersioned != null)
 						{
-							var (valueFound, _, value) = keyVersioned.eGetValueT<T>(name, defaultValue);
+							var (valueFound, _, value) = keyVersioned.eGetValueT<T> (name, defaultValue);
 							if (valueFound)
 							{
 								return value;
@@ -662,39 +772,39 @@ namespace uom
 
 
 
-			internal static string Get_string(string name, string defaultValue, string subKey = "", bool searchPreviousVersions = true)
-				=> Get_T<string>(name, defaultValue, subKey, searchPreviousVersions)!;
+			internal static string Get_string ( string name, string defaultValue, string subKey = "", bool searchPreviousVersions = true )
+				=> Get_T<string> (name, defaultValue, subKey, searchPreviousVersions)!;
 
-			internal static string[] Get_strings(string name, string[] defaultValue, string subKey = "", bool searchPreviousVersions = true)
-				=> Get_T<string[]>(name, defaultValue, subKey, searchPreviousVersions)!;
+			internal static string[] Get_strings ( string name, string[] defaultValue, string subKey = "", bool searchPreviousVersions = true )
+				=> Get_T<string[]> (name, defaultValue, subKey, searchPreviousVersions)!;
 
-			internal static string Get_stringsAsText(string name, string defaultValue, string subKey = "", bool searchPreviousVersions = true)
+			internal static string Get_stringsAsText ( string name, string defaultValue, string subKey = "", bool searchPreviousVersions = true )
 			{
-				var lines = Get_strings(name, [], subKey, searchPreviousVersions);
-				if (lines != null && lines.Any())
+				var lines = Get_strings (name, [], subKey, searchPreviousVersions);
+				if (lines != null && lines.Any ())
 				{
-					var s = lines.eJoin(Environment.NewLine)!;
+					var s = lines.eJoin (Environment.NewLine)!;
 					return s;
 				}
 				return defaultValue;
 			}
 
-			internal static bool Get_bool(string name, bool defaultValue, string subKey = "", bool searchPreviousVersions = true)
-				=> Get_T<bool>(name, defaultValue, subKey, searchPreviousVersions)!;
+			internal static bool Get_bool ( string name, bool defaultValue, string subKey = "", bool searchPreviousVersions = true )
+				=> Get_T<bool> (name, defaultValue, subKey, searchPreviousVersions)!;
 
-			internal static Int32 Get_Int32(string name, Int32 defaultValue, string subKey = "", bool searchPreviousVersions = true)
-				=> Get_T<Int32>(name, defaultValue, subKey, searchPreviousVersions);
+			internal static Int32 Get_Int32 ( string name, Int32 defaultValue, string subKey = "", bool searchPreviousVersions = true )
+				=> Get_T<Int32> (name, defaultValue, subKey, searchPreviousVersions);
 
-			internal static Int64 Get_Int64(string name, Int64 defaultValue, string subKey = "", bool searchPreviousVersions = true)
-				=> Get_T<Int64>(name, defaultValue, subKey, searchPreviousVersions);
+			internal static Int64 Get_Int64 ( string name, Int64 defaultValue, string subKey = "", bool searchPreviousVersions = true )
+				=> Get_T<Int64> (name, defaultValue, subKey, searchPreviousVersions);
 
 
-			internal static DateTime Get_DateTime(string name, DateTime defaultValue, string subKey = "", bool searchPreviousVersions = true)
+			internal static DateTime Get_DateTime ( string name, DateTime defaultValue, string subKey = "", bool searchPreviousVersions = true )
 			{
-				long dtBinary = Get_Int64(name, 0L, subKey, searchPreviousVersions);
-				return (dtBinary == 0)
+				long dtBinary = Get_Int64 (name, 0L, subKey, searchPreviousVersions);
+				return ( dtBinary == 0 )
 					? defaultValue
-					: DateTime.FromBinary(dtBinary);
+					: DateTime.FromBinary (dtBinary);
 			}
 
 
@@ -707,121 +817,85 @@ namespace uom
 	internal static partial class OS
 	{
 
-		private enum DeviceCap : int
-		{
-			VERTRES = 10,
-			DESKTOPVERTRES = 117,
-
-			/// <summary>Logical pixels inch in X</summary>
-			LOGPIXELSX = 88,
-			/// <summary>Logical pixels inch in Y</summary>
-			LOGPIXELSY = 90
-		}
-
-		[DllImport(WinAPI.core.WINDLL_GDI, CharSet = CharSet.Auto, SetLastError = true, ExactSpelling = true)]
-		private static extern int GetDeviceCaps(
-			[In] IntPtr hDC,
-			[In] DeviceCap nIndex);
-
 
 		internal const int DEFAULT_SCREEN_DPI = 96;
-		/// <summary>Used when system uses High DPI modes</summary>
-		/// <returns>
-		/// 1.25 = 125%
-		/// 1.5 = 150%
-		/// </returns>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static float GetScreenScalingFactor()
-		{
-			Graphics g = Graphics.FromHwnd(IntPtr.Zero);
-			IntPtr hdcDesktop = g.GetHdc();
-			try
-			{
-				//int LogicalScreenHeight = GetDeviceCaps(desktop, DeviceCap.VERTRES);
-				//int PhysicalScreenHeight = GetDeviceCaps(desktop, DeviceCap.DESKTOPVERTRES);
-				//float screenScalingFactor = (float)PhysicalScreenHeight / (float)LogicalScreenHeight;
-				int logpixelsy = GetDeviceCaps(hdcDesktop, DeviceCap.LOGPIXELSY);
-				float dpiScalingFactor = (float)logpixelsy / (float)DEFAULT_SCREEN_DPI;
-				return dpiScalingFactor;
-			}
-			finally { g.ReleaseHdc(hdcDesktop); }
-		}
 
 
 
 		public static readonly CultureInfo CurrentUICulture = CultureInfo.CurrentUICulture;
-		public static readonly RegionInfo CurrentRegionInfo = new(CurrentUICulture.LCID);
+		public static readonly RegionInfo CurrentRegionInfo = new (CurrentUICulture.LCID);
 
 
 		internal static ulong TickCount_64
 		{
 			get
 			{
-#if NET5_0_OR_GREATER || NET6_0_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-				return (ulong)Environment.TickCount64;//Use new builtin Net function (net 5, 6, Core 3.0, Core 3.1)
+#if NET5_0_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+				return (ulong) Environment.TickCount64;//Use new builtin Net function (net 5, 6, Core 3.0, Core 3.1)
 #else
+#if WINDOWS
 				return WinAPI.io.GetTickCount64();//old net versions
+#else
+				throw new NotImplementedException ();
+#endif
 #endif
 			}
 		}
 
 
 
-		#region SYSTEM_INFO
+#if WINDOWS
 
-		[StructLayout(LayoutKind.Sequential)]
-		public struct SYSTEM_INFO
+
+		/// <summary>Used when system uses High DPI modes</summary>
+		/// <returns>
+		/// 1.25 = 125%
+		/// 1.5 = 150%
+		/// </returns>
+		[MethodImpl (MethodImplOptions.AggressiveInlining)]
+		public static float GetScreenScalingFactor ()
 		{
-			public short wProcessorArchitecture;
-			public short wReserved;
-			public int dwPageSize;
-			public int lpMinimumApplicationAddress;
-			public int lpMaximumApplicationAddress;
-			public int dwActiveProcessorMask;
-			public int dwNumberOfProcessors;
-			public int dwProcessorType;
-			public int dwAllocationGranularity;
-			public short wProcessorLevel;
-			public short wProcessorRevision;
-
-			[DllImport(WinAPI.core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			private static extern void GetNativeSystemInfo([Out] out SYSTEM_INFO lpSystemInfo);
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static SYSTEM_INFO GetNativeSystemInfo()
+			Graphics g = Graphics.FromHwnd (IntPtr.Zero);
+			IntPtr hdcDesktop = g.GetHdc ();
+			try
 			{
-				GetNativeSystemInfo(out SYSTEM_INFO si);
-				return si;
+				int logPixelsY = Gdi32.GetDeviceCaps (hdcDesktop, Gdi32.DeviceCap.LOGPIXELSY);
+				if (logPixelsY == DEFAULT_SCREEN_DPI) return 1f;
+				return (float) logPixelsY / (float) DEFAULT_SCREEN_DPI;
 			}
+			finally { g.ReleaseHdc (hdcDesktop); }
 		}
-		#endregion
 
 
+		[MethodImpl (MethodImplOptions.AggressiveInlining)]
+		public static Kernel32.SYSTEM_INFO GetNativeSystemInfo ()
+		{
+			Kernel32.GetNativeSystemInfo (out var si);
+			return si;
+		}
 
-		#region SystemUpTime
+
+#endif
 
 
 		/// <summary>On hybernation counter is not resets and looks like PC was not shutting down</summary>
 		/// <remarks>
 		/// Windows 8 and old, hibernation reset this counter to zerro.
 		/// </remarks>
-		public static TimeSpan GetSystemUpTime_FromTickCount64()
-			=> TimeSpan.FromMilliseconds(uom.OS.TickCount_64);
+		public static TimeSpan GetSystemUpTime_FromTickCount64 ()
+			=> TimeSpan.FromMilliseconds (uom.OS.TickCount_64);
 
 
-		#endregion
-
-
-		internal static string GetWinSys32Path(string? childPath = null)
-			=> childPath.eIsNullOrWhiteSpace()
-			? Environment.GetFolderPath(Environment.SpecialFolder.System)
-			: Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), childPath!);
+		[MethodImpl (MethodImplOptions.AggressiveInlining)]
+		internal static string GetWinSys32Path ( string? childPath = null )
+			=> childPath.IsNullOrWhiteSpace ()
+			? Environment.GetFolderPath (Environment.SpecialFolder.System)
+			: Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.System), childPath!);
 
 
 		#region Win Version
 
-		internal static bool IsNT() => Environment.OSVersion.Platform.HasFlag(PlatformID.Win32NT);
+		internal static bool IsNT () => Environment.OSVersion.Platform.HasFlag (PlatformID.Win32NT);
 
 
 		#region IsWinVersionMoreThan_
@@ -829,130 +903,129 @@ namespace uom
 		#region Client versions
 
 		/// <summary>Windows NT 3.51 Workstation</summary>
-		internal static readonly Version OS_VERSION_CLIENT_NT_3_51 = new(3, 51, 0, 0);
+		internal static readonly Version OS_VERSION_CLIENT_NT_3_51 = new (3, 51, 0, 0);
 
 		/// <summary>Windows 95</summary>
-		internal static readonly Version OS_VERSION_CLIENT_W95 = new(4, 0, 0, 0);
+		internal static readonly Version OS_VERSION_CLIENT_W95 = new (4, 0, 0, 0);
 
 		/// <summary>Windows NT 4.0 Workstation	1381 (Service Pack 6a)</summary>
-		internal static readonly Version OS_VERSION_CLIENT_WIN_NT_4_0 = new(4, 0, 0, 0);
+		internal static readonly Version OS_VERSION_CLIENT_WIN_NT_4_0 = new (4, 0, 0, 0);
 
 		/// <summary>Windows 98 / Windows 98 Second Edition</summary>
-		internal static readonly Version OS_VERSION_CLIENT_W98 = new(4, 10, 0, 0);
+		internal static readonly Version OS_VERSION_CLIENT_W98 = new (4, 10, 0, 0);
 
 		/// <summary>NT 5.0	Professional</summary>
-		internal static readonly Version OS_VERSION_CLIENT_W2000 = new(5, 0);
+		internal static readonly Version OS_VERSION_CLIENT_W2000 = new (5, 0);
 
 		/// <summary>Windows Me</summary>
-		internal static readonly Version OS_VERSION_CLIENT_ME = new(4, 90, 0, 0);
+		internal static readonly Version OS_VERSION_CLIENT_ME = new (4, 90, 0, 0);
 
 		/// <summary>Windows XP</summary>
-		internal static readonly Version OS_VERSION_CLIENT_XP = new(5, 1);
+		internal static readonly Version OS_VERSION_CLIENT_XP = new (5, 1);
 
 		/// <summary>Windows XP 64-bit Edition</summary>
-		internal static readonly Version OS_VERSION_CLIENT_XP_x64 = new(5, 2);
+		internal static readonly Version OS_VERSION_CLIENT_XP_x64 = new (5, 2);
 
 		/// <summary>Windows Vista</summary>
-		internal static readonly Version OS_VERSION_CLIENT_VISTA = new(6, 0);
+		internal static readonly Version OS_VERSION_CLIENT_VISTA = new (6, 0);
 
 		/// <summary>Windows 7</summary>
-		internal static readonly Version OS_VERSION_CLIENT_W7 = new(6, 1);
+		internal static readonly Version OS_VERSION_CLIENT_W7 = new (6, 1);
 
 		/// <summary>Windows 8</summary>
-		internal static readonly Version OS_VERSION_CLIENT_W8 = new(6, 2);
+		internal static readonly Version OS_VERSION_CLIENT_W8 = new (6, 2);
 
 		/// <summary>Windows 8.1</summary>
-		internal static readonly Version OS_VERSION_CLIENT_W81 = new(6, 3);
+		internal static readonly Version OS_VERSION_CLIENT_W81 = new (6, 3);
 
 		/// <summary>Windows 10</summary>
-		internal static readonly Version OS_VERSION_CLIENT_W10 = new(10, 0);
+		internal static readonly Version OS_VERSION_CLIENT_W10 = new (10, 0);
 
 		/// <summary>Windows 11</summary>
-		internal static readonly Version OS_VERSION_CLIENT_W11 = new(10, 0, 22000);
+		internal static readonly Version OS_VERSION_CLIENT_W11 = new (10, 0, 22000);
 		#endregion
 
 
 		#region Server versions
 		/// <summary>Windows 2000 Server</summary>
-		internal static readonly Version OS_VERSION_SERVER_2000 = new(5, 0);
+		internal static readonly Version OS_VERSION_SERVER_2000 = new (5, 0);
 
 		/// <summary>Windows Server 2003</summary>
-		internal static readonly Version OS_VERSION_SERVER_2003 = new(5, 2);
+		internal static readonly Version OS_VERSION_SERVER_2003 = new (5, 2);
 
 		/// <summary>Windows Server 2003 R2</summary>
-		internal static readonly Version OS_VERSION_SERVER_2003R2 = new(5, 2);
+		internal static readonly Version OS_VERSION_SERVER_2003R2 = new (5, 2);
 
 		/// <summary>Windows Server 2008</summary>
-		internal static readonly Version OS_VERSION_SERVER_2008 = new(6, 0);
+		internal static readonly Version OS_VERSION_SERVER_2008 = new (6, 0);
 
 		/// <summary>Windows Server 2008 R2</summary>
-		internal static readonly Version OS_VERSION_SERVER_2008R2 = new(6, 1);
+		internal static readonly Version OS_VERSION_SERVER_2008R2 = new (6, 1);
 
 		/// <summary>Windows Server 2012</summary>
-		internal static readonly Version OS_VERSION_SERVER_2012 = new(6, 2);
+		internal static readonly Version OS_VERSION_SERVER_2012 = new (6, 2);
 
 		/// <summary>Windows Server 2012 R2</summary>
-		internal static readonly Version OS_VERSION_SERVER_2012R2 = new(6, 3);
+		internal static readonly Version OS_VERSION_SERVER_2012R2 = new (6, 3);
 
 		/// <summary>Windows Server 2016</summary>
-		internal static readonly Version OS_VERSION_SERVER_2016 = new(10, 0, 14393);
+		internal static readonly Version OS_VERSION_SERVER_2016 = new (10, 0, 14393);
 
-		internal static readonly Version OS_VERSION_SERVER_2019 = new(10, 0, 17763);
+		internal static readonly Version OS_VERSION_SERVER_2019 = new (10, 0, 17763);
 
-		internal static readonly Version OS_VERSION_SERVER_2022 = new(10, 0, 20348);
+		internal static readonly Version OS_VERSION_SERVER_2022 = new (10, 0, 20348);
 		#endregion
 
 
 
-		internal static readonly bool VistaOrLater = IsNT() && CheckOS(OS_VERSION_CLIENT_VISTA);
-		internal static readonly bool Win7OrLater = IsNT() && CheckOS(OS_VERSION_CLIENT_W7);
-		internal static readonly bool Win8OrLater = IsNT() && CheckOS(OS_VERSION_CLIENT_W8);
-		internal static readonly bool Win10OrLater = IsNT() && CheckOS(OS_VERSION_CLIENT_W10);
-		internal static readonly bool Win11OrLater = IsNT() && CheckOS(OS_VERSION_CLIENT_W11);
+		internal static readonly bool VistaOrLater = IsNT () && CheckOS (OS_VERSION_CLIENT_VISTA);
+		internal static readonly bool Win7OrLater = IsNT () && CheckOS (OS_VERSION_CLIENT_W7);
+		internal static readonly bool Win8OrLater = IsNT () && CheckOS (OS_VERSION_CLIENT_W8);
+		internal static readonly bool Win10OrLater = IsNT () && CheckOS (OS_VERSION_CLIENT_W10);
+		internal static readonly bool Win11OrLater = IsNT () && CheckOS (OS_VERSION_CLIENT_W11);
 
 		/// <summary>Aero UI supports only w7. W8 has flat UI</summary>
-		internal static readonly bool SupportAeroUI = (VistaOrLater && !Win8OrLater);
+		internal static readonly bool SupportAeroUI = ( VistaOrLater && !Win8OrLater );
 
 		internal static readonly bool SupportMetroAppX = Win8OrLater;
 
-		private static EventArgs _CurrentOSLock = new();
+
+
+		private static EventArgs _CurrentOSLock = new ();
 		private static OSVERSIONINFOEX? _CurrentOS = null;
 		internal static OSVERSIONINFOEX CurrentOS
 		{
 			get
 			{
-				_CurrentOSLock ??= new();
+				_CurrentOSLock ??= new ();
 				lock (_CurrentOSLock)
 				{
-					if (!_CurrentOS.HasValue)
-					{
-						_CurrentOS = OSVERSIONINFOEX.RtlGetVersion();
-					}
-
+					_CurrentOS ??= OSVERSIONINFOEX.GetVersion ();
 					return _CurrentOS.Value;
 				}
 			}
 		}
 
+
 		/// <summary><c>Starting with Windows 8, the OSVersion Property returns the same major And minor version numbers For all Windows platforms!</c><br/>
 		/// Therefore, we do Not recommend that you retrieve the value of this property to determine the operating system version.<br/>
 		/// <see href="https://docs.microsoft.com/en-us/dotnet/api/system.environment.osversion"/>
 		/// </summary>
-		public static bool CheckOS(Version NeedOSVersion) => (CurrentOS.Version >= NeedOSVersion);
+		public static bool CheckOS ( Version NeedOSVersion ) => ( CurrentOS.Version >= NeedOSVersion );
 
-		internal static void CheckVistaOrLater()
+		internal static void CheckVistaOrLater ()
 		{
 			if (!VistaOrLater)
 			{
-				throw new NotSupportedException("Требуется минимум Windows Vista!");
+				throw new NotSupportedException ("Требуется минимум Windows Vista!");
 			}
 		}
 
-		internal static void CheckWin7OrLater()
+		internal static void CheckWin7OrLater ()
 		{
 			if (!Win7OrLater)
 			{
-				throw new NotSupportedException("Требуется минимум Windows7!");
+				throw new NotSupportedException ("Требуется минимум Windows7!");
 			}
 		}
 
@@ -1009,7 +1082,7 @@ namespace uom
 		/// </list>
 		/// * <c>For applications that have been manifested for Windows 8.1 Or Windows 10</c>:<br/>Applications Not manifested for Windows 8.1 Or Windows 10 will return the Windows 8 OS version value (6.2). To manifest your applications for Windows 8.1 Or Windows 10, refer to Targeting your application for Windows.
 		/// </summary>
-		[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+		[StructLayout (LayoutKind.Sequential, CharSet = CharSet.Auto)]
 		internal struct OSVERSIONINFOEX
 		{
 			/// <summary>The size of this data structure, in bytes. Set this member to sizeof(OSVERSIONINFOEX).</summary>
@@ -1024,7 +1097,7 @@ namespace uom
 			public PlatformIds dwPlatformId;
 
 			/// <summary>A null-terminated string, such as "Service Pack 3", that indicates the latest Service Pack installed on the system. If no Service Pack has been installed, the string is empty.</summary>
-			[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+			[MarshalAs (UnmanagedType.ByValTStr, SizeConst = 128)]
 			public string szCSDVersion = string.Empty;
 
 			/// <summary>The major version number of the latest Service Pack installed on the system. For example, for Service Pack 3, the major version number is 3. If no Service Pack has been installed, the value is zero.</summary>
@@ -1038,9 +1111,9 @@ namespace uom
 			/// <summary>Reserved for future use.</summary>
 			public byte wReserved;
 
-			public OSVERSIONINFOEX()
+			public OSVERSIONINFOEX ()
 			{
-				dwOSVersionInfoSize = Marshal.SizeOf(typeof(OSVERSIONINFOEX));
+				dwOSVersionInfoSize = Marshal.SizeOf (typeof (OSVERSIONINFOEX));
 			}
 
 
@@ -1100,16 +1173,22 @@ namespace uom
 			}
 
 
-			[DllImport(WinAPI.core.WINDLL_NTDLL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			private static extern int RtlGetVersion([In, Out] ref OSVERSIONINFOEX lpVersionInfo);
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static OSVERSIONINFOEX RtlGetVersion()
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static NtDll.OSVERSIONINFOW RtlGetVersion ()
 			{
-				OSVERSIONINFOEX OVI = new();
-				RtlGetVersion(ref OVI).eThrowIfError();
-				return OVI;
+				NtDll.RtlGetVersion (out var ovi).ThrowIfFailed ();
+				return ovi;
+			}
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static OSVERSIONINFOEX GetVersion ()
+			{
+				var rtlVer = RtlGetVersion ();
+				var ptr = Marshal.AllocHGlobal (Marshal.SizeOf<NtDll.OSVERSIONINFOW> ());
+				Marshal.StructureToPtr (rtlVer, ptr, false);
+				var ve = Marshal.PtrToStructure<OSVERSIONINFOEX> (ptr);
+				return ve;
 			}
 
 
@@ -1134,7 +1213,7 @@ namespace uom
 			#endregion
 
 
-			public readonly Version SPVersion => new(wServicePackMajor, wServicePackMinor);
+			public readonly Version SPVersion => new (wServicePackMajor, wServicePackMinor);
 			public string SPVersionString
 			{
 				get
@@ -1142,10 +1221,10 @@ namespace uom
 					var sSPVersion = "";
 					if (wServicePackMajor != 0)
 					{
-						sSPVersion += SPVersion.ToString();
+						sSPVersion += SPVersion.ToString ();
 					}
 
-					if (szCSDVersion.eIsNotNullOrWhiteSpace())
+					if (szCSDVersion.IsNotNullOrWhiteSpace ())
 					{
 						sSPVersion += $" {szCSDVersion}";
 					}
@@ -1155,9 +1234,9 @@ namespace uom
 
 			}
 
-			public override string ToString()
+			public override string ToString ()
 			{
-				var spVersion = SPVersionString; if (spVersion.eIsNotNullOrWhiteSpace())
+				var spVersion = SPVersionString; if (spVersion.IsNotNullOrWhiteSpace ())
 				{
 					spVersion = ", SP:" + spVersion;
 				}
@@ -1169,7 +1248,7 @@ namespace uom
 					$"Product Type: {wProductType}";
 			}
 
-			public readonly Version Version => new(dwMajorVersion, dwMinorVersion, dwBuildNumber);
+			public readonly Version Version => new (dwMajorVersion, dwMinorVersion, dwBuildNumber);
 
 
 			internal enum KnownVersionNames : int
@@ -1226,24 +1305,24 @@ namespace uom
 						if (dwMajorVersion != 0)
 						{
 							int ifullver = dwMajorVersion << 8 | dwMinorVersion;
-							var efullver = (KnownVersionNames)ifullver;
+							var efullver = (KnownVersionNames) ifullver;
 
 							switch (efullver)
 							{
 								case KnownVersionNames.Win10:
 									{
-										var Win10_ = KnownVersionNames.Win10.ToString() + "_";
-										var Win11_ = KnownVersionNames.Win11_21H2_SunValley.ToString().Split('_').First() + "_";
+										var Win10_ = KnownVersionNames.Win10.ToString () + "_";
+										var Win11_ = KnownVersionNames.Win11_21H2_SunValley.ToString ().Split ('_').First () + "_";
 
 
-										var aW10Builds = (from KnownVersionNames E in Enum.GetValues(typeof(KnownVersionNames))
-														  where (E.ToString().StartsWith(Win10_) || E.ToString().StartsWith(Win11_))
-														  orderby (int)E descending
-														  select E).ToArray();
+										var aW10Builds = ( from KnownVersionNames E in Enum.GetValues (typeof (KnownVersionNames))
+														   where ( E.ToString ().StartsWith (Win10_) || E.ToString ().StartsWith (Win11_) )
+														   orderby (int) E descending
+														   select E ).ToArray ();
 
 
 										var iBuild = dwBuildNumber;
-										var eVerFound = aW10Builds.FirstOrDefault(e => (iBuild >= (int)e));
+										var eVerFound = aW10Builds.FirstOrDefault (e => ( iBuild >= (int) e ));
 										if (eVerFound != default)
 										{
 											return eVerFound;
@@ -1277,21 +1356,21 @@ namespace uom
 			Word
 		}
 
-		public static dynamic CreateOfficeAppInstance(OfficeApplications oa)
+		public static dynamic CreateOfficeAppInstance ( OfficeApplications oa )
 		{
 			string sCOMID = oa switch
 			{
 				OfficeApplications.Excel => "Excel.Application",
 				OfficeApplications.Word => "Word.Application",
-				_ => throw new ArgumentOutOfRangeException(oa.ToString())
+				_ => throw new ArgumentOutOfRangeException (oa.ToString ())
 			};
 
 
-			Type? xlType = Type.GetTypeFromProgID(sCOMID, true);
-			_ = xlType ?? throw new Exception(sCOMID + " is not installed!");
+			Type? xlType = Type.GetTypeFromProgID (sCOMID, true);
+			_ = xlType ?? throw new Exception (sCOMID + " is not installed!");
 
-			dynamic? rCOMInstance = Activator.CreateInstance(xlType);
-			_ = rCOMInstance ?? throw new Exception($"CreateInstance('{xlType}') FAILED!");
+			dynamic? rCOMInstance = Activator.CreateInstance (xlType);
+			_ = rCOMInstance ?? throw new Exception ($"CreateInstance('{xlType}') FAILED!");
 			return rCOMInstance!;
 		}
 	}
@@ -1299,19 +1378,19 @@ namespace uom
 
 
 	/// <summary>MT safe FPS counter</summary>
-	internal class FPSCounter(string sTitle = "")
+	internal class FPSCounter ( string sTitle = "" )
 	{
 		private ulong _lLastSecondTimestamp = uom.OS.TickCount_64;
 
 		private int _currentSecondFramesCounter = 0;
 		private int _fps = 0;
 		private readonly string _title = sTitle;
-		private readonly EventArgs _lock = new();
+		private readonly EventArgs _lock = new ();
 
 		public int FPS { get { lock (_lock) { return _fps; } } }
 		public string Title { get { lock (_lock) { return _title; } } }
 
-		public void Reset()
+		public void Reset ()
 		{
 			lock (_lock)
 			{
@@ -1322,11 +1401,11 @@ namespace uom
 		}
 
 
-		private static ulong CurrentSecond { get => (OS.TickCount_64 / 1000L); }
+		private static ulong CurrentSecond { get => ( OS.TickCount_64 / 1000L ); }
 
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void CountFrame()
+		[MethodImpl (MethodImplOptions.AggressiveInlining)]
+		public void CountFrame ()
 		{
 			lock (_lock)
 			{
@@ -1344,11 +1423,11 @@ namespace uom
 			}
 		}
 
-		public override string ToString()
+		public override string ToString ()
 		{
 			lock (_lock)
 			{
-				return $"FPS{(_title == "" ? "" : $" ({_title})")}: {_fps}";
+				return $"FPS{( _title == "" ? "" : $" ({_title})" )}: {_fps}";
 			}
 		}
 	}
@@ -1361,42 +1440,42 @@ namespace uom
 		/// <summary> Class than automaticaly disposes 1 attached COM value </summary>
 		internal class AutoDisposableCOM : AutoDisposableUniversal
 		{
-			protected readonly Stack<object> COMObjectsToDispose = new();
+			protected readonly Stack<object> COMObjectsToDispose = new ();
 
-			public AutoDisposableCOM() : base() => RegisterDisposeCallback(FreeCOMObjects, true);
+			public AutoDisposableCOM () : base () => RegisterDisposeCallback (FreeCOMObjects, true);
 
 			/// <summary>Register COM objects which need to be destroyed</summary>
-			protected internal void RegisterDisposableCOMObject(object COMObject)
+			protected internal void RegisterDisposableCOMObject ( object COMObject )
 			{
-				_ = COMObject ?? throw new ArgumentNullException(nameof(COMObject));
-				if (COMObjectsToDispose.Contains(COMObject))
+				_ = COMObject ?? throw new ArgumentNullException (nameof (COMObject));
+				if (COMObjectsToDispose.Contains (COMObject))
 				{
-					throw new ArgumentException($"'{COMObject}' already in dispose list!", nameof(COMObject));
+					throw new ArgumentException ($"'{COMObject}' already in dispose list!", nameof (COMObject));
 				}
 
-				COMObjectsToDispose.Push(COMObject);
+				COMObjectsToDispose.Push (COMObject);
 
 
 				//FreeUnmanagedObjects
 			}
 
 
-			protected virtual void FreeCOMObjects()
+			protected virtual void FreeCOMObjects ()
 			{
-				OnBeforeFreeCOMObjects(COMObjectsToDispose);
-				while (COMObjectsToDispose.Any())
+				OnBeforeFreeCOMObjects (COMObjectsToDispose);
+				while (COMObjectsToDispose.Any ())
 				{
-					var rObjectToKill = COMObjectsToDispose.Pop();
-					Marshal.ReleaseComObject(rObjectToKill);
+					var rObjectToKill = COMObjectsToDispose.Pop ();
+					Marshal.ReleaseComObject (rObjectToKill);
 				}
-				OnAfterFreeCOMObjects(COMObjectsToDispose);
+				OnAfterFreeCOMObjects (COMObjectsToDispose);
 			}
 
 			/// <summary>Just template, override if need</summary>            
-			protected virtual void OnBeforeFreeCOMObjects(Stack<object> rCOMObjectsToDispose) { }
+			protected virtual void OnBeforeFreeCOMObjects ( Stack<object> rCOMObjectsToDispose ) { }
 
 			/// <summary>Just template, override if need</summary>            
-			protected virtual void OnAfterFreeCOMObjects(Stack<object> rCOMObjectsToDispose) { }
+			protected virtual void OnAfterFreeCOMObjects ( Stack<object> rCOMObjectsToDispose ) { }
 		}
 
 
@@ -1404,6 +1483,58 @@ namespace uom
 	}
 
 
+
+	/// <summary>FakeWindow to provide IWin32Window.Handle </summary>
+	internal class Win32Window ( HWND hwnd ) : IWin32Window, IEqualityComparer<Win32Window>
+	{
+
+		public readonly HWND Handle = hwnd;
+
+
+		public Win32Window ( IntPtr hwnd ) : this ((HWND) hwnd) { }
+
+
+		#region Operators
+
+
+		public static bool operator == ( Win32Window w1, Win32Window w2 ) => w1.Handle == w2.Handle;
+
+		public static bool operator != ( Win32Window w1, Win32Window w2 ) => !( w1 == w2 );
+
+
+		public static implicit operator IntPtr ( Win32Window wnd ) => (IntPtr) wnd.Handle;
+
+		public static implicit operator HandleRef ( Win32Window wnd ) => new (wnd, (IntPtr) wnd.Handle);
+
+		public static implicit operator HWND ( Win32Window wnd ) => wnd.Handle;
+
+		public static implicit operator Win32Window ( HWND hwnd ) => new (hwnd.DangerousGetHandle ());
+
+
+		#endregion
+
+
+		public bool Equals ( Win32Window? x, Win32Window? y )
+		{
+			if (x is null) return false;
+			if (ReferenceEquals (x, y)) return true;
+			if (y is null) return false;
+			return x.Handle == y.Handle;
+		}
+
+		public override bool Equals ( object? obj )
+			=> Equals (this, obj as Win32Window);
+
+
+		public int GetHashCode ( [DisallowNull] Win32Window wnd )
+			=> wnd.Handle.GetHashCode ();
+
+		public override int GetHashCode ()
+			=> GetHashCode ();
+
+		nint IWin32Window.Handle => (IntPtr) Handle;
+
+	}
 
 
 	namespace Extensions
@@ -1414,8 +1545,8 @@ namespace uom
 		{
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string eDumpHex(this uom.WinAPI.memory.WinApiMemory mem) => mem.DangerousGetHandle().eDumpHexToString(mem.Lenght);
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static string eDumpHex ( this uom.WinAPI.memory.WinApiMemory mem ) => mem.DangerousGetHandle ().eToHexDump (mem.Lenght);
 
 
 
@@ -1432,27 +1563,23 @@ namespace uom
 		internal static partial class Extensions_Arrays_Win
 		{
 
-#if (WINDOWS)
-
-#endif
-
 			/// <summary>PInvoke memcmp() from msvcrt.dll<br/>
 			/// <c>! Most Fastest Method !</c>
 			/// </summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool eCompareArrays_MemCmp(this byte[] a, byte[] b, UInt64 bytesToCompare) => uom.WinAPI.memory.memcmp(a, b, bytesToCompare) == 0;
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static bool eCompareArrays_MemCmp ( this byte[] a, byte[] b, UInt64 bytesToCompare ) => uom.WinAPI.memory.memcmp (a, b, bytesToCompare) == 0;
 
 			/// <inheritdoc cref="eCompareArrays_MemCmp" />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool eCompareArrays_MemCmp(this byte[] a, byte[] b) => a.eCompareArrays_MemCmp(b, (UInt64)a.Length);
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static bool eCompareArrays_MemCmp ( this byte[] a, byte[] b ) => a.eCompareArrays_MemCmp (b, (UInt64) a.Length);
 
 
 
-#if (NET6_0_OR_GREATER)
+#if ( NET6_0_OR_GREATER )
 
 			/// <summary>Проверяет заканчивается ли массив байт на указанные байты</summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool eEndsWith(this byte[] A, byte[] B)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static bool eEndsWith ( this byte[] A, byte[] B )
 			{
 				// Validate buffers are the same length. This also ensures that the count does not exceed the length of either buffer.  
 				int elementsToCompare = B.Length;
@@ -1466,8 +1593,8 @@ namespace uom
 					return true;
 				}
 
-				A = A.TakeLast(elementsToCompare).ToArray();
-				bool bEq = A.eCompareArrays_MemCmp(B);
+				A = A.TakeLast (elementsToCompare).ToArray ();
+				bool bEq = A.eCompareArrays_MemCmp (B);
 				return bEq;
 			}
 
@@ -1475,18 +1602,18 @@ namespace uom
 			/// <inheritdoc cref="eEndsWith" />
 			/// <param name="A"></param>
 			/// <param name="abFinishHex">Строка байт вида 0D-0A-2B-43-53-51-3A</param>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool eEndsWith(this byte[] A, string abFinishHex)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static bool eEndsWith ( this byte[] A, string abFinishHex )
 			{
-				var abFinish = abFinishHex.eHexStringToBytes();
-				bool bEq = A.eEndsWith(abFinish);
+				var abFinish = abFinishHex.eHexStringToBytes ();
+				bool bEq = A.eEndsWith (abFinish);
 				return bEq;
 			}
 #endif
 
 			/// <summary>Checks if a begins with b (!!! Uses WinAPI MemCmp !!!)</summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool eStartsWith(this byte[] A, byte[] B)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static bool eStartsWith ( this byte[] A, byte[] B )
 			{
 				// Validate buffers length. This also ensures that the count does not exceed the length of either buffer.  
 				int elementsToCompare = B.Length;
@@ -1501,29 +1628,29 @@ namespace uom
 				}
 
 				//if (A.Length != elementsToCompare) A = [.. A.Take(elementsToCompare)];
-				return A.eCompareArrays_MemCmp(B, (ulong)elementsToCompare);
+				return A.eCompareArrays_MemCmp (B, (ulong) elementsToCompare);
 			}
 
 
 			/// <inheritdoc cref="eStartsWith" />
 			/// <param name="hexString">bytes string like "0D-0A-2B-43-53-51-3A..."</param>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool eStartsWith(this byte[] A, string hexString)
-				=> A.eStartsWith(hexString.eHexStringToBytes());
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static bool eStartsWith ( this byte[] A, string hexString )
+				=> A.eStartsWith (hexString.eHexStringToBytes ());
 
 
 			/// <summary>Проверяет равна ли строка двоичному образцу (!!! Uses WinAPI MemCmp !!!)</summary>
 			/// <param name="sTargetHexString">Строка байт вида 0D-0A-2B-43-53-51-3A</param>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool eEqualToHex(this byte[] A, string sTargetHexString)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static bool eEqualToHex ( this byte[] A, string sTargetHexString )
 			{
-				var abTarge = sTargetHexString.eHexStringToBytes();
+				var abTarge = sTargetHexString.eHexStringToBytes ();
 				if (A.Length != abTarge.Length)
 				{
 					return false;
 				}
 
-				return A.eStartsWith(abTarge);
+				return A.eStartsWith (abTarge);
 			}
 
 
@@ -1534,15 +1661,15 @@ namespace uom
 			/// </summary>
 			/// <param name="templateHexString">00-00-XX-01-aa</param>
 			/// <returns></returns>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			[Obsolete("Must be rewrited with memoryspans", true)]
-			internal static byte[] eSearchTemplate(this byte[] a, string templateHexString)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			[Obsolete ("Must be rewrited with memoryspans", true)]
+			internal static byte[] eSearchTemplate ( this byte[] a, string templateHexString )
 			{
-				char C_SEP = constants.SystemDefaultHexByteSeparator; // Получаем символ-разделитель
-				templateHexString = templateHexString.eNormalizeHexString(null, C_SEP);
-				string sSourceStringHex = a.eToStringHex();
-				var sourceHexBytes = sSourceStringHex.Split(C_SEP);
-				var templateHexBytes = templateHexString.Split(C_SEP);
+				char C_SEP = constants.SystemDefaultHexByteSeparator.Value; // Получаем символ-разделитель
+				templateHexString = templateHexString.eNormalizeHexString (null, C_SEP);
+				string sSourceStringHex = a.eToStringHex ();
+				var sourceHexBytes = sSourceStringHex.Split (C_SEP);
+				var templateHexBytes = templateHexString.Split (C_SEP);
 
 				if (sourceHexBytes.Length < templateHexBytes.Length)
 				{
@@ -1552,8 +1679,8 @@ namespace uom
 				int iEnd = sourceHexBytes.Length - templateHexBytes.Length;
 				for (int iSourceCharPos = 0, loopTo = iEnd ; iSourceCharPos <= loopTo ; iSourceCharPos++)
 				{
-					string sourceChar = sourceHexBytes[iSourceCharPos];
-					if ((sourceChar ?? "") == (templateHexBytes[0] ?? ""))
+					string sourceChar = sourceHexBytes[ iSourceCharPos ];
+					if (( sourceChar ?? "" ) == ( templateHexBytes[ 0 ] ?? "" ))
 					{
 						// Проверяем все оставшиеся символы на вхождение
 						int iTemplateBytesCount = templateHexBytes.Length;
@@ -1561,13 +1688,13 @@ namespace uom
 						for (int iSubScanChar = 0 ; iSubScanChar <= iTemplateBytesCount ; iSubScanChar++)
 						{
 							int iFullCharIndex = iSourceCharPos + iSubScanChar;
-							string sTemplateCompareChar = templateHexBytes[iSubScanChar];
-							string sSourceCompareChar = sourceHexBytes[iFullCharIndex];
+							string sTemplateCompareChar = templateHexBytes[ iSubScanChar ];
+							string sSourceCompareChar = sourceHexBytes[ iFullCharIndex ];
 							if (sTemplateCompareChar == "XX" || sTemplateCompareChar == "X")// Шаблонный символ - пропускаем
 							{
 								iFound++;
 							}
-							else if ((sTemplateCompareChar ?? "") != (sSourceCompareChar ?? ""))// Сравниваем
+							else if (( sTemplateCompareChar ?? "" ) != ( sSourceCompareChar ?? "" ))// Сравниваем
 							{
 								break;
 							}
@@ -1579,8 +1706,8 @@ namespace uom
 
 						if (iFound == iTemplateBytesCount) // найдено!
 						{
-							var abFound = a.eTakeFrom(iSourceCharPos);
-							abFound = abFound.Take(iTemplateBytesCount).ToArray();
+							var abFound = a.eTakeFrom (iSourceCharPos);
+							abFound = abFound.Take (iTemplateBytesCount).ToArray ();
 							return abFound;
 						}
 					}
@@ -1599,8 +1726,8 @@ namespace uom
 
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static RegistryKey eHiveToKey(this RegistryHive Hive)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static RegistryKey eHiveToKey ( this RegistryHive Hive )
 				=> Hive switch
 				{
 					RegistryHive.ClassesRoot => Registry.ClassesRoot,
@@ -1612,53 +1739,53 @@ namespace uom
 					RegistryHive.LocalMachine => Registry.LocalMachine,
 					RegistryHive.PerformanceData => Registry.PerformanceData,
 					RegistryHive.Users => Registry.Users,
-					_ => throw new ArgumentOutOfRangeException(nameof(Hive))
+					_ => throw new ArgumentOutOfRangeException (nameof (Hive))
 				};
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static RegistryKey eOpenBaseKey(this RegistryHive Hive, RegistryView View = RegistryView.Default) => RegistryKey.OpenBaseKey(Hive, View);
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static RegistryKey eOpenBaseKey ( this RegistryHive Hive, RegistryView View = RegistryView.Default ) => RegistryKey.OpenBaseKey (Hive, View);
 
 
 
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
 			public static (Boolean ValueFound, RegistryValueKind Kind, object? Value)
-			eGetValueExt(
+			eGetValueExt (
 				this RegistryKey key,
 				string? valueName,
 				object? defaultValue,
-				RegistryValueOptions rvo = RegistryValueOptions.DoNotExpandEnvironmentNames)
+				RegistryValueOptions rvo = RegistryValueOptions.DoNotExpandEnvironmentNames )
 			{
 				valueName ??= "";
 				try
 				{
-					object? objValue = key?.GetValue(valueName, null, rvo);
-					_ = objValue ?? throw new Exception($"RegKey.GetValue('{valueName}') Failed! RegKey = '{key}'!");
-					return (true, (key?.GetValueKind(valueName) ?? RegistryValueKind.Unknown), objValue);
+					object? objValue = key?.GetValue (valueName, null, rvo);
+					_ = objValue ?? throw new Exception ($"RegKey.GetValue('{valueName}') Failed! RegKey = '{key}'!");
+					return (true, ( key?.GetValueKind (valueName) ?? RegistryValueKind.Unknown ), objValue);
 				}
 				catch { return (false, RegistryValueKind.Unknown, defaultValue); }
 			}
 
 
 			[DebuggerNonUserCode, DebuggerStepThrough]
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static (Boolean ValueFound, RegistryValueKind Kind, T? Value) eGetValueT<T>(this RegistryKey key, string ValueName, T? defaultValue)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static (Boolean ValueFound, RegistryValueKind Kind, T? Value) eGetValueT<T> ( this RegistryKey key, string ValueName, T? defaultValue )
 			{
 				try
 				{
-					var (ValueFound, Kind, Value) = key.eGetValueExt(
+					var (ValueFound, Kind, Value) = key.eGetValueExt (
 						   ValueName,
 						   defaultValue,
-							(typeof(T) == typeof(string))
+							( typeof (T) == typeof (string) )
 								? RegistryValueOptions.DoNotExpandEnvironmentNames
 								: RegistryValueOptions.None
 							);
 
-					if (ValueFound && (null != Value))
+					if (ValueFound && ( null != Value ))
 					{
-						return (true, Kind, (T)Value);
+						return (true, Kind, (T) Value);
 					}
 				}
 				catch { }//ignore any errors
@@ -1666,16 +1793,16 @@ namespace uom
 			}
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string? eGetValue_String(this RegistryKey? key, string ValueName, string? defaultValue = null)
-				=> key?.eGetValueT<string>(ValueName, defaultValue).Value;
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static string? eGetValue_String ( this RegistryKey? key, string ValueName, string? defaultValue = null )
+				=> key?.eGetValueT<string> (ValueName, defaultValue).Value;
 
 
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string eGetValue_StringOrEmpty(this RegistryKey? key, string ValueName, string? defaultValue = null)
-				=> key?.eGetValue_String(ValueName, defaultValue)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static string eGetValue_StringOrEmpty ( this RegistryKey? key, string ValueName, string? defaultValue = null )
+				=> key?.eGetValue_String (ValueName, defaultValue)
 				?? string.Empty;
 
 
@@ -1689,230 +1816,168 @@ namespace uom
 				WriteKey = 131078
 			}
 
-			[DllImport(WinAPI.core.WINDLL_ADVAPI32, SetLastError = true, ExactSpelling = false, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern uom.WinAPI.errors.Win32Errors RegOpenKeyEx(
-				[In] IntPtr hKey,
-				[In, Optional, MarshalAs(UnmanagedType.LPTStr)] string? subKey,
-				[In] int ulOptions,
-				[In] RegOptions samDesired,
-				[Out] out IntPtr hkResult);
-
-			[DllImport(WinAPI.core.WINDLL_ADVAPI32, SetLastError = true, ExactSpelling = false, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern uom.WinAPI.errors.Win32Errors RegCloseKey([In] IntPtr hKey);
-
-			[DllImport(WinAPI.core.WINDLL_ADVAPI32, SetLastError = true, ExactSpelling = false, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern uom.WinAPI.errors.Win32Errors RegRenameKey(
+			[DllImport (Lib.AdvApi32, SetLastError = true, ExactSpelling = false, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
+			internal static extern Win32Error RegRenameKey (
 				this IntPtr hKey,
-				[MarshalAs(UnmanagedType.LPTStr)] string? lpSubKeyName,
-				[MarshalAs(UnmanagedType.LPTStr)] string lpNewKeyName);
-
-			[DllImport(WinAPI.core.WINDLL_ADVAPI32, SetLastError = true, ExactSpelling = false, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern uom.WinAPI.errors.Win32Errors RegCopyTree(
-				this IntPtr hKeySrc,
-				[In, Optional, MarshalAs(UnmanagedType.LPTStr)] string? lpSubKey,
-				[In] IntPtr hKeyDest);
-
-			[Flags]
-			internal enum SAVE_REG_FLAGS : int
-			{
-				//The key or hive is saved in standard format.The standard format is the only format supported by Windows 2000.
-				REG_STANDARD_FORMAT = 1,
-
-				//The key or hive is saved in the latest format.
-				//The latest format is supported starting with Windows XP.After the key or hive is saved in this format, it cannot be loaded on an earlier system.
-				REG_LATEST_FORMAT = 2,
-
-				//The hive is saved with no compression, for faster save operations.
-				//The hKey parameter must specify the root of a hive under HKEY_LOCAL_MACHINE or HKEY_USERS. For example, HKLM\SOFTWARE is the root of a hive.
-				REG_NO_COMPRESSION = 4
-			}
-
-			/// <summary>
-			/// Unlike RegSaveKey, this function does not support the HKEY_CLASSES_ROOT predefined key.
-			/// If hKey represents a key on a remote computer, the path described by lpFile is relative to the remote computer.
-			/// The RegSaveKeyEx function saves only nonvolatile keys.
-			/// It does not save volatile keys.
-			/// A key is made volatile or nonvolatile at its creation; see RegCreateKeyEx.           
-			/// You can use the file created by RegSaveKeyEx in subsequent calls to the RegLoadKey, RegReplaceKey, or RegRestoreKey function.
-			/// If RegSaveKeyEx fails partway through its operation, the file will be corrupt and subsequent calls to RegLoadKey, RegReplaceKey, or RegRestoreKey for the file will fail.
-			/// Using RegSaveKeyEx together with RegRestoreKey to copy subtrees in the registry is not recommended. 
-			/// This method does not trigger notifications and can invalidate handles used by other applications. 
-			/// Instead, use the SHCopyKey function or the RegCopyTree function.
-			/// The calling process must have the SE_BACKUP_NAME privilege enabled.For more information, see Running with Special Privileges.
-			/// 
-			/// Note
-			/// The winreg.h header defines RegSaveKeyEx as an alias which automatically selects the ANSI or Unicode version of this function based on the definition of the UNICODE preprocessor constant. Mixing usage of the encoding-neutral alias with code that not encoding-neutral can lead to mismatches that result in compilation or runtime errors. For more information, see Conventions for Function Prototypes.
-			/// </summary>
-			[DllImport(WinAPI.core.WINDLL_ADVAPI32, SetLastError = true, ExactSpelling = false, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern uom.WinAPI.errors.Win32Errors RegSaveKeyEx(
-				this IntPtr hKey,
-				[In, MarshalAs(UnmanagedType.LPTStr)] string lpFile,
-				[In, Optional] IntPtr lpSecurityAttributes,
-				[In] SAVE_REG_FLAGS Flags);
-
+				[MarshalAs (UnmanagedType.LPTStr)] string? lpSubKeyName,
+				[MarshalAs (UnmanagedType.LPTStr)] string lpNewKeyName );
 
 			/// <summary>Work ONLY on local registry, dont work on remote connected registry!</summary>
-			public static void eRenameSubKey(this RegistryKey KeyParent, string Name, string NewName)
+			public static void eRenameSubKey ( this RegistryKey KeyParent, string Name, string NewName )
 			{
 				//RegistryKey _keyHKLM = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Default);
 				//KeyParent = _keyHKLM?.OpenSubKey("_uom_Test", true)!;
-				if (NewName.eIsNullOrWhiteSpace())
-				{
-					throw new ArgumentNullException(nameof(NewName));
-				}
+				if (NewName.IsNullOrWhiteSpace ()) throw new ArgumentNullException (nameof (NewName));
 
-				_ = RegRenameKey(
-					KeyParent.Handle.DangerousGetHandle(),
+				RegRenameKey (
+					KeyParent.Handle.DangerousGetHandle (),
 					Name,
-					NewName);
+					NewName).ThrowIfFailed ();
 
-				KeyParent.Flush();
+				KeyParent.Flush ();
 			}
 
 
-			public static void eRenameSubKeyViaCopy(this RegistryKey KeyParent, string Name, string newName)
+			public static void eRenameSubKeyViaCopy ( this RegistryKey KeyParent, string Name, string newName )
 			{
-				if (string.IsNullOrWhiteSpace(newName))
-				{
-					throw new ArgumentNullException(nameof(newName));
-				}
+				if (newName.IsNullOrWhiteSpace ()) throw new ArgumentNullException (nameof (newName));
 
-				newName = newName.Trim();
-				Name = Name.Trim();
+				newName = newName.Trim ();
+				Name = Name.Trim ();
 
 				if (newName == Name)
 				{
 					return;//Already has this name
 				}
 
-				if (newName.eIsDifferOnlyByCase(Name))
+				if (newName.eIsDifferOnlyByCase (Name))
 				{
-					throw new ArgumentException("New key name differ only in case!", nameof(newName));
+					throw new ArgumentException ("New key name differ only in case!", nameof (newName));
 				}
 
-				KeyParent.eCopySubkey(Name, newName, false);
-				KeyParent.DeleteSubKeyTree(Name, false);
-				KeyParent.Flush();
+				KeyParent.eCopySubkey (Name, newName, false);
+				KeyParent.DeleteSubKeyTree (Name, false);
+				KeyParent.Flush ();
 			}
 
 
-			public static void eCopySubkey(this RegistryKey KeyParent, string subKeyName, string newSubKeyName, bool owerwriteOnExist)
+			public static void eCopySubkey ( this RegistryKey KeyParent, string subKeyName, string newSubKeyName, bool owerwriteOnExist )
 			{
-				if (string.IsNullOrWhiteSpace(subKeyName))
+				if (string.IsNullOrWhiteSpace (subKeyName))
 				{
-					throw new ArgumentNullException(nameof(subKeyName));
+					throw new ArgumentNullException (nameof (subKeyName));
 				}
 
-				if (string.IsNullOrWhiteSpace(newSubKeyName))
+				if (string.IsNullOrWhiteSpace (newSubKeyName))
 				{
-					throw new ArgumentNullException(nameof(newSubKeyName));
+					throw new ArgumentNullException (nameof (newSubKeyName));
 				}
 
-				subKeyName = subKeyName.Trim();
-				newSubKeyName = newSubKeyName.Trim();
+				subKeyName = subKeyName.Trim ();
+				newSubKeyName = newSubKeyName.Trim ();
 
 				if (newSubKeyName == subKeyName)
 				{
-					throw new ArgumentException($"{nameof(newSubKeyName)} = {nameof(subKeyName)}!");
+					throw new ArgumentException ($"{nameof (newSubKeyName)} = {nameof (subKeyName)}!");
 				}
 
-				if (subKeyName.eIsDifferOnlyByCase(newSubKeyName))
+				if (subKeyName.eIsDifferOnlyByCase (newSubKeyName))
 				{
-					throw new ArgumentException($"The {nameof(newSubKeyName)} and {nameof(subKeyName)} differ only in case!", nameof(newSubKeyName));
+					throw new ArgumentException ($"The {nameof (newSubKeyName)} and {nameof (subKeyName)} differ only in case!", nameof (newSubKeyName));
 				}
 
-				RegistryKey? keyOld = KeyParent.OpenSubKey(subKeyName, false);
+				RegistryKey? keyOld = KeyParent.OpenSubKey (subKeyName, false);
 				if (keyOld == null)
 				{
-					throw new Exception($"Failed to open key '{KeyParent}\\{subKeyName}'!");
+					throw new Exception ($"Failed to open key '{KeyParent}\\{subKeyName}'!");
 				}
 
-				if (KeyParent.GetSubKeyNames().Contains(newSubKeyName))
+				if (KeyParent.GetSubKeyNames ().Contains (newSubKeyName))
 				{
 					if (!owerwriteOnExist)
 					{
-						throw new Exception($"Key name '{newSubKeyName}' already exist!");
+						throw new Exception ($"Key name '{newSubKeyName}' already exist!");
 					}
 
-					KeyParent.DeleteSubKeyTree(newSubKeyName, false);
+					KeyParent.DeleteSubKeyTree (newSubKeyName, false);
 				}
-				using RegistryKey keyNew = KeyParent.CreateSubKey(newSubKeyName, true);
-				keyOld.eCopyTo(keyNew);
+				using RegistryKey keyNew = KeyParent.CreateSubKey (newSubKeyName, true);
+				keyOld.eCopyTo (keyNew);
 			}
 
 
-			public static void eCopyTo(this RegistryKey keyOld, RegistryKey keyNew)
+			public static void eCopyTo ( this RegistryKey keyOld, RegistryKey keyNew )
 			{
 				//Copy All Values
-				var aValueNames = keyOld.GetValueNames();
+				var aValueNames = keyOld.GetValueNames ();
 				foreach (var valueName in aValueNames)
 				{
-					var kind = keyOld.GetValueKind(valueName);
-					RegistryValueOptions rvo = (kind == RegistryValueKind.ExpandString)
+					var kind = keyOld.GetValueKind (valueName);
+					RegistryValueOptions rvo = ( kind == RegistryValueKind.ExpandString )
 						? RegistryValueOptions.None
 						: RegistryValueOptions.DoNotExpandEnvironmentNames;
 
-					object? val = keyOld.GetValue(valueName, null, rvo);
+					object? val = keyOld.GetValue (valueName, null, rvo);
 					if (val != null)
 					{
-						keyNew.SetValue(valueName, val!, kind);
+						keyNew.SetValue (valueName, val!, kind);
 					}
 				}
 
-				if (!aValueNames.Contains(""))//Default value not exist
+				if (!aValueNames.Where (s => s.Length < 1).Any ())//Default value not exist
 				{
-					if (keyNew.GetValueNames().Contains(""))
+					if (keyNew.GetValueNames ().Where (s => s.Length < 1).Any ())
 					{
-						keyNew.DeleteValue("", false);
+						keyNew.DeleteValue ("", false);
 					}
 				}
-				keyNew.Flush();
+				keyNew.Flush ();
 
 				//Copy Sub Keys
-				var aKeyNames = keyOld.GetSubKeyNames();
+				var aKeyNames = keyOld.GetSubKeyNames ();
 				foreach (var keyName in aKeyNames)
 				{
-					using RegistryKey? keyChildOld = keyOld.OpenSubKey(keyName, false);
-					using RegistryKey keyChildNew = keyNew.CreateSubKey(keyName, true);
-					keyChildOld?.eCopyTo(keyChildNew);
+					using RegistryKey? keyChildOld = keyOld.OpenSubKey (keyName, false);
+					using RegistryKey keyChildNew = keyNew.CreateSubKey (keyName, true);
+					keyChildOld?.eCopyTo (keyChildNew);
 				}
-				keyNew.Flush();
+				keyNew.Flush ();
 			}
 
 
-			public static void eExport(this RegistryKey keyOld, string path)
+			public static void eExport ( this RegistryKey keyOld, string path )
 			{
-				WinAPI.security.PRIVELEGE_NAMES.SeBackupPrivilege.eAdjustProcessPrivilegeAndCloseToken();
-				var result = RegSaveKeyEx(
-					keyOld.Handle.DangerousGetHandle(),
-					path,
-					IntPtr.Zero,
-					SAVE_REG_FLAGS.REG_LATEST_FORMAT);
+				SystemPrivilege.Backup.AdjustProcessPrivilegeAndCloseToken ();
 
-				result.eThrowIfError();
+				AdvApi32.RegSaveKeyEx (
+					keyOld.Handle.DangerousGetHandle (),
+					path,
+					null,
+					AdvApi32.REG_SAVE.REG_LATEST_FORMAT)
+					.ThrowIfFailed ();
 			}
 
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static Int32? eGetValue_Int32(this RegistryKey? hRegKey, string ValueName, Int32 defaultValue = 0)
-				=> hRegKey?.eGetValueT<Int32>(ValueName, defaultValue).Value;
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static Int32? eGetValue_Int32 ( this RegistryKey? hRegKey, string ValueName, Int32 defaultValue = 0 )
+				=> hRegKey?.eGetValueT<Int32> (ValueName, defaultValue).Value;
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool? eGetValue_Bool(this RegistryKey? hRegKey, string ValueName, bool defaultValue = false)
-				=> (1 == eGetValue_Int32(hRegKey, ValueName, defaultValue ? 1 : 0));
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static bool? eGetValue_Bool ( this RegistryKey? hRegKey, string ValueName, bool defaultValue = false )
+				=> ( 1 == eGetValue_Int32 (hRegKey, ValueName, defaultValue ? 1 : 0) );
 
 
-			private static void eSetValueObject(this RegistryKey hRegKey, string name, object? value, RegistryValueKind kind)
+			private static void eSetValueObject ( this RegistryKey hRegKey, string name, object? value, RegistryValueKind kind )
 			{
 				if (null == value)
 				{
-					hRegKey.DeleteValue(name, false);
+					hRegKey.DeleteValue (name, false);
 				}
 				else
 				{
-					hRegKey.SetValue(name, value, kind);
+					hRegKey.SetValue (name, value, kind);
 				}
 			}
 
@@ -1923,11 +1988,11 @@ namespace uom
 
 
 			/// <summary>if value == null, reg value will be deleted!</summary>
-			public static void eSetValue<T>(this RegistryKey hRegKey, string name, T? value) where T : struct
+			public static void eSetValue<T> ( this RegistryKey hRegKey, string name, T? value ) where T : struct
 			{
 				if (null == value || !value.HasValue)
 				{
-					hRegKey.eSetValueObject(name, (object?)null, RegistryValueKind.None);//Delete Value
+					hRegKey.eSetValueObject (name, (object?) null, RegistryValueKind.None);//Delete Value
 					return;
 				}
 
@@ -1939,7 +2004,7 @@ namespace uom
 				{
 					case Int32 i32: valueToWrite = i32; kind = RegistryValueKind.DWord; break;
 					case Int64 i64: valueToWrite = i64; kind = RegistryValueKind.QWord; break;
-					case bool b: valueToWrite = (b ? 1 : 0); kind = RegistryValueKind.DWord; break;
+					case bool b: valueToWrite = ( b ? 1 : 0 ); kind = RegistryValueKind.DWord; break;
 					case Enum e: valueToWrite = e; kind = RegistryValueKind.DWord; break;
 					case byte[] data: valueToWrite = data; kind = RegistryValueKind.Binary; break;
 					case byte data: valueToWrite = data; kind = RegistryValueKind.DWord; break;
@@ -1949,33 +2014,33 @@ namespace uom
 					case uint data: valueToWrite = data; kind = RegistryValueKind.DWord; break;
 					case ulong data: valueToWrite = data; kind = RegistryValueKind.QWord; break;
 					case char data: valueToWrite = data; kind = RegistryValueKind.String; break;
-					case DateTime dt: valueToWrite = dt.ToBinary(); kind = RegistryValueKind.QWord; break;
+					case DateTime dt: valueToWrite = dt.ToBinary (); kind = RegistryValueKind.QWord; break;
 
 					// float, double, decimal
-					default: throw new ArgumentOutOfRangeException($"Unknown type of '{nameof(value)}' = '{typeof(T)}'");
+					default: throw new ArgumentOutOfRangeException ($"Unknown type of '{nameof (value)}' = '{typeof (T)}'");
 				}
-				hRegKey.eSetValueObject(name, valueToWrite, kind);
+				hRegKey.eSetValueObject (name, valueToWrite, kind);
 			}
 
 			/// <summary>if value == null, value will be deleted!</summary>
-			public static void eSetValueString(this RegistryKey hRegKey, string name, string? value)
+			public static void eSetValueString ( this RegistryKey hRegKey, string name, string? value )
 			{
 				if (null == value)
 				{
-					hRegKey.eSetValueObject(name, (object?)null, RegistryValueKind.None);//Delete Value
+					hRegKey.eSetValueObject (name, (object?) null, RegistryValueKind.None);//Delete Value
 					return;
 				}
-				hRegKey.SetValue(name, value!, RegistryValueKind.String);
+				hRegKey.SetValue (name, value!, RegistryValueKind.String);
 			}
 
-			public static void eSetValueStrings(this RegistryKey hRegKey, string name, string[]? value)
+			public static void eSetValueStrings ( this RegistryKey hRegKey, string name, string[]? value )
 			{
 				if (null == value)
 				{
-					hRegKey.eSetValueObject(name, (object?)null, RegistryValueKind.None);//Delete Value
+					hRegKey.eSetValueObject (name, (object?) null, RegistryValueKind.None);//Delete Value
 					return;
 				}
-				hRegKey.SetValue(name, value!, RegistryValueKind.MultiString);
+				hRegKey.SetValue (name, value!, RegistryValueKind.MultiString);
 			}
 
 
@@ -1983,11 +2048,11 @@ namespace uom
 
 
 			/// <param name="fullPath">HKEY_CLASSES_ROOT/xxx/yyyy...</param>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static RegistryKey? eRegOpenByFullPath(this string fullPath, bool writable)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static RegistryKey? eRegOpenByFullPath ( this string fullPath, bool writable )
 			{
-				string[] pathParts = fullPath.Split('\\');
-				string rootKeyName = pathParts[0];
+				string[] pathParts = fullPath.Split ('\\');
+				string rootKeyName = pathParts[ 0 ];
 
 
 				RegistryKey keyRoot = rootKeyName switch
@@ -1996,11 +2061,11 @@ namespace uom
 					"HKEY_CURRENT_USER" => Registry.CurrentUser,
 					"HKEY_LOCAL_MACHINE" => Registry.LocalMachine,
 					"HKEY_USERS" => Registry.Users,
-					_ => throw new ArgumentOutOfRangeException(nameof(rootKeyName))
+					_ => throw new ArgumentOutOfRangeException (nameof (rootKeyName))
 				};
 
-				fullPath = string.Join(@"\", pathParts.eTakeFrom(1));
-				return keyRoot.OpenSubKey(fullPath, writable);
+				fullPath = string.Join (@"\", pathParts.eTakeFrom (1));
+				return keyRoot.OpenSubKey (fullPath, writable);
 			}
 
 		}
@@ -2009,133 +2074,348 @@ namespace uom
 		internal static partial class Extensions_COM
 		{
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T? eCreateCOMInstance<T>(this string ProgID) => (T?)Activator.CreateInstance(Type.GetTypeFromProgID(ProgID)!);
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static T? eCreateCOMInstance<T> ( this string ProgID ) => (T?) Activator.CreateInstance (Type.GetTypeFromProgID (ProgID)!);
 
 
 		}
 
+
+
+
+		internal static partial class Extensions_WinAPI_MemoryPtr
+		{
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static bool CloseHandle ( this IntPtr H )
+				=> !H.eIsValid () || Kernel32.CloseHandle (H);
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static Microsoft.Win32.SafeHandles.SafeFileHandle eToSafeFileHandle ( this IntPtr hFile, bool ownsHandle = true )
+			{
+				hFile.eIsValid ().ThrowLastWin32ErrorIfFailed (true, "CreateFile");
+				return new SafeFileHandle (hFile, ownsHandle);
+			}
+
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static uom.WinAPI.memory.WinApiMemory eStructureToMemoryBlock<T> ( this T rStructure ) where T : struct
+			{
+				int iStructSize = Marshal.SizeOf (rStructure);
+				var rMem = new uom.WinAPI.memory.WinApiMemory (iStructSize);
+				rStructure.eStructureToPtr (rMem.DangerousGetHandle ()); // Записываем в буфер всю структуру
+				return rMem;
+			}
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static byte[] eStructureToBytes<T> ( this T rStructure ) where T : struct
+			{ using var rMem = rStructure.eStructureToMemoryBlock (); return rMem.ToBytes (); }
+
+
+
+			/// <summary>Последовательно читаем массив байт в массив одинаковых структур</summary>
+			/// <param name="abData">Исходный массив</param>
+			/// <param name="iCount">Количество структур для чтения</param>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static T[] eToStructuresSequentially<T> ( this byte[] abData, int iCount, int iOffset = 0 ) where T : struct
+			{
+				// Размер одного элемента структуры
+				int iSize1 = Marshal.SizeOf (typeof (T));
+				// Полный размер всех структур
+				int lTotalSize = iSize1 * iCount;
+				if (iOffset + lTotalSize > abData.Length)
+				{
+					throw new IndexOutOfRangeException ("(iOffset + lTotalSize) > abData.Length");
+				}
+
+				// Копируем весь блок памяти в массив
+				var lFound = new List<T> ();
+				for (int I = 1, loopTo = iCount ; I <= loopTo ; I++)
+				{
+					var rStruct = abData.eToStructure<T> (iOffset);
+					iOffset += iSize1;
+					lFound.Add (rStruct);
+				}
+
+				return lFound.ToArray ();
+			}
+
+
+			/// <summary>Считать байты массива в структуру</summary>
+			/// <param name="abData">Исходный массив</param>
+			/// <param name="iOffset">Смещение в массиве, с которого начинаем читать</param>
+			/// <returns></returns>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static T eToStructure<T> ( this byte[] abData, int iOffset = 0 ) where T : struct
+			{
+				int iStructLen = Marshal.SizeOf (typeof (T));
+				byte[] abArrayToCast;// = Array.Empty<byte>();
+				if (iOffset == 0 && abData.Length == iStructLen)
+				{
+					// Копируем весь блок памяти в массив
+					abArrayToCast = abData;
+				}
+				else
+				{
+					if (iOffset + iStructLen > abData.Length)
+					{
+						throw new IndexOutOfRangeException ("Структура выходит за пределы массива, с учётом сдвига!");
+					}
+
+					// Копируем часть массива
+					var abTmpBuffer = new byte[ iStructLen ];
+					Array.Copy (abData, iOffset, abTmpBuffer, 0, iStructLen);
+					abArrayToCast = abTmpBuffer;
+				}
+
+				using var LMB = new uom.WinAPI.memory.WinApiMemory (abArrayToCast);
+				return LMB.DangerousGetHandle ().eToStructure<T> ();
+			}
+
+
+#if NET
+
+			unsafe public static T** AsPointer<T> ( ref T* value ) where T : unmanaged
+			{
+				delegate*< ref byte, void* > d = &Unsafe.AsPointer;
+				return ( (delegate*< ref T*, T** >) d ) (ref value);
+			}
+
+#endif
+
+		}
+
+
+
 		internal static partial class Extensions_WinAPI_Errors
 		{
 
+
+
 			#region ThrowLastWin32Exception
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void eThrowLastWin32Exception(this string? DescriptionOfErrorAction)
-				=> WinAPI.errors.ThrowLastWin23Error(DescriptionOfErrorAction);
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static void ThrowWin32Error ( this errors.Win32Errors error, string? errorDescription = null )
+				=> new Win32Exception ((int) error, errorDescription).eThrow ();
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static void ThrowLastWin32ErrorIfFailed ( this errors.Win32Errors error )
+			{
+				var wex = errors.LastWin23Error ();
+				if (wex.NativeErrorCode != errors.Win32Errors.ERROR_SUCCESS) wex.eThrow ();
+
+				//$"ThrowLastWin23ErrorAssert skip: {wex.Message}\n\t{wex.StackTrace}".eDebugWriteLine ();
+			}
+
 
 			/// <summary>Вызывает ошибку, только если условие истинно</summary>
 			/// <param name="b">Если условие верно - вызывается ошибка</param>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void eThrowLastWin32Exception_Assert(this bool b, string? DescriptionOfErrorAction = null)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void ThrowLastWin32ErrorIfFailed ( this bool b, bool useCallerExpression = true, [CallerArgumentExpression (nameof (b))] string? failedAction = null )
 			{
-				if (b)
-				{
-					eThrowLastWin32Exception(DescriptionOfErrorAction);
-				}
+				if (b) return;
+				if (useCallerExpression)
+					Win32Error.ThrowLastError (failedAction);
+				else
+					Win32Error.ThrowLastError ();
 			}
 
-			/// <summary>Вызывает ошибку если условие НЕВЕРНО!</summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void eThrowLastWin32Exception_AssertFalse(this bool b, [CallerArgumentExpression(nameof(b))] string? failedAction = null)
-			{
-				if (!b)
-				{
-					eThrowLastWin32Exception(failedAction);
-				}
-			}
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void ThrowLastWin32ErrorIfTrue ( this bool b, bool useCallerExpression = true, [CallerArgumentExpression (nameof (b))] string? failedAction = null )
+				=> ( !b ).ThrowLastWin32ErrorIfFailed (useCallerExpression, failedAction);
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void eThrowLastWin32Exception_AssertFalse(this bool b, WinAPI.errors.Win32Errors DoNotThrowErrorCode)
+
+
+			/// <summary>Вызывает ошибку, только если код не равен указанному</summary>
+			/// <param name="IgnoreErrorCode">Код игнорируемой ошибки</param>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static void ThrowLastWin32ErrorUnless ( this errors.Win32Errors ignoreErrorCode )
 			{
-				if (!b)
-				{
-					DoNotThrowErrorCode.eThrowLastWin32Exception_IfNot();
-				}
+				var wex = errors.LastWin23Error ();
+				if (wex.NativeErrorCode != ignoreErrorCode) wex.eThrow ();
+				//$"ThrowLastWin23ErrorAssert skip: {wex.Message}\n\t{wex.StackTrace}".eDebugWriteLine ();
 			}
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void eThrowLastWin32Exception_IfNot(this WinAPI.errors.Win32Errors DoNotThrowErrorCode)
-				=> new Win32Exception().eThrowIfNot(DoNotThrowErrorCode);
+			/// <summary>Вызывает ошибку, только если условие истинно</summary>
+			/// <param name="b">Если условие верно - вызывается ошибка</param>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void ThrowLastWin32ErrorIfFailedUnless ( this bool b, errors.Win32Errors ignoreError, out errors.Win32Errors actualError, bool useCallerExpression = true, [CallerArgumentExpression (nameof (b))] string? failedAction = null )
+			{
+				actualError = errors.Win32Errors.ERROR_SUCCESS;
+				if (b) return;
+
+				var w32Err = Win32Error.GetLastError ();
+				actualError = (errors.Win32Errors) (uint) w32Err;
+
+				if (useCallerExpression)
+					w32Err.ThrowUnless ((uint) ignoreError, failedAction);
+				else
+					w32Err.ThrowUnless ((uint) ignoreError);
+
+			}
+
+			/// <summary>Вызывает ошибку, только если условие истинно</summary>
+			/// <param name="b">Если условие верно - вызывается ошибка</param>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void ThrowLastWin32ErrorIfFailedUnless ( this bool b, errors.Win32Errors ignoreError, bool useCallerExpression = true, [CallerArgumentExpression (nameof (b))] string? failedAction = null )
+				=> b.ThrowLastWin32ErrorIfFailedUnless (ignoreError, out var actualError, useCallerExpression, failedAction);
 
 
 			/// <summary>Вызывает ошибку если указатель пуст</summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void eThrowLastWin32Exception_Assert_NUL(
-				this IntPtr H,
-				string? DescriptionOfErrorAction = null)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static IntPtr ThrowLastWin32ErrorIfNull ( this IntPtr ptr, bool useCallerExpression = true, [CallerArgumentExpression (nameof (ptr))] string? failedAction = null )
 			{
-				if (H.eIsNotValid())
-				{
-					eThrowLastWin32Exception(DescriptionOfErrorAction);
-				}
+				ptr.eIsValid ().ThrowLastWin32ErrorIfFailed (useCallerExpression, failedAction);
+				return ptr;
+			}
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static T ThrowLastWin32ErrorIfInvalid<T> ( this T handle, bool useCallerExpression = true, [CallerArgumentExpression (nameof (handle))] string? failedAction = null ) where T : SafeHandleZeroOrMinusOneIsInvalid
+			{
+				handle.IsInvalid.ThrowLastWin32ErrorIfTrue (useCallerExpression, failedAction);
+				return handle;
+			}
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static T ThrowLastWin32ErrorIfInvalidUnless<T> ( this T handle, errors.Win32Errors ignoreError, out errors.Win32Errors actualError, bool useCallerExpression = true, [CallerArgumentExpression (nameof (handle))] string? failedAction = null ) where T : SafeHandleZeroOrMinusOneIsInvalid
+			{
+				( !handle.IsInvalid ).ThrowLastWin32ErrorIfFailedUnless (ignoreError, out actualError, useCallerExpression, failedAction);
+				return handle;
+			}
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static T ThrowLastWin32ErrorIfInvalidUnless<T> ( this T handle, errors.Win32Errors ignoreError, bool useCallerExpression = true, [CallerArgumentExpression (nameof (handle))] string? failedAction = null ) where T : SafeHandleZeroOrMinusOneIsInvalid
+			{
+				( !handle.IsInvalid ).ThrowLastWin32ErrorIfFailedUnless (ignoreError, out var actualError, useCallerExpression, failedAction);
+				return handle;
 			}
 
 
 			#endregion
 
 
+
+
+
+			#region 	   			 TryCatchWin32 
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static void TryCatchWin32 ( Func<int> operation )
+			{
+				var funcResult = operation.Invoke ();
+				if (funcResult == (int) Win32Error.ERROR_SUCCESS) return;
+				if (funcResult >= 0) new Win32Error ((uint) funcResult).ThrowIfFailed ();
+				throw new Win32Exception (funcResult);
+			}
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static void TryCatchWin32 ( Func<int> operation, string? messageTemplate = null, params object[] messageArgs )
+			{
+				var funcResult = operation.Invoke ();
+				if (funcResult == (int) Win32Error.ERROR_SUCCESS) return;
+
+				string? err = null;
+				if (messageTemplate.IsNotNullOrWhiteSpace ())
+					err = messageArgs.Any ()
+						? messageTemplate
+						: messageTemplate!.eFormat (messageArgs);
+
+				if (funcResult >= 0) new Win32Error ((uint) funcResult).ThrowIfFailed ();
+				throw new Win32Exception (funcResult, err);
+			}
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static void TryCatchWin32 ( Func<bool> operation )
+				=> Win32Error.ThrowLastErrorIfFalse (operation.Invoke ());
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static void TryCatchWin32 ( Func<bool> operation, string messageTemplate, params object[] messageArgs )
+				=> Win32Error.ThrowLastErrorIfFalse (operation.Invoke (), messageTemplate.eFormat (messageArgs));
+
+
+
+			#endregion
+
+
+
+
+
+
+
 			#region Win32Exception Throw
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void eThrow(this Win32Exception WEX)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void eThrow ( this Win32Exception WEX )
 				=> throw WEX;
 
 
 			/// <summary>Вызывает ошибку, если win32ErrorCode не равно 0 (ERROR_SUCCESS)</summary>
 			/// <param name="win32ErrorCode">Проверяемый код ошибки</param>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void eThrowIfError(this int win32ErrorCode)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void eThrowIfError ( this int win32ErrorCode )
 			{
-				var eResult = win32ErrorCode.eToWin32Error();
+				var eResult = win32ErrorCode.eToWin32Error ();
 				if (eResult != WinAPI.errors.Win32Errors.ERROR_SUCCESS)
 				{
-					eResult.eToWin32Exception().eThrow();
+					eResult.eToWin32Exception ().eThrow ();
 				}
 			}
 
 
 			/// <summary>Вызывает ошибку, если win32ErrorCode не равно 0 (ERROR_SUCCESS)</summary>
 			/// <param name="win32ErrorCode">Проверяемый код ошибки</param>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void eThrowIfError(this WinAPI.errors.Win32Errors eResult)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void eThrowIfError ( this WinAPI.errors.Win32Errors eResult )
 			{
 				if (eResult != WinAPI.errors.Win32Errors.ERROR_SUCCESS)
 				{
-					eResult.eToWin32Exception().eThrow();
+					eResult.eToWin32Exception ().eThrow ();
 				}
 			}
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void eThrowIf(this Win32Exception WEX, WinAPI.errors.Win32Errors ThrowErrorCode)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void eThrowIf ( this Win32Exception WEX, WinAPI.errors.Win32Errors ThrowErrorCode )
 			{
-				if (WEX.eToWin32Error() == ThrowErrorCode)
+				if (WEX.eToWin32Error () == ThrowErrorCode)
 				{
 					throw WEX;
 				}
 			}
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void eThrowIfNot(this Win32Exception WEX, WinAPI.errors.Win32Errors DoNotThrowErrorCode)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void eThrowIfNot ( this Win32Exception WEX, WinAPI.errors.Win32Errors DoNotThrowErrorCode )
 			{
-				if (WEX.eToWin32Error() != DoNotThrowErrorCode)
+				if (WEX.eToWin32Error () != DoNotThrowErrorCode)
 				{
 					throw WEX;
 				}
 			}
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void eThrowIfNot(this WinAPI.errors.Win32Errors EX, WinAPI.errors.Win32Errors DoNotThrowErrorCode)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void eThrowIfNot ( this WinAPI.errors.Win32Errors EX, WinAPI.errors.Win32Errors DoNotThrowErrorCode )
 			{
 				if (EX == DoNotThrowErrorCode)
 				{
 					return;
 				}
 
-				throw new Win32Exception((int)EX);
+				throw new Win32Exception ((int) EX);
 			}
 
 
@@ -2143,634 +2423,422 @@ namespace uom
 			#endregion
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string eToLocalizedMessage(this WinAPI.errors.Win32Errors err)
-				=> WinAPI.errors.GetErrorMessage(err);
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static string eToLocalizedMessage ( this WinAPI.errors.Win32Errors err )
+				=> WinAPI.errors.GetErrorMessage (err);
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static WinAPI.errors.Win32Errors eToWin32Error(this WinAPI.sync.WaitResults WR)
-				=> (WinAPI.errors.Win32Errors)WR;
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static WinAPI.errors.Win32Errors eToWin32Error ( this Kernel32.WAIT_STATUS ws )
+				=> (WinAPI.errors.Win32Errors) ws;
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static WinAPI.errors.Win32Errors eToWin32Error(this int iError)
-				=> (WinAPI.errors.Win32Errors)iError;
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static WinAPI.errors.Win32Errors eToWin32Error ( this int iError )
+				=> (WinAPI.errors.Win32Errors) iError;
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static WinAPI.errors.Win32Errors eToWin32Error(this Win32Exception WEX)
-				=> (WinAPI.errors.Win32Errors)WEX.NativeErrorCode;
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static WinAPI.errors.Win32Errors eToWin32Error ( this Win32Exception WEX )
+				=> (WinAPI.errors.Win32Errors) WEX.NativeErrorCode;
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Win32Exception eToWin32Exception(this WinAPI.errors.Win32Errors eError)
-				=> new((int)eError);
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static Win32Exception eToWin32Exception ( this WinAPI.errors.Win32Errors eError )
+				=> new ((int) eError);
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Win32Exception eToWin32Exception(this int iError)
-				=> new(iError);
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static Win32Exception eToWin32Exception ( this int iError )
+				=> new (iError);
 
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static uom.WinAPI.errors.HResult eToHResult(this IntPtr i)
-				=> (uom.WinAPI.errors.HResult)((UInt64)i.ToInt64());
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static uom.WinAPI.errors.HResult eToHResult ( this IntPtr i )
+				=> (uom.WinAPI.errors.HResult) ( (UInt64) i.ToInt64 () );
 
 
 		}
 
 
-		internal static partial class Extensions_WinAPI_IO
+		internal static partial class Extensions_WinAPI_Events
 		{
 
 
-
-			[Obsolete("Устаревший класс! использовать надо многопоточный поисковик многоплатформенный", true)]
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static FileInfo[] eSearchFile(
-				this DirectoryInfo Dir,
-				string SearchPattern,
-				bool OnlyForFirstFile = true,
-				bool SkipNTFSJunctions = true,
-				Action<Exception>? ErrorHandler = null)
-			{
-				var leFound = new List<FileInfo>();
-				try // Поиск в текущей папке
-				{
-					var aFoundFiles = Dir.GetFiles(SearchPattern, SearchOption.TopDirectoryOnly);
-					if (aFoundFiles.Any())
-					{
-						lock (leFound)
-						{
-							if (OnlyForFirstFile)
-							{
-								leFound.Add(aFoundFiles.First());
-								return [.. leFound];
-							}
-
-							leFound.AddRange(aFoundFiles);
-						}
-					}
-				}
-				catch (Exception ex)
-				{ ErrorHandler?.Invoke(ex); }
-
-
-
-				// Поиск в подкаталогах
-				try
-				{
-					var aSubDirs = Dir.GetDirectories();
-					var aFoundFiles = aSubDirs.eSearchFile(SearchPattern, OnlyForFirstFile, SkipNTFSJunctions, ErrorHandler);
-					if (aFoundFiles.Any())
-					{
-						lock (leFound)
-						{
-							if (OnlyForFirstFile)
-							{
-								leFound.Add(aFoundFiles.First());
-								return leFound.ToArray();
-							}
-
-							leFound.AddRange(aFoundFiles);
-						}
-					}
-				}
-				catch (Exception ex)
-				{ ErrorHandler?.Invoke(ex); }
-
-				return leFound.ToArray();
-			}
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void eOpenExplorer(this FileSystemInfo FI, uom.AppTools.WindowsExplorerPathModes PathMode = uom.AppTools.C_DEFAULT_EXPLORER_MODE)
-				=> FI.FullName.eOpenExplorer(PathMode);
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void eOpenExplorer(this string sPath, uom.AppTools.WindowsExplorerPathModes PathMode = uom.AppTools.C_DEFAULT_EXPLORER_MODE)
-				=> uom.AppTools.StartWinSysTool_Explorer(sPath, PathMode);
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void eOpenURLInBrowser(this string uri)
-			{
-				ProcessStartInfo psi = new()
-				{
-					UseShellExecute = true,
-					FileName = uri
-				};
-				Process.Start(psi);
-			}
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static (string? Description, FileVersionInfo? Version)
-				eGetFileTitle(
-				this FileInfo fi,
-				string? DefaultTitle = null)
-			{
-				DefaultTitle ??= fi.FullName;
-
-				if (!fi.Exists)
-				{
-					return (DefaultTitle, null);
-				}
-
-				string sTitle = fi.Name;
-				FileVersionInfo? Ver = FileVersionInfo.GetVersionInfo(fi.FullName);
-				if (!string.IsNullOrWhiteSpace(Ver?.FileDescription))
-				{
-					sTitle = Ver!.FileDescription!;
-				}
-
-				return (sTitle, Ver);
-			}
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static DirectoryInfo eToDirectoryInfoOrDefaultDir(this string dir, Environment.SpecialFolder defaultDir = Environment.SpecialFolder.DesktopDirectory)
-			{
-				if (dir.eIsNullOrWhiteSpace() || !Directory.Exists(dir))
-				{
-					dir = Environment.GetFolderPath(defaultDir);
-				}
-
-				return new(dir.Trim());
-			}
-
-
-			/// <summary>Determines whether a path to a file system object such as a file or folder is valid</summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool eShell_IsExist(this string sPath) => uom.WinAPI.shell.PathFileExists(sPath);
-
-
-			/// <summary>Use UOM.Win32.Shell.PathIsDirectory</summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool eShell_IsDirectoryWin32(this string sPath) => uom.WinAPI.shell.PathIsDirectory(sPath);
-
-
-			/// <summary>Использует Shell API PathRelativePathTo</summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static FileAttributes eToNETFileAttributes(this WinAPI.io.EFileAttributes WinFileAttrs) => (FileAttributes)(int)WinFileAttrs;
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool eShell_IsNetworkPath(this FileSystemInfo Path) => uom.WinAPI.shell.PathIsNetworkPath(Path.FullName);
-
-
-			/// <summary>Использует Shell API PathRelativePathTo</summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string eShell_GetRelativeTo(this FileSystemInfo PathFrom, FileSystemInfo PathTo)
-				=> uom.WinAPI.shell.GetRelativePathTo(PathFrom.FullName, PathFrom.Attributes, PathTo.FullName, PathTo.Attributes);
-
-
-			[Obsolete("Use new multithread scanner", true)]
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static FileInfo[] eSearchFile(
-				this DirectoryInfo[] aDirs,
-				string SearchPattern,
-				bool OnlyForFirstFile = true,
-				bool SkipNTFSJunctions = true,
-				Action<Exception>? ErrorHandler = null)
-			{
-				throw new NotImplementedException();
-
-
-				//var leFound = new List<FileInfo>();
-				//foreach (var rDir in aDirs)
-				//{
-				//    if (SkipNTFSJunctions && rDir.FullName.eIsNTFS_SymLink_Win32())
-				//    {
-				//        // Skip
-				//    }
-				//    else
-				//    {
-				//        var aFoundFiles = rDir.eSearchFile(SearchPattern, OnlyForFirstFile, SkipNTFSJunctions, ErrorHandler);
-				//        if (aFoundFiles.Any())
-				//        {
-				//            lock (leFound)
-				//            {
-				//                if (OnlyForFirstFile)
-				//                {
-				//                    leFound.Add(aFoundFiles.First());
-				//                    return leFound.ToArray();
-				//                }
-
-				//                leFound.AddRange(aFoundFiles);
-				//            }
-				//        }
-				//    }
-				//}
-
-				//return leFound.ToArray();
-			}
-
-
-			/// <summary>WinAPI FILE_ATTRIBUTE_REPARSE_POINT</summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool eIsNTFS_SymLink_WinAPI(this string sPath)
-				=> WinAPI.io.GetFileAttributes(sPath).HasFlag(WinAPI.io.EFileAttributes.FILE_ATTRIBUTE_REPARSE_POINT);
-
-
-			/// <summary>Получаем из реестра описание типа файла по расширению</summary>
-			/// <param name="FileExt">Расширение файла, например '.exe'</param>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string eGetFileTypeDescription(this string FileExt)
-			{
-
-				throw new NotImplementedException();
-
-
-				//    const string CS_FRIENDLY_TYPE_NAME = "FriendlyTypeName";
-				//    string sResult = null;
-				//    bool bEmptyExt = FileExt.eIsNullOrWhiteSpace();
-
-				//    if (!bEmptyExt)
-				//    {
-				//        FileExt = FileExt.ToLower().Trim();
-				//        var keyRoot = Registry.ClassesRoot;
-				//        try
-				//        {
-				//            using (var keyFileExt = keyRoot.OpenSubKey(FileExt, RegistryKeyPermissionCheck.ReadSubTree))
-				//            {
-				//                if (keyFileExt != null)
-				//                {
-				//                    string sTypeKeyName = constants.ToString(keyFileExt.GetValue(null, null));
-				//                    if (sTypeKeyName.eIsNotNullOrWhiteSpace())
-				//                    {
-				//                        using (var keyFileType = keyRoot.OpenSubKey(sTypeKeyName, false))
-				//                        {
-				//                            if (keyFileType != null)
-				//                            {
-				//                                string sTypeDescription = null;
-				//                                var aValueNames = keyFileType.GetValueNames().ToArray();
-				//                                bool bHasFriendlyTypeName = (from sValName in aValueNames
-				//                                                             where (sValName.ToLower() ?? "") == (CS_FRIENDLY_TYPE_NAME.ToLower() ?? "")
-				//                                                             select sValName).Any();
-				//                                if (bHasFriendlyTypeName)
-				//                                {
-				//                                    string sFriendlyTypeName = constants.ToString(keyFileType.GetValue(CS_FRIENDLY_TYPE_NAME, null));
-				//                                    if (sFriendlyTypeName.eIsNotNullOrWhiteSpace())
-				//                                    {
-				//                                        if (UOM.Win32.Resources.mResourcesAPI.HasResourceStringPrefix(sFriendlyTypeName))
-				//                                            sFriendlyTypeName = UOM.Win32.Resources.mResourcesAPI.ExtractResourceString(sFriendlyTypeName);
-				//                                        sTypeDescription = sFriendlyTypeName;
-				//                                    }
-				//                                }
-
-				//                                if (sTypeDescription.eIsNullOrWhiteSpace())
-				//                                    sTypeDescription = constants.ToString(keyFileType.GetValue(null, null));
-				//                                if (sTypeDescription.eIsNotNullOrWhiteSpace())
-				//                                    sResult = sTypeDescription;
-				//                            }
-				//                        }
-				//                    }
-				//                }
-				//            }
-				//        }
-				//        catch (Exception ex)
-				//        {
-				//            // 
-				//        }
-				//    }
-
-				//    return sResult;
-			}
-
-
-
-			/// <summary>
-			/// Convert local file path to full remote path: 'C:\Windows\explorer.exe' => '\\x.x.x.x\c$\Windows\explorer.exe'
-			/// If 'local' path is like \\x.x.x.x\apps\var\any.exe, the path does not changes
-			/// </summary>
-			public static FileInfo eRemoteHostLocalPathToNetworkPath(this string localPath, string remoteHost)
-			{
-				try
-				{
-					FileInfo fiApp = new(localPath);   //'C:\Windows\explorer.exe' or '\\x.x.x.x\apps\var\app.exe'
-					DirectoryInfo diRemote = fiApp.Directory!;  //'C:\Windows' or '\\x.x.x.x\apps'
-					string root = diRemote.Root.FullName;      //'C:\' or '\\x.x.x.x\apps'
-					if (!(root.Length == 3 && root.EndsWith(@":\")))
-					{
-						return new(localPath);
-					}
-
-					char cDisk = root.First();
-					string dirPath = fiApp.Directory!.FullName.Substring(3);       //'Windows'
-					dirPath = remoteHost.eCreateWinSharePrefix() + @$"{cDisk}$\{dirPath}"; //'c$\Windows'
-					string fullRemoteFilePath = Path.Combine(dirPath, fiApp.Name);          //'c$\Windows\explorer.exe'
-					return new(fullRemoteFilePath);
-				}
-				catch
-				{
-					return new(localPath);
-				}
-			}
-
-#if NET6_0_OR_GREATER
-			/// <summary>
-			/// Convert full remote path to remote host local file path: '\\x.x.x.x\c$\Windows\explorer.exe' => 'C:\Windows\explorer.exe'
-			/// If remote path is like \\x.x.x.x\apps\var\any.exe, the path does not changes!
-			/// If remote path host name or IP does not equal to 'remoteHost' arg, the path does not changes!
-			/// </summary>
-			public static FileInfo eNetworkPathToRemoteHostLocalPath(this string remotePath, string remoteHost)
-			{
-				string netPrefix = remoteHost.eCreateWinSharePrefix(); //'\\x.x.x.x/'
-				if (!remotePath.ToLower().StartsWith(netPrefix.ToLower()))
-				{
-					return new FileInfo(remotePath);// another remote host. do not modify path '\\y.y.y.y\aaaa\bbbb....'
-				}
-
-				//Path starts with '\\host\', sample: '\\x.x.x.x\c$\Windows\System32\Defrag.exe'
-				string path = remotePath.Substring(netPrefix.Length);            //'c$\Windows\System32\Defrag.exe' or 'c$\Windows\System32\Eap3Host.exe'
-
-				const string MIN_REMOTE_PATH_TO_PARSE = @"c$\a.b";
-				if (path.Length >= MIN_REMOTE_PATH_TO_PARSE.Length)
-				{
-					string diskPrefix = path.Substring(0, 3); //'c$\'
-					char diskChar = diskPrefix.First();                             //'c'
-					if (char.IsLetter(diskChar) && diskPrefix.EndsWith(@"$\"))// path like 'c$\', not like 'share1\dir2...'
-					{
-						path = string.Concat($@"{diskChar}:\", path.AsSpan(diskPrefix.Length));//'c:\Windows\System32\Defrag.exe'
-						return new FileInfo(path);
-					}
-				}
-				return new FileInfo(remotePath);//Dont change path
-			}
-#endif
+			/// <inheritdoc cref="Kernel32.WaitForSingleObject" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static Kernel32.WAIT_STATUS WaitForSingleObjectInfinite ( this IntPtr hHandle )
+				=> Kernel32.WaitForSingleObject ((HEVENT) hHandle, Vanara.PInvoke.Kernel32.INFINITE);
 
 		}
 
 
-		internal static partial class Extensions_WinAPI_IO_IsolatedStorage
+		internal static partial class Extensions_WinAPI_ProcessThread
 		{
 
 
-			//List Isolated storages
-			//VS CMD: StoreAdm /LIST
+			/// <inheritdoc cref="Oleacc.GetProcessHandleFromHwnd" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static Vanara.PInvoke.HPROCESS GetProcessHandleFromHwnd ( this IntPtr hwnd )
+				=> Oleacc.GetProcessHandleFromHwnd (hwnd);
 
-			/// <summary>Method to retrieve all directories, recursively, within a store.</summary>
-			/// <param name="pattern"></param>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static List<String> eGetAllDirectories(this IsolatedStorageFile storeFile, string pattern = @"*", bool recursive = false)
+			/// <inheritdoc cref="GetProcessHandleFromHwnd" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static Vanara.PInvoke.HPROCESS GetProcessHandleFromHwnd ( this IWin32Window wnd )
+				=> wnd.Handle.GetProcessHandleFromHwnd ();
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static (uint processid, uint threadid) GetWindowThreadProcessId ( this IntPtr hWnd )
 			{
-				// Get the root of the search string.
-				string root = Path.GetDirectoryName(pattern) ?? "";
-
-				if (root != "")
-				{
-					root += "/";
-				}
-
-				// Retrieve directories.
-				List<String> directoryList = new(storeFile.GetDirectoryNames(pattern));
-
-				if (recursive)
-				{
-					// Retrieve subdirectories of matches.
-					for (int i = 0, max = directoryList.Count ; i < max ; i++)
-					{
-						string directory = directoryList[i] + @"/";
-						List<String> more = storeFile.eGetAllDirectories(root + directory + @"*");
-
-						// For each subdirectory found, add in the base path.
-						for (int j = 0 ; j < more.Count ; j++)
-						{
-							more[j] = directory + more[j];
-						}
-
-						// Insert the subdirectories into the list and
-						// update the counter and upper bound.
-						directoryList.InsertRange(i + 1, more);
-						i += more.Count;
-						max += more.Count;
-					}
-				}
-				return directoryList;
+				var threadid = User32.GetWindowThreadProcessId (hWnd, out var processid);
+				return (processid, threadid);
 			}
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static List<String> eGetAllFiles(this IsolatedStorageFile storeFile, string pattern = @"*", bool recursive = false)
+			#region IsProcedureExported - used to determine if an API function is exported.
+
+			/// <summary>used to determine if an API function is exported.</summary>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static bool IsProcedureExported ( this Kernel32.SafeHINSTANCE hModule, string procName, bool noUnloadLib = false )
 			{
-				// Get the root and file portions of the search string.
-				string fileString = Path.GetFileName(pattern);
-				List<String> fileList = new(storeFile.GetFileNames(pattern));
-
-				if (recursive)
-				{
-					// Loop through the subdirectories, collect matches,
-					// and make separators consistent.
-					foreach (string directory in storeFile.eGetAllDirectories(@"*"))
-					{
-						foreach (string file in storeFile.GetFileNames(directory + @"/" + fileString))
-						{
-							fileList.Add((directory + @"/" + file));
-						}
-					}
-				}
-
-				return fileList;
+				var lpProc = hModule.GetProcAddress (procName);
+				return lpProc.eIsValid ();
 			}
 
-
-		}
-
-
-		internal static partial class Extensions_WinAPI_Network
-		{
-
-
-			#region eSendARP
-
-			[DllImport(uom.WinAPI.core.WINDLL_iphlpapi, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			private static extern int SendARP(uint DestIP, uint SrcIP, IntPtr pMacAddr, ref int PhyAddrLen);
-
-			[DebuggerHidden, DebuggerNonUserCode]
-			/// <summary>Запрашивает в ARP таблице MAC адрес удалённого хоста</summary>
-			public static PhysicalAddress eSendARP(this IPAddress ip, IPAddress? sendViaInterface = null)
+			/// <inheritdoc cref="IsProcedureExported" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static bool IsProcedureExported ( this string libFile, string procName, bool noUnloadLib = false )
 			{
-				if (ip.Equals(IPAddress.None) || ip.Equals(IPAddress.Broadcast) || ip.Equals(IPAddress.Loopback))
+				bool needFreeLib = false;
+
+				// check first to see if the module is already mapped into this process.
+				var hModule = Kernel32.GetModuleHandle (libFile);
+
+				// need to load module into this process.
+				if (!hModule.eIsValid ())
 				{
-					throw new ArgumentNullException(nameof(ip));
+					hModule = Kernel32.LoadLibrary (libFile);
+					if (!hModule.eIsValid ()) throw new Win32Exception ();
+					needFreeLib = !noUnloadLib;
 				}
 
-				sendViaInterface ??= IPAddress.Any;
-
-				int macLen = 6;
-				var hMACBuffer = Marshal.AllocHGlobal(macLen);
-				try
+				try { return hModule.IsProcedureExported (procName); }
+				finally
 				{
-					// retrieve the remote MAC address
-					int iResult = SendARP(ip.eToUInt32(), sendViaInterface!.eToUInt32(), hMACBuffer, ref macLen);
-					if (iResult != 0)
-					{
-						throw new Win32Exception(iResult);
-					}
-
-					byte[] abMAC = new byte[macLen];
-					Marshal.Copy(hMACBuffer, abMAC, 0, macLen);
-					return new PhysicalAddress(abMAC);
+					if (needFreeLib) hModule.Dispose ();// unload library if we loaded it here.
 				}
-				finally { Marshal.FreeHGlobal(hMACBuffer); }
+
 			}
 
-
-			// Пытаемся определить NetBIOS имя хоста
-			public async static Task<(string? HostName, PhysicalAddress? MAC)> eQueryAsync(this IPAddress IP, CancellationTokenSource? cancel)
-			{
-				var tskResolveDNSNAme = Extensions_DebugAndErrors.eTryCatchStartAsync(() => Dns.GetHostEntry(IP), cancel: cancel, errorUI: false);
-				var tskSendARP = Extensions_DebugAndErrors.eTryCatchStartAsync(() => IP.eSendARP(), cancel: cancel, errorUI: false);
-				try
-				{
-					if (cancel != null)
-					{
-#if NET
-						await Task.WhenAll(tskResolveDNSNAme, tskSendARP).WaitAsync(cancel.Token);
-#else
-						await Task.WhenAll(tskResolveDNSNAme, tskSendARP).eWaitAsync(cancel);
-#endif
-
-						if (cancel.IsCancellationRequested)
-						{
-							return (null, null);
-						}
-					}
-					else
-					{
-						await Task.WhenAll(tskResolveDNSNAme, tskSendARP);
-					}
-				}
-				catch (TaskCanceledException) { return (null, null); }
-				return (tskResolveDNSNAme.Result.Result?.HostName, tskSendARP.Result.Result);
-			}
 
 			#endregion
 
 
+
+
 		}
 
 
-		internal static partial class Extensions_Serialize_Binary
+		internal static partial class Extensions_WinAPI_Security
 		{
 
 
-			#region Binary Serialization
+			#region TokenPrivileges
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void eSerializeBinary(this object SerializableObject, string FileName)
+
+			/// <summary>The OpenProcessToken function opens the access token associated with a process.</summary>
+			/// <param name="ProcessHandle">A handle to the process whose access token is opened. The process must have the PROCESS_QUERY_INFORMATION access permission.</param>
+			/// <param name="DesiredAccess">Specifies an access mask that specifies the requested types of access to the access token. These requested access types are compared with the discretionary access control list (DACL) of the token to determine which accesses are granted or denied.</param>
+			[SecurityCritical]
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static AdvApi32.SafeHTOKEN OpenProcessToken ( this IntPtr hProcess, AdvApi32.TokenAccess desiredAccess ) //TokenAccessLevels 
 			{
-				using FileStream SM = FileName.eToFileInfo()!.OpenWrite();
-				SerializableObject.eSerializeBinary(SM);
-				SM.Flush();
-			}
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void eSerializeBinary(this object SerializableObject, Stream SM)
-			{
-				byte[] abData = SerializableObject.eSerializeBinary();
-				SM.Write(abData, 0, abData.Length);
-			}
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] eSerializeBinary(this object SerializableObject)
-			{
-				using MemoryStream ms = new();
-#pragma warning disable SYSLIB0011 // Type or member is obsolete
-				(new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter()).Serialize(ms, SerializableObject);
-#pragma warning restore SYSLIB0011 // Type or member is obsolete
-				return ms.eReadAllBytes();
-			}
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T? eDeSerializeBinary<T>(this Stream SM, T? defaultValue = default, bool ThrowExceptionOnError = false)
-			{
-				try
-				{
-#pragma warning disable SYSLIB0011 // Type or member is obsolete
-					return (T)(new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter()).Deserialize(SM);
-#pragma warning restore SYSLIB0011 // Type or member is obsolete					
-				}
-				catch
-				{
-					if (ThrowExceptionOnError)
-					{
-						throw;
-					}
-
-					return defaultValue;
-				}
+				AdvApi32.OpenProcessToken (hProcess, desiredAccess, out var processToken)
+					.ThrowLastWin32ErrorIfFailed ();
+				return processToken;
 			}
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T? eDeSerializeBinary<T>(this byte[] SerializedData, T? defaultValue = default, bool ThrowExceptionOnError = false)
+			/// <summary>Open Token for Current Process</summary>
+			[SecurityCritical]
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static AdvApi32.SafeHTOKEN OpenCurrentProcessToken ( this AdvApi32.TokenAccess desiredAccess )
+				=> Kernel32.GetCurrentProcess ().DangerousGetHandle ().OpenProcessToken (desiredAccess);
+
+
+			/// <summary>Returns privelege name like <c>SeBackupPrivilege</c> or <c>SeAssignPrimaryTokenPrivilege</c> etc...</summary>
+			public static string GetPrivilegeName ( this SystemPrivilege pn )
+				=> $"Se{pn}Privilege";
+
+
+			/// <summary>Gets localized name for privelege (use current OS UI lang)</summary>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static string LookupPrivilegeDisplayName ( this SystemPrivilege pn, out uint LanguageId, string? systemName = null )
 			{
-				using MemoryStream ms = new(SerializedData);
-				return ms.eDeSerializeBinary(defaultValue, ThrowExceptionOnError);
+				//First get the buffer sizes for string
+				uint cchDisplayName = 0;
+				string spn = pn.GetPrivilegeName ();
+
+				AdvApi32.LookupPrivilegeDisplayName (systemName, spn, null, ref cchDisplayName, out _)
+					.ThrowLastWin32ErrorIfFailedUnless (errors.Win32Errors.ERROR_INSUFFICIENT_BUFFER);
+
+				//Get the value to buffer
+				StringBuilder sbDisplayName = new ((int) cchDisplayName + 1);
+				AdvApi32.LookupPrivilegeDisplayName (systemName, spn, sbDisplayName, ref cchDisplayName, out LanguageId)
+					.ThrowLastWin32ErrorIfFailed ();
+
+				return sbDisplayName.ToString ();
+			}
+
+			/// <summary>Gets localized name for privelege (use current OS UI lang)</summary>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static string LookupPrivilegeDisplayName ( this SystemPrivilege pn )
+				=> pn.LookupPrivilegeDisplayName (out _);
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			private static LUID LookupPrivilegeValue ( this string pn, string? systemName = null )
+			{
+				AdvApi32.LookupPrivilegeValue (systemName, pn, out var Luid)
+					.ThrowLastWin32ErrorIfFailed ();
+
+				return Luid;
 			}
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T? eDeSerializeBinary<T>(this FileInfo File, T? defaultValue = default, bool ThrowExceptionOnError = false)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static LUID LookupPrivilegeValue ( this SystemPrivilege pn, string? systemName = null )
+				=> LookupPrivilegeValue (pn.GetPrivilegeName (), systemName);
+
+
+			/// <returns>processToken</returns>
+			[SecurityCritical]
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static AdvApi32.SafeHTOKEN AdjustProcessPrivilege ( this string pn )
 			{
-				using FileStream fs = File.OpenRead();
-				return fs.eDeSerializeBinary(defaultValue, ThrowExceptionOnError);
+				/*
+				AdvApi32.LUID_AND_ATTRIBUTES[] P = new AdvApi32.LUID_AND_ATTRIBUTES[ 1 ];
+				P[ 0 ].Luid = LookupPrivilegeValue (pn);
+				P[ 0 ].Attributes = AdvApi32.PrivilegeAttributes.SE_PRIVILEGE_ENABLED;
+				 */
+
+				AdvApi32.TOKEN_PRIVILEGES tokenPrivileges = new (
+					LookupPrivilegeValue (pn),
+					AdvApi32.PrivilegeAttributes.SE_PRIVILEGE_ENABLED);
+
+				var processToken = OpenCurrentProcessToken (AdvApi32.TokenAccess.TOKEN_QUERY | AdvApi32.TokenAccess.TOKEN_ADJUST_PRIVILEGES);
+				AdvApi32.AdjustTokenPrivileges (
+					processToken.DangerousGetHandle (),
+					false,
+					tokenPrivileges,
+					out _)
+					.ThrowIfFailed ();
+
+				return processToken;
 			}
+
+
+			/// <returns>processToken</returns>
+			[SecurityCritical]
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static AdvApi32.SafeHTOKEN AdjustProcessPrivilege ( this SystemPrivilege pn )
+				=> AdjustProcessPrivilege (pn.GetPrivilegeName ());
+
+
+			[SecurityCritical]
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static void AdjustProcessPrivilegeAndCloseToken ( this SystemPrivilege pn )
+			{
+				using var token = AdjustProcessPrivilege (pn);
+			}
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static string eGetPrivilegeDescriptionValue ( this SystemPrivilege pn )
+				=> pn.eGetDescriptionValue ()!;
+
 
 			#endregion
 
 
-		}
+
+			/// <summary>The WELL_KNOWN_SID_TYPE enumeration type is a list of commonly used security identifiers (SIDs). Programs can pass these values to the CreateWellKnownSid function to create a SID from this list.</summary>
+			internal enum WELL_KNOWN_SID_TYPE
+			{
+				WinNullSid = 0,
+				WinWorldSid = 1,
+				WinLocalSid = 2,
+				WinCreatorOwnerSid = 3,
+				WinCreatorGroupSid = 4,
+				WinCreatorOwnerServerSid = 5,
+				WinCreatorGroupServerSid = 6,
+				WinNtAuthoritySid = 7,
+				WinDialupSid = 8,
+				WinNetworkSid = 9,
+				WinBatchSid = 10,
+				WinInteractiveSid = 11,
+				WinServiceSid = 12,
+				WinAnonymousSid = 13,
+				WinProxySid = 14,
+				WinEnterpriseControllersSid = 15,
+				WinSelfSid = 16,
+				WinAuthenticatedUserSid = 17,
+				WinRestrictedCodeSid = 18,
+				WinTerminalServerSid = 19,
+				WinRemoteLogonIdSid = 20,
+				WinLogonIdsSid = 21,
+				WinLocalSystemSid = 22,
+				WinLocalServiceSid = 23,
+				WinNetworkServiceSid = 24,
+				WinBuiltinDomainSid = 25,
+				WinBuiltinAdministratorsSid = 26,
+				WinBuiltinUsersSid = 27,
+				WinBuiltinGuestsSid = 28,
+				WinBuiltinPowerUsersSid = 29,
+				WinBuiltinAccountOperatorsSid = 30,
+				WinBuiltinSystemOperatorsSid = 31,
+				WinBuiltinPrintOperatorsSid = 32,
+				WinBuiltinBackupOperatorsSid = 33,
+				WinBuiltinReplicatorSid = 34,
+				WinBuiltinPreWindows2000CompatibleAccessSid = 35,
+				WinBuiltinRemoteDesktopUsersSid = 36,
+				WinBuiltinNetworkConfigurationOperatorsSid = 37,
+				WinAccountAdministratorSid = 38,
+				WinAccountGuestSid = 39,
+				WinAccountKrbtgtSid = 40,
+				WinAccountDomainAdminsSid = 41,
+				WinAccountDomainUsersSid = 42,
+				WinAccountDomainGuestsSid = 43,
+				WinAccountComputersSid = 44,
+				WinAccountControllersSid = 45,
+				WinAccountCertAdminsSid = 46,
+				WinAccountSchemaAdminsSid = 47,
+				WinAccountEnterpriseAdminsSid = 48,
+				WinAccountPolicyAdminsSid = 49,
+				WinAccountRasAndIasServersSid = 50,
+				WinNTLMAuthenticationSid = 51,
+				WinDigestAuthenticationSid = 52,
+				WinSChannelAuthenticationSid = 53,
+				WinThisOrganizationSid = 54,
+				WinOtherOrganizationSid = 55,
+				WinBuiltinIncomingForestTrustBuildersSid = 56,
+				WinBuiltinPerfMonitoringUsersSid = 57,
+				WinBuiltinPerfLoggingUsersSid = 58,
+				WinBuiltinAuthorizationAccessSid = 59,
+				WinBuiltinTerminalServerLicenseServersSid = 60,
+				WinBuiltinDCOMUsersSid = 61,
+				WinBuiltinIUsersSid = 62,
+				WinIUserSid = 63,
+				WinBuiltinCryptoOperatorsSid = 64,
+				WinUntrustedLabelSid = 65,
+				WinLowLabelSid = 66,
+				WinMediumLabelSid = 67,
+				WinHighLabelSid = 68,
+				WinSystemLabelSid = 69,
+				WinWriteRestrictedCodeSid = 70,
+				WinCreatorOwnerRightsSid = 71,
+				WinCacheablePrincipalsGroupSid = 72,
+				WinNonCacheablePrincipalsGroupSid = 73,
+				WinEnterpriseReadonlyControllersSid = 74,
+				WinAccountReadonlyControllersSid = 75,
+				WinBuiltinEventLogReadersGroup = 76,
+				WinNewEnterpriseReadonlyControllersSid = 77,
+				WinBuiltinCertSvcDComAccessGroup = 78
+			}
 
 
-		internal static partial class Extensions_Security_Win
-		{
+
+
+			/// <summary>The structure represents a security identifier (SID) and its attributes.
+			/// SIDs are used to uniquely identify users or groups.</summary>
+			[StructLayout (LayoutKind.Sequential)]
+			internal partial struct SID_AND_ATTRIBUTES
+			{
+				public IntPtr Sid;
+				public int Attributes;
+			}
+
+
+			/// <summary>The structure indicates whether a token has elevated privileges.</summary>
+			[StructLayout (LayoutKind.Sequential)]
+			internal partial struct TOKEN_ELEVATION
+			{
+				public int TokenIsElevated;
+			}
+
+
+
+
+
+			/// <summary>The DuplicateToken function creates an impersonation token, 
+			/// which you can use in functions such as SetThreadToken and ImpersonateLoggedOnUser. 
+			/// The token created by DuplicateToken cannot be used in the CreateProcessAsUser function, which requires a primary token. 
+			/// To create a token that you can pass to CreateProcessAsUser, use the DuplicateTokenEx function.</summary>
+			/// <param name="ExistingTokenHandle">A handle to an access token opened with TOKEN_DUPLICATE access.</param>
+			/// <param name="ImpersonationLevel">Specifies a SECURITY_IMPERSONATION_LEVEL enumerated type that supplies the impersonation level of the new token.</param>
+			internal static AdvApi32.SafeHTOKEN DuplicateToken ( this HTOKEN existingToken, AdvApi32.SECURITY_IMPERSONATION_LEVEL level )
+			{
+				AdvApi32.DuplicateToken (existingToken, level, out var hToken2)
+					.ThrowLastWin32ErrorIfFailed ();
+
+				return hToken2;
+			}
+
+
+			/// <summary>Determine token type: limited, elevated, or default. </summary>
+			internal static AdvApi32.TOKEN_ELEVATION_TYPE GetTokenInformation_Elevation ( this HTOKEN hToken )
+				=> (AdvApi32.TOKEN_ELEVATION_TYPE) AdvApi32.GetTokenInformation<Int32> (hToken, AdvApi32.TOKEN_INFORMATION_CLASS.TokenElevationType);
+
+
+
+
+
 
 
 			/// <summary>User name without domain</summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string eGetShortName(this WindowsIdentity U) => U.User?.LookupAccount().User!;
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static string eGetShortName ( this WindowsIdentity U ) => U.User?.LookupAccount ().User!;
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string eGetPrivilegeDescriptionValue(this WinAPI.security.PRIVELEGE_NAMES P)
-				=> P.eGetDescriptionValue()!;
+
 
 
 #if !UWP
 
 #pragma warning disable SYSLIB0003 // Type or member is obsolete
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void DemandFileIOPermission(this string sFullPath, FileIOPermissionAccess eAccess = FileIOPermissionAccess.Read)
-				=> (new FileIOPermission(eAccess, sFullPath))
-				.Demand();  // Запрос на доступ к файлу
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void DemandFileIOPermission ( this string path, FileIOPermissionAccess eAccess = FileIOPermissionAccess.Read )
+				=> ( new FileIOPermission (eAccess, path) ).Demand ();  // Запрос на доступ к файлу
 #pragma warning restore SYSLIB0003 // Type or member is obsolete
 
 #endif
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static SecurityIdentifier eToSID(this string SIDString) => new(SIDString);
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static SecurityIdentifier eToSID ( this string SIDString )
+				=> new (SIDString);
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static SecurityIdentifier eToSID(this NTAccount AC) => (SecurityIdentifier)AC.Translate(typeof(SecurityIdentifier));
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static SecurityIdentifier eToSID ( this NTAccount AC )
+				=> (SecurityIdentifier) AC.Translate (typeof (SecurityIdentifier));
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static SecurityIdentifier eToSID(this IdentityReference IR) => (SecurityIdentifier)IR.Translate(typeof(SecurityIdentifier));
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static SecurityIdentifier eToSID ( this IdentityReference IR )
+				=> (SecurityIdentifier) IR.Translate (typeof (SecurityIdentifier));
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static NTAccount eToNTAccount(this IdentityReference IR) => (NTAccount)IR.Translate(typeof(NTAccount));
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static NTAccount eToNTAccount ( this IdentityReference IR )
+				=> (NTAccount) IR.Translate (typeof (NTAccount));
 
 
 
 			/// <summary>The SecurityReference object's Translate method does work on non-local SIDs but only for domain accounts.
 			/// For accounts local To another machine Or In a non-domain setup you would need To PInvoke the Function LookupAccountSid specifying the specific machine name On which the look up needs To be performed.
 			/// </summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static NTAccount eToNTAccount(this SecurityIdentifier SID) => (NTAccount)SID.Translate(typeof(NTAccount));
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static NTAccount eToNTAccount ( this SecurityIdentifier SID )
+				=> (NTAccount) SID.Translate (typeof (NTAccount));
 
 
 			internal enum SID_NAME_USE : int
@@ -2785,55 +2853,54 @@ namespace uom
 				SidTypeUnknown,
 				SidTypeComputer
 			}
-			/// <summary>LookupAccountSid принимает в качестве входных данных идентификатор безопасности (SID). 
-			/// Он извлекает имя учетной записи для этого SID и имя первого домена, в котором этот SID найден.
-			/// </summary>
-			[DllImport(WinAPI.core.WINDLL_ADVAPI32, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			private static extern bool LookupAccountSid(
-			  [In, Optional] string? systemName,
-			  [In, MarshalAs(UnmanagedType.LPArray)] byte[] psid,
-			  [In, Out, Optional] StringBuilder? accountName,
-			  [In, Out] ref int cbAccount,
-			  [In, Out, Optional] StringBuilder? domainName,
-			  [In, Out] ref int cbDomainName,
-			  [In, Out] ref SID_NAME_USE use);
 
 
-			/// <summary>
-			/// Функция LookupAccountSid принимает в качестве входных данных идентификатор безопасности (SID). 
-			/// Он извлекает имя учетной записи для этого SID и имя первого домена, в котором этот SID найден.
-			/// </summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static (string User, string Domain, NTAccount FQDN) LookupAccount(this SecurityIdentifier sid, string? systemName = null)
+			/// <summary>Retrieves the account name for SID and the name of the first domain in which this SID is found.</summary>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static (string User, string Domain, NTAccount FQDN) LookupAccount ( this SecurityIdentifier sid, string? systemName = null )
 			{
-				var eUse = SID_NAME_USE.SidTypeAlias;
-				var abSID = new byte[sid.BinaryLength];
-				sid.GetBinaryForm(abSID, 0);
+				var abSID = new byte[ sid.BinaryLength ];
+				sid.GetBinaryForm (abSID, 0);
 
 				// First call, populate l_UserNameLength and l_DomainLength
-				int iUserNameLength = 0;
-				int iDomainLength = 0;
-				var bResult = LookupAccountSid(systemName, abSID, null, ref iUserNameLength, null, ref iDomainLength, ref eUse);
-				if (!bResult)
-				{
-					WinAPI.errors.ThrowLastWin23ErrorAssert(WinAPI.errors.Win32Errors.ERROR_INSUFFICIENT_BUFFER);
-				}
+				int userNameLength = 0, domainLength = 0;
+
+				AdvApi32.LookupAccountSid (
+					systemName,
+					abSID,
+					null,
+					ref userNameLength,
+					null,
+					ref domainLength,
+					out _)
+					.ThrowLastWin32ErrorIfFailedUnless (WinAPI.errors.Win32Errors.ERROR_INSUFFICIENT_BUFFER);
 
 				// Allocate space
-				StringBuilder cbUser = new(iUserNameLength + 1);  // Need space for terminating chr(0)?
-				StringBuilder cbDomain = new(iDomainLength + 1);
-				LookupAccountSid(systemName, abSID, cbUser, ref iUserNameLength, cbDomain, ref iDomainLength, ref eUse).eThrowLastWin32Exception_AssertFalse("LookupAccountSid");
-				var nta = new NTAccount(cbUser.ToString(), cbDomain.ToString());
-				return (cbUser.ToString(), cbDomain.ToString(), nta);
+				StringBuilder cbUser = new (userNameLength + 1);  // Need space for terminating chr(0)?
+				StringBuilder cbDomain = new (domainLength + 1);
+
+				AdvApi32.LookupAccountSid (
+					systemName,
+					abSID,
+					cbUser,
+					ref userNameLength,
+					cbDomain,
+					ref domainLength,
+					out _)
+					.ThrowLastWin32ErrorIfFailed ();
+
+				string user = cbUser.ToString (), domain = cbDomain.ToString ();
+				var nta = new NTAccount (user, domain);
+				return (user, domain, nta);
 			}
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static SecurityIdentifier eUserNameToSID(this string UserName)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static SecurityIdentifier eUserNameToSID ( this string user )
 			{
 				// The easy way, with .NET 2.0 and up, is this:
-				var rNTAcc = new NTAccount(UserName);
-				return rNTAcc.eToSID();
+				var rNTAcc = new NTAccount (user);
+				return rNTAcc.eToSID ();
 
 
 				// The hard way, which works when that won't, and works on .NET 1.1 also:
@@ -2889,161 +2956,614 @@ namespace uom
 			}
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static void eAdjustProcessPrivilegeAndCloseToken(this WinAPI.security.PRIVELEGE_NAMES p)
-				=> uom.WinAPI.security.AdjustProcessPrivilegeAndCloseToken(p);
+		}
+
+
+
+
+		internal static partial class Extensions_WinAPI_IO
+		{
+
+			public static DateTime eToDateTime ( this SYSTEMTIME st, bool Localize = false )
+			{
+				if (Localize)
+				{
+					// Convert to FILETIME, localize, then convert back to SYSTEMTIME.
+					_ = Kernel32.SystemTimeToFileTime (st, out var ft);
+					_ = Kernel32.FileTimeToLocalFileTime (ft, out ft);
+					_ = Kernel32.FileTimeToSystemTime (ft, out st);
+					return new DateTime (st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+				}
+
+				return new DateTime (st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+			}
+
+
+			internal static Kernel32.BY_HANDLE_FILE_INFORMATION GetFileInformationByHandle ( this IntPtr hFile )
+			{
+
+				var ss = Kernel32.GetFileAttributes ("asdf");
+
+
+
+				Kernel32.GetFileInformationByHandle (hFile, out var bhfi)
+					.ThrowLastWin32ErrorIfFailed ();
+				return bhfi;
+			}
+
+
+
+
+
+
+
+
+
+			[Obsolete ("Устаревший класс! использовать надо многопоточный поисковик многоплатформенный", true)]
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static FileInfo[] eSearchFile (
+				this DirectoryInfo Dir,
+				string SearchPattern,
+				bool OnlyForFirstFile = true,
+				bool SkipNTFSJunctions = true,
+				Action<Exception>? ErrorHandler = null )
+			{
+				var leFound = new List<FileInfo> ();
+				try // Поиск в текущей папке
+				{
+					var aFoundFiles = Dir.GetFiles (SearchPattern, SearchOption.TopDirectoryOnly);
+					if (aFoundFiles.Any ())
+					{
+						lock (leFound)
+						{
+							if (OnlyForFirstFile)
+							{
+								leFound.Add (aFoundFiles.First ());
+								return [ .. leFound ];
+							}
+
+							leFound.AddRange (aFoundFiles);
+						}
+					}
+				}
+				catch (Exception ex)
+				{ ErrorHandler?.Invoke (ex); }
+
+
+
+				// Поиск в подкаталогах
+				try
+				{
+					var aSubDirs = Dir.GetDirectories ();
+					var aFoundFiles = aSubDirs.eSearchFile (SearchPattern, OnlyForFirstFile, SkipNTFSJunctions, ErrorHandler);
+					if (aFoundFiles.Any ())
+					{
+						lock (leFound)
+						{
+							if (OnlyForFirstFile)
+							{
+								leFound.Add (aFoundFiles.First ());
+								return leFound.ToArray ();
+							}
+
+							leFound.AddRange (aFoundFiles);
+						}
+					}
+				}
+				catch (Exception ex)
+				{ ErrorHandler?.Invoke (ex); }
+
+				return leFound.ToArray ();
+			}
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void eOpenExplorer ( this FileSystemInfo FI, uom.AppTools.WindowsExplorerPathModes PathMode = uom.AppTools.C_DEFAULT_EXPLORER_MODE )
+				=> FI.FullName.eOpenExplorer (PathMode);
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void eOpenExplorer ( this string sPath, uom.AppTools.WindowsExplorerPathModes PathMode = uom.AppTools.C_DEFAULT_EXPLORER_MODE )
+				=> uom.AppTools.StartWinSysTool_Explorer (sPath, PathMode);
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void eOpenURLInBrowser ( this string uri )
+			{
+				ProcessStartInfo psi = new ()
+				{
+					UseShellExecute = true,
+					FileName = uri
+				};
+				Process.Start (psi);
+			}
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static (string? Description, FileVersionInfo? Version) eGetFileTitle (
+				this FileInfo fi,
+				string? DefaultTitle = null )
+			{
+				DefaultTitle ??= fi.FullName;
+
+				if (!fi.Exists) return (DefaultTitle, null);
+
+				string sTitle = fi.Name;
+				FileVersionInfo? Ver = FileVersionInfo.GetVersionInfo (fi.FullName);
+				if (!string.IsNullOrWhiteSpace (Ver?.FileDescription))
+					sTitle = Ver!.FileDescription!;
+
+				return (sTitle, Ver);
+			}
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static DirectoryInfo eToDirectoryInfoOrDefaultDir ( this string dir, Environment.SpecialFolder defaultDir = Environment.SpecialFolder.DesktopDirectory )
+			{
+				if (dir.IsNullOrWhiteSpace () || !Directory.Exists (dir))
+				{
+					dir = Environment.GetFolderPath (defaultDir);
+				}
+
+				return new (dir.Trim ());
+			}
+
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static FileAttributes eToNETFileAttributes ( this FileFlagsAndAttributes winFileAttrs )
+				=> (FileAttributes) winFileAttrs;
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static Kernel32.FileAccess ToNative ( this FileAccess access )
+			{
+				Kernel32.FileAccess result = 0;
+				if (access.HasFlag (FileAccess.Read)) result |= Kernel32.FileAccess.GENERIC_READ;
+				if (access.HasFlag (FileAccess.Write)) result |= Kernel32.FileAccess.GENERIC_WRITE;
+				return result;
+			}
+
+
+
+			[Obsolete ("Use new multithread scanner", true)]
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static FileInfo[] eSearchFile (
+				this DirectoryInfo[] aDirs,
+				string SearchPattern,
+				bool OnlyForFirstFile = true,
+				bool SkipNTFSJunctions = true,
+				Action<Exception>? ErrorHandler = null )
+			{
+				throw new NotImplementedException ();
+
+
+				//var leFound = new List<FileInfo>();
+				//foreach (var rDir in aDirs)
+				//{
+				//    if (SkipNTFSJunctions && rDir.FullName.eIsNTFS_SymLink_Win32())
+				//    {
+				//        // Skip
+				//    }
+				//    else
+				//    {
+				//        var aFoundFiles = rDir.eSearchFile(SearchPattern, OnlyForFirstFile, SkipNTFSJunctions, ErrorHandler);
+				//        if (aFoundFiles.Any())
+				//        {
+				//            lock (leFound)
+				//            {
+				//                if (OnlyForFirstFile)
+				//                {
+				//                    leFound.Add(aFoundFiles.First());
+				//                    return leFound.ToArray();
+				//                }
+
+				//                leFound.AddRange(aFoundFiles);
+				//            }
+				//        }
+				//    }
+				//}
+
+				//return leFound.ToArray();
+			}
+
+
+			/// <summary>WinAPI FILE_ATTRIBUTE_REPARSE_POINT</summary>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static bool eIsNTFS_SymLink_WinAPI ( this string sPath )
+				=> Kernel32.GetFileAttributes (sPath).HasFlag (FileFlagsAndAttributes.FILE_ATTRIBUTE_REPARSE_POINT);
+
+
+			/// <summary>Получаем из реестра описание типа файла по расширению</summary>
+			/// <param name="FileExt">Расширение файла, например '.exe'</param>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static string eGetFileTypeDescription ( this string FileExt )
+			{
+
+				throw new NotImplementedException ();
+
+
+				//    const string CS_FRIENDLY_TYPE_NAME = "FriendlyTypeName";
+				//    string sResult = null;
+				//    bool bEmptyExt = FileExt.IsNullOrWhiteSpace();
+
+				//    if (!bEmptyExt)
+				//    {
+				//        FileExt = FileExt.ToLower().Trim();
+				//        var keyRoot = Registry.ClassesRoot;
+				//        try
+				//        {
+				//            using (var keyFileExt = keyRoot.OpenSubKey(FileExt, RegistryKeyPermissionCheck.ReadSubTree))
+				//            {
+				//                if (keyFileExt != null)
+				//                {
+				//                    string sTypeKeyName = constants.ToString(keyFileExt.GetValue(null, null));
+				//                    if (sTypeKeyName.IsNotNullOrWhiteSpace())
+				//                    {
+				//                        using (var keyFileType = keyRoot.OpenSubKey(sTypeKeyName, false))
+				//                        {
+				//                            if (keyFileType != null)
+				//                            {
+				//                                string sTypeDescription = null;
+				//                                var aValueNames = keyFileType.GetValueNames().ToArray();
+				//                                bool bHasFriendlyTypeName = (from sValName in aValueNames
+				//                                                             where (sValName.ToLower() ?? "") == (CS_FRIENDLY_TYPE_NAME.ToLower() ?? "")
+				//                                                             select sValName).Any();
+				//                                if (bHasFriendlyTypeName)
+				//                                {
+				//                                    string sFriendlyTypeName = constants.ToString(keyFileType.GetValue(CS_FRIENDLY_TYPE_NAME, null));
+				//                                    if (sFriendlyTypeName.IsNotNullOrWhiteSpace())
+				//                                    {
+				//                                        if (UOM.Win32.Resources.mResourcesAPI.HasResourceStringPrefix(sFriendlyTypeName))
+				//                                            sFriendlyTypeName = UOM.Win32.Resources.mResourcesAPI.ExtractResourceString(sFriendlyTypeName);
+				//                                        sTypeDescription = sFriendlyTypeName;
+				//                                    }
+				//                                }
+
+				//                                if (sTypeDescription.IsNullOrWhiteSpace())
+				//                                    sTypeDescription = constants.ToString(keyFileType.GetValue(null, null));
+				//                                if (sTypeDescription.IsNotNullOrWhiteSpace())
+				//                                    sResult = sTypeDescription;
+				//                            }
+				//                        }
+				//                    }
+				//                }
+				//            }
+				//        }
+				//        catch (Exception ex)
+				//        {
+				//            // 
+				//        }
+				//    }
+
+				//    return sResult;
+			}
+
+
+
+			/// <summary>
+			/// Convert local file path to full remote path: 'C:\Windows\explorer.exe' => '\\x.x.x.x\c$\Windows\explorer.exe'
+			/// If 'local' path is like \\x.x.x.x\apps\var\any.exe, the path does not changes
+			/// </summary>
+			public static FileInfo eRemoteHostLocalPathToNetworkPath ( this string localPath, string remoteHost )
+			{
+				try
+				{
+					FileInfo fiApp = new (localPath);   //'C:\Windows\explorer.exe' or '\\x.x.x.x\apps\var\app.exe'
+					DirectoryInfo diRemote = fiApp.Directory!;  //'C:\Windows' or '\\x.x.x.x\apps'
+					string root = diRemote.Root.FullName;      //'C:\' or '\\x.x.x.x\apps'
+					if (!( root.Length == 3 && root.EndsWith (@":\") ))
+					{
+						return new (localPath);
+					}
+
+					char cDisk = root.First ();
+					string dirPath = fiApp.Directory!.FullName.Substring (3);       //'Windows'
+					dirPath = remoteHost.eCreateWinSharePrefix () + @$"{cDisk}$\{dirPath}"; //'c$\Windows'
+					string fullRemoteFilePath = Path.Combine (dirPath, fiApp.Name);          //'c$\Windows\explorer.exe'
+					return new (fullRemoteFilePath);
+				}
+				catch
+				{
+					return new (localPath);
+				}
+			}
+
+#if NET6_0_OR_GREATER
+			/// <summary>
+			/// Convert full remote path to remote host local file path: '\\x.x.x.x\c$\Windows\explorer.exe' => 'C:\Windows\explorer.exe'
+			/// If remote path is like \\x.x.x.x\apps\var\any.exe, the path does not changes!
+			/// If remote path host name or IP does not equal to 'remoteHost' arg, the path does not changes!
+			/// </summary>
+			public static FileInfo eNetworkPathToRemoteHostLocalPath ( this string remotePath, string remoteHost )
+			{
+				string netPrefix = remoteHost.eCreateWinSharePrefix (); //'\\x.x.x.x/'
+				if (!remotePath.ToLower ().StartsWith (netPrefix.ToLower ()))
+				{
+					return new FileInfo (remotePath);// another remote host. do not modify path '\\y.y.y.y\aaaa\bbbb....'
+				}
+
+				//Path starts with '\\host\', sample: '\\x.x.x.x\c$\Windows\System32\Defrag.exe'
+				string path = remotePath.Substring (netPrefix.Length);            //'c$\Windows\System32\Defrag.exe' or 'c$\Windows\System32\Eap3Host.exe'
+
+				const string MIN_REMOTE_PATH_TO_PARSE = @"c$\a.b";
+				if (path.Length >= MIN_REMOTE_PATH_TO_PARSE.Length)
+				{
+					string diskPrefix = path.Substring (0, 3); //'c$\'
+					char diskChar = diskPrefix.First ();                             //'c'
+					if (char.IsLetter (diskChar) && diskPrefix.EndsWith (@"$\"))// path like 'c$\', not like 'share1\dir2...'
+					{
+						path = string.Concat ($@"{diskChar}:\", path.AsSpan (diskPrefix.Length));//'c:\Windows\System32\Defrag.exe'
+						return new FileInfo (path);
+					}
+				}
+				return new FileInfo (remotePath);//Dont change path
+			}
+#endif
+
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static bool DeleteFileKernel32 ( this string name )
+			{
+				if (name.IsNullOrWhiteSpace ()) throw new ArgumentNullException (nameof (name));
+				if (!Kernel32.DeleteFile (name))
+				{
+					var WEX = new errors.Win32ExceptionEx ("DeleteFile");
+					WEX.eThrowIfNot (errors.Win32Errors.ERROR_FILE_NOT_FOUND);
+				}
+				return true;
+			}
+
+
+			/// <inheritdoc cref="Kernel32.CreateFile" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static Kernel32.SafeHFILE CreateFileHandleNotDisk ( this
+				string path,
+				Kernel32.FileAccess access,
+				FileShare share,
+				FileMode mode,
+				Vanara.PInvoke.FileFlagsAndAttributes flags,
+				SECURITY_ATTRIBUTES? security = null
+				)
+			{
+				var hFile = Kernel32.CreateFile (path, access, share, security, mode, flags);
+				if (!hFile.IsInvalid && Kernel32.GetFileType (hFile) != Kernel32.FileType.FILE_TYPE_DISK)
+				{
+					hFile.Dispose ();
+					throw new NotSupportedException ();
+				}
+				return hFile;
+			}
+
 
 		}
 
 
-		internal static partial class Extensions_WinAPI_Ptr
+		internal static partial class Extensions_WinAPI_IO_IsolatedStorage
 		{
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool eCloseWin32Handle(this IntPtr H) => !H.eIsValid() || WinAPI.core.CloseHandle(H);
 
+			//List Isolated storages
+			//VS CMD: StoreAdm /LIST
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Microsoft.Win32.SafeHandles.SafeFileHandle eToSafeFileHandle(this IntPtr hFile, bool ownsHandle = true, bool CheckNullHandleAndThrowCreateFileError = true)
+			/// <summary>Method to retrieve all directories, recursively, within a store.</summary>
+			/// <param name="pattern"></param>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static List<string> eGetAllDirectories ( this IsolatedStorageFile storeFile, string pattern = @"*", bool recursive = false )
 			{
-				if (CheckNullHandleAndThrowCreateFileError && !hFile.eIsValid())
+				// Get the root of the search string.
+				string root = Path.GetDirectoryName (pattern) ?? "";
+
+				if (root != "")
 				{
-					"CreateFile".eThrowLastWin32Exception();
+					root += "/";
 				}
 
-				return new SafeFileHandle(hFile, ownsHandle);
-			}
+				// Retrieve directories.
+				List<string> directoryList = new (storeFile.GetDirectoryNames (pattern));
 
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			[DllImport(WinAPI.core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool IsBadCodePtr(this IntPtr lpfn);
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			[DllImport(WinAPI.core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool IsBadReadPtr(this IntPtr Memory, int Size);
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			[DllImport(WinAPI.core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool IsBadStringPtr(this IntPtr LPCTSTR, int Size);
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			[DllImport(WinAPI.core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool IsBadWritePtr(this IntPtr Memory, int Size);
-
-
-
-
-			/// <summary>Reads the string from the memory block.</summary>
-			/// <param name="iLenght">The length of the string to read, in characters.</param>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string? ePtrToString(
-				this IntPtr Ptr,
-				int iLenght = -1,
-				uom.constants.CHAR_MODE stringType = uom.constants.CHAR_MODE.Uni)
-			{
-				if (iLenght == 0 || !Ptr.eIsValid())
+				if (recursive)
 				{
-					return null;
-				}
-
-				string? S = (iLenght < 0)
-					? stringType switch
+					// Retrieve subdirectories of matches.
+					for (int i = 0, max = directoryList.Count ; i < max ; i++)
 					{
-						uom.constants.CHAR_MODE.Auto => Marshal.PtrToStringAuto(Ptr),
-						uom.constants.CHAR_MODE.Uni => Marshal.PtrToStringUni(Ptr),
-						uom.constants.CHAR_MODE.Ansi => Marshal.PtrToStringAnsi(Ptr),
-						_ => throw new ArgumentOutOfRangeException(stringType.ToString())
+						string directory = directoryList[ i ] + @"/";
+						List<string> more = storeFile.eGetAllDirectories (root + directory + @"*");
+
+						// For each subdirectory found, add in the base path.
+						for (int j = 0 ; j < more.Count ; j++)
+						{
+							more[ j ] = directory + more[ j ];
+						}
+
+						// Insert the subdirectories into the list and
+						// update the counter and upper bound.
+						directoryList.InsertRange (i + 1, more);
+						i += more.Count;
+						max += more.Count;
 					}
-					: stringType switch
+				}
+				return directoryList;
+			}
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static List<string> eGetAllFiles ( this IsolatedStorageFile storeFile, string pattern = @"*", bool recursive = false )
+			{
+				// Get the root and file portions of the search string.
+				string fileString = Path.GetFileName (pattern);
+				List<string> fileList = new (storeFile.GetFileNames (pattern));
+
+				if (recursive)
+				{
+					// Loop through the subdirectories, collect matches,
+					// and make separators consistent.
+					foreach (string directory in storeFile.eGetAllDirectories (@"*"))
 					{
-						uom.constants.CHAR_MODE.Auto => Marshal.PtrToStringAuto(Ptr, iLenght),
-						uom.constants.CHAR_MODE.Uni => Marshal.PtrToStringUni(Ptr, iLenght),
-						uom.constants.CHAR_MODE.Ansi => Marshal.PtrToStringAnsi(Ptr, iLenght),
-						_ => throw new ArgumentOutOfRangeException(stringType.ToString())
-					};
-				return S;
+						foreach (string file in storeFile.GetFileNames (directory + @"/" + fileString))
+						{
+							fileList.Add (( directory + @"/" + file ));
+						}
+					}
+				}
+
+				return fileList;
 			}
 
 
+		}
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static uom.WinAPI.memory.WinApiMemory eStructureToMemoryBlock<T>(this T rStructure) where T : struct
+
+		internal static partial class Extensions_WinAPI_Network
+		{
+
+
+			#region eSendARP
+
+
+			/// <inheritdoc cref="IpHlpApi.SendARP" />
+			public static PhysicalAddress SendARP ( this IPAddress ip, IPAddress? sendViaInterface = null )
 			{
-				int iStructSize = Marshal.SizeOf(rStructure);
-				var rMem = new uom.WinAPI.memory.WinApiMemory(iStructSize);
-				rStructure.eStructureToPtr(rMem.DangerousGetHandle()); // Записываем в буфер всю структуру
-				return rMem;
+				if (ip.Equals (IPAddress.None) || ip.Equals (IPAddress.Broadcast) || ip.Equals (IPAddress.Loopback))
+					throw new ArgumentNullException (nameof (ip));
+
+				sendViaInterface ??= IPAddress.Any;
+
+				uint macLen = 6;
+				byte[] abMAC = new byte[ macLen ];
+				IpHlpApi.SendARP (ip.eToUInt32 (), sendViaInterface!.eToUInt32 (), abMAC, ref macLen)
+					.ThrowIfFailed ();
+
+				return new PhysicalAddress (abMAC);
 			}
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static byte[] eStructureToBytes<T>(this T rStructure) where T : struct
-			{ using var rMem = rStructure.eStructureToMemoryBlock(); return rMem.ToBytes(); }
-
-
-
-			/// <summary>Последовательно читаем массив байт в массив одинаковых структур</summary>
-			/// <param name="abData">Исходный массив</param>
-			/// <param name="iCount">Количество структур для чтения</param>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T[] eToStructuresSequentially<T>(this byte[] abData, int iCount, int iOffset = 0) where T : struct
+			/// <inheritdoc cref="IpHlpApi.SendARP" />
+			public static async Task<PhysicalAddress?> SendARPAsync ( this IPAddress ip, IPAddress? sendViaInterface = null, CancellationTokenSource? cancel = null )
 			{
-				// Размер одного элемента структуры
-				int iSize1 = Marshal.SizeOf(typeof(T));
-				// Полный размер всех структур
-				int lTotalSize = iSize1 * iCount;
-				if (iOffset + lTotalSize > abData.Length)
-				{
-					throw new IndexOutOfRangeException("(iOffset + lTotalSize) > abData.Length");
-				}
-
-				// Копируем весь блок памяти в массив
-				var lFound = new List<T>();
-				for (int I = 1, loopTo = iCount ; I <= loopTo ; I++)
-				{
-					var rStruct = abData.eToStructure<T>(iOffset);
-					iOffset += iSize1;
-					lFound.Add(rStruct);
-				}
-
-				return lFound.ToArray();
+				var tskSendARP = Extensions_DebugAndErrors.eTryCatchAsync (() => ip.SendARP (sendViaInterface), cancel: cancel);
+				var r = ( cancel != null )
+					? await tskSendARP.WaitAsync (cancel!.Token)
+					: await tskSendARP.WaitAsync (TimeSpan.FromSeconds (5));
+				return r.Result;
 			}
 
 
-			/// <summary>Считать байты массива в структуру</summary>
-			/// <param name="abData">Исходный массив</param>
-			/// <param name="iOffset">Смещение в массиве, с которого начинаем читать</param>
-			/// <returns></returns>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T eToStructure<T>(this byte[] abData, int iOffset = 0) where T : struct
+			// Пытаемся определить NetBIOS имя хоста
+			public async static Task<(string? HostName, PhysicalAddress? MAC)> eQueryAsync ( this IPAddress IP, CancellationTokenSource? cancel = null )
 			{
-				int iStructLen = Marshal.SizeOf(typeof(T));
-				byte[] abArrayToCast;// = Array.Empty<byte>();
-				if (iOffset == 0 && abData.Length == iStructLen)
+				var tskResolveDNSNAme = Extensions_DebugAndErrors.eTryCatchAsync (() => Dns.GetHostEntry (IP), cancel: cancel);
+				var tskSendARP = Extensions_DebugAndErrors.eTryCatchAsync (() => IP.SendARP (), cancel: cancel);
+				try
 				{
-					// Копируем весь блок памяти в массив
-					abArrayToCast = abData;
-				}
-				else
-				{
-					if (iOffset + iStructLen > abData.Length)
+					if (cancel != null)
 					{
-						throw new IndexOutOfRangeException("Структура выходит за пределы массива, с учётом сдвига!");
+#if NET
+						await Task.WhenAll (tskResolveDNSNAme, tskSendARP).WaitAsync (cancel.Token);
+#else
+						await Task.WhenAll(tskResolveDNSNAme, tskSendARP).eWaitAsync(cancel);
+#endif
+
+						if (cancel.IsCancellationRequested)
+						{
+							return (null, null);
+						}
+					}
+					else
+					{
+						await Task.WhenAll (tskResolveDNSNAme, tskSendARP);
+					}
+				}
+				catch (TaskCanceledException) { return (null, null); }
+				return (tskResolveDNSNAme.Result.Result?.HostName, tskSendARP.Result.Result);
+			}
+
+			#endregion
+
+
+
+			#region InetIsOffline
+
+			internal static bool InetIsOffline () => Url.InetIsOffline (0);
+
+
+			#endregion
+
+
+		}
+
+
+		internal static partial class Extensions_Serialize_Binary
+		{
+
+
+			#region Binary Serialization
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void eSerializeBinary ( this object SerializableObject, string FileName )
+			{
+				using FileStream SM = FileName.eToFileInfo ()!.OpenWrite ();
+				SerializableObject.eSerializeBinary (SM);
+				SM.Flush ();
+			}
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void eSerializeBinary ( this object SerializableObject, Stream SM )
+			{
+				byte[] abData = SerializableObject.eSerializeBinary ();
+				SM.Write (abData, 0, abData.Length);
+			}
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static byte[] eSerializeBinary ( this object SerializableObject )
+			{
+				using MemoryStream ms = new ();
+#pragma warning disable SYSLIB0011 // Type or member is obsolete
+				( new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter () ).Serialize (ms, SerializableObject);
+#pragma warning restore SYSLIB0011 // Type or member is obsolete
+				return ms.eReadAllBytes ();
+			}
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static T? eDeSerializeBinary<T> ( this Stream SM, T? defaultValue = default, bool ThrowExceptionOnError = false )
+			{
+				try
+				{
+#pragma warning disable SYSLIB0011 // Type or member is obsolete
+					return (T) ( new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter () ).Deserialize (SM);
+#pragma warning restore SYSLIB0011 // Type or member is obsolete					
+				}
+				catch
+				{
+					if (ThrowExceptionOnError)
+					{
+						throw;
 					}
 
-					// Копируем часть массива
-					var abTmpBuffer = new byte[iStructLen];
-					Array.Copy(abData, iOffset, abTmpBuffer, 0, iStructLen);
-					abArrayToCast = abTmpBuffer;
+					return defaultValue;
 				}
-
-				using var LMB = new uom.WinAPI.memory.WinApiMemory(abArrayToCast);
-				return LMB.DangerousGetHandle().eToStructure<T>();
 			}
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static T? eDeSerializeBinary<T> ( this byte[] SerializedData, T? defaultValue = default, bool ThrowExceptionOnError = false )
+			{
+				using MemoryStream ms = new (SerializedData);
+				return ms.eDeSerializeBinary (defaultValue, ThrowExceptionOnError);
+			}
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static T? eDeSerializeBinary<T> ( this FileInfo File, T? defaultValue = default, bool ThrowExceptionOnError = false )
+			{
+				using FileStream fs = File.OpenRead ();
+				return fs.eDeSerializeBinary (defaultValue, ThrowExceptionOnError);
+			}
+
+			#endregion
+
 
 		}
 
@@ -3051,112 +3571,547 @@ namespace uom
 		internal static partial class Extensions_WinAPI_Shell
 		{
 
+
+
+
+
+
 			#region StrFormatByteSize
 
 
-			/// <summary>используется Shell API StrFormatByteSize64</summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string eFormatByteSize_Win32(this UInt64 FileLenght)
+			/// <inheritdoc cref="ShlwApi.StrFormatByteSize64A" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static string eFormatByteSize_Win32 ( this UInt64 fileLenght )
 			{
-				StringBuilder SB = new(120);
-				var ptrResult = uom.WinAPI.shell.StrFormatByteSize64(FileLenght, SB, (uint)SB.Capacity);
-				if (!ptrResult.eIsValid())
-				{
-					WinAPI.errors.ThrowLastWin23Error("StrFormatByteSize64");
-				}
+				StringBuilder sb = new (120);
+				_ = ShlwApi.StrFormatByteSize64A ((Int64) fileLenght, sb, (uint) sb.Capacity);
 
-				return SB.ToString();
+				string s = sb.ToString ();
+				s.IsNullOrWhiteSpace ().ThrowLastWin32ErrorIfTrue (true, "ShlwApi.StrFormatByteSize64A");
+				return s;
 			}
 
 			/// <inheritdoc cref="eFormatByteSize_Win32" />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string eFormatByteSize_Win32(this Int64 FileLenght) => ((UInt64)FileLenght).eFormatByteSize_Win32();
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static string eFormatByteSize_Win32 ( this Int64 FileLenght ) => ( (UInt64) FileLenght ).eFormatByteSize_Win32 ();
 
 			/// <inheritdoc cref="eFormatByteSize_Win32" />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string eFormatByteSize_Win32(this Int32 iFileLenght) => ((UInt64)iFileLenght).eFormatByteSize_Win32();
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static string eFormatByteSize_Win32 ( this Int32 iFileLenght ) => ( (UInt64) iFileLenght ).eFormatByteSize_Win32 ();
 
 			/// <inheritdoc cref="eFormatByteSize_Win32" />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string eFormatByteSize_Win32(this UInt32 iFileLenght) => ((UInt64)iFileLenght).eFormatByteSize_Win32();
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static string eFormatByteSize_Win32 ( this UInt32 iFileLenght ) => ( (UInt64) iFileLenght ).eFormatByteSize_Win32 ();
 
 			/// <inheritdoc cref="eFormatByteSize_Win32" />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string eFormatByteSize_Win32(this FileInfo FI) => FI.Length.eFormatByteSize_Win32();
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static string eFormatByteSize_Win32 ( this FileInfo FI ) => FI.Length.eFormatByteSize_Win32 ();
 
 
 
 
-			/// <summary>используется Shell API StrFormatByteSizeEx 
-			/// to be running on at least Vista SP1 or Server 2008</summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string eFormatByteSize_Win32Ex(this UInt64 FileLenght, WinAPI.shell.SFBS_FLAGS flags = WinAPI.shell.SFBS_FLAGS.SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS)
+			/// <inheritdoc cref="ShlwApi.StrFormatByteSizeEx" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static string eFormatByteSize_Win32Ex ( this UInt64 FileLenght, ShlwApi.SFBS_FLAGS flags = ShlwApi.SFBS_FLAGS.SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS )
 			{
-				StringBuilder SB = new(120);
-				var ptrResult = uom.WinAPI.shell.StrFormatByteSizeEx(FileLenght, flags, SB, (uint)SB.Capacity);
-				//if (!ptrResult.eIsValid()) WinAPI.errors.ThrowLastWin23Error($"StrFormatByteSizeEx ({FileLenght})");
-				string s = SB.ToString();
-				if (s.eIsNullOrWhiteSpace())
-				{
-					WinAPI.errors.ThrowLastWin23Error($"StrFormatByteSizeEx ({FileLenght})");
-				}
-
+				StringBuilder sb = new (120);
+				_ = ShlwApi.StrFormatByteSizeEx (FileLenght, flags, sb, (uint) sb.Capacity);
+				string s = sb.ToString ();
+				s.IsNullOrWhiteSpace ().ThrowLastWin32ErrorIfTrue (true, "StrFormatByteSizeEx");
 				return s;
 			}
 
 			/// <inheritdoc cref="eFormatByteSize_Win32Ex" />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string eFormatByteSize_Win32Ex(this Int64 FileLenght, WinAPI.shell.SFBS_FLAGS flags = WinAPI.shell.SFBS_FLAGS.SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS)
-				=> ((UInt64)FileLenght).eFormatByteSize_Win32Ex(flags);
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static string eFormatByteSize_Win32Ex ( this Int64 FileLenght, ShlwApi.SFBS_FLAGS flags = ShlwApi.SFBS_FLAGS.SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS )
+				=> ( (UInt64) FileLenght ).eFormatByteSize_Win32Ex (flags);
 
 			/// <inheritdoc cref="eFormatByteSize_Win32Ex" />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string eFormatByteSize_Win32Ex(this Int32 iFileLenght, WinAPI.shell.SFBS_FLAGS flags = WinAPI.shell.SFBS_FLAGS.SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS)
-				=> ((UInt64)iFileLenght).eFormatByteSize_Win32Ex(flags);
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static string eFormatByteSize_Win32Ex ( this Int32 iFileLenght, ShlwApi.SFBS_FLAGS flags = ShlwApi.SFBS_FLAGS.SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS )
+				=> ( (UInt64) iFileLenght ).eFormatByteSize_Win32Ex (flags);
 
 			/// <inheritdoc cref="eFormatByteSize_Win32Ex" />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string eFormatByteSize_Win32Ex(this UInt32 iFileLenght, WinAPI.shell.SFBS_FLAGS flags = WinAPI.shell.SFBS_FLAGS.SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS)
-				=> ((UInt64)iFileLenght).eFormatByteSize_Win32Ex(flags);
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static string eFormatByteSize_Win32Ex ( this UInt32 iFileLenght, ShlwApi.SFBS_FLAGS flags = ShlwApi.SFBS_FLAGS.SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS )
+				=> ( (UInt64) iFileLenght ).eFormatByteSize_Win32Ex (flags);
 
 			/// <inheritdoc cref="eFormatByteSize_Win32Ex" />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string eFormatByteSize_Win32Ex(this FileInfo FI, WinAPI.shell.SFBS_FLAGS flags = WinAPI.shell.SFBS_FLAGS.SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS)
-				=> FI.Length.eFormatByteSize_Win32Ex(flags);
-
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static string eFormatByteSize_Win32Ex ( this FileInfo FI, ShlwApi.SFBS_FLAGS flags = ShlwApi.SFBS_FLAGS.SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS )
+				=> FI.Length.eFormatByteSize_Win32Ex (flags);
 
 
 			#endregion
 
 
-			#region ShellTimeString
+
+			// <DllImport(UOM.Win32.WINDLL_SHLWAPI, _
+			// SetLastError:=True, _
+			// CharSet:=CharSet.Auto, _
+			// ExactSpelling:=False, _
+			// CallingConvention:=CallingConvention.Winapi)> _
+			// Private Overloads Shared Function StrFormatKBSize( _
+			// ByVal SizeInBytes As Long, _
+			// <MarshalAs(UnmanagedType.LPTStr)> ByVal Buffer As System.Text.StringBuilder, _
+			// ByVal BufferSize As Integer) As IntPtr
+			// 
+			// End Function 
 
 
-			/// <summary>Использует Shell API StrFromTimeInterval</summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string eToShellTimeString(this uint milliseconds, int Digits = 3)
-				=> uom.WinAPI.shell.StrFromTimeInterval(milliseconds, Digits);
+			#region StrFromTimeInterval
 
 
-			/// <summary>Использует Shell API StrFromTimeInterval</summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string eToShellTimeString(this TimeSpan TS, int Digits = 3)
+			/// <inheritdoc cref="ShlwApi.StrFromTimeInterval " />
+			/// <param name="Digits">
+			/// <code>
+			/// dwTimeMS	digits	pszOut 
+			/// 34000	3	34 sec 
+			/// 34000	2	34 sec 
+			/// 34000	1	30 sec 
+			/// 74000	3	1 min 14 sec 
+			/// 74000	2	1 min 10 sec 
+			/// 74000	1	1 min 
+			/// </code>
+			/// </param>
+			/// <returns></returns>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static string StrFromTimeInterval ( this uint dwTimeMS, int Digits = 3 )
 			{
-				uint ms = (uint)Math.Round(TS.TotalSeconds * 1000d);
-				return ms.eToShellTimeString(Digits);
+				StringBuilder? sb = null;
+#pragma warning disable CS8604 // Possible null reference argument.
+				var buffSize = ShlwApi.StrFromTimeInterval (sb, 0, dwTimeMS, Digits);
+#pragma warning restore CS8604 // Possible null reference argument.
+				if (buffSize > 0)
+				{
+					sb = new (buffSize + 1);
+					buffSize = ShlwApi.StrFromTimeInterval (sb, (uint) sb.Capacity, dwTimeMS, Digits);
+					if (buffSize > 0) return sb.ToString ().Trim ();
+				}
+				return "";
+			}
+
+			/// <inheritdoc cref="StrFromTimeInterval" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static string StrFromTimeInterval ( this TimeSpan TS, int Digits = 3 )
+			{
+				uint ms = (uint) Math.Round (TS.TotalSeconds * 1000d);
+				return ms.StrFromTimeInterval (Digits);
 			}
 
 
-			///// <summary>Использует Shell API StrFromTimeInterval</summary>
-			//[Obsolete("TickTimer64 is obsolete! use System.Diagnostics.Stopwatch !")]
-			//[ MethodImpl(MethodImplOptions.AggressiveInlining)]
-			//public static string eToShellTimeString(this UOM.TickTimer64 TT, int Digits = 3)
-			//{
-			//    long lMS = TT.MeasuredMilliseconts;
-			//    int iMilliseconds = (int)lMS;
-			//    return uom.WinAPI.shell.StrFromTimeInterval(iMilliseconds, Digits);
-			//}
 			#endregion
+
+
+			#region SHMessageBoxCheck
+
+			//// Public Enum MessageBoxCheckFlags As UInteger
+			//// MB_OK = 0x0
+			//// MB_OKCANCEL = 0x1
+			//// MB_YESNO = 0x4
+			//// MB_ICONHAND = 0x10
+			//// MB_ICONQUESTION = 0x20
+			//// MB_ICONEXCLAMATION = 0x30
+			//// MB_ICONINFORMATION = 0x40
+			//// End Enum
+
+			//[DllImport("shlwapi.dll", CharSet = CharSet.Auto)]
+			//// The SHMessageBoxCheck Is exported by ordinal in shlwapi.dll
+			//// SHMessageBoxCheckA: 185 
+			//// SHMessageBoxCheckW: 191
+
+			//// The Windows Shell (Explorer) stores your preference in the following registry key:
+			//// HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\DontShowMeThisDialogAgain
+			//private static extern MsgBoxResult SHMessageBoxCheck(
+			//    [In] IntPtr hwnd,
+			//    [In,MarshalAs(UnmanagedType.LPTStr)] string pszText,
+			//    [In,MarshalAs(UnmanagedType.LPTStr)] string pszTitle,
+			//    [In] MsgBoxStyle uType,
+			//    [In] MsgBoxResult iDefault,
+			//    [In,MarshalAs(UnmanagedType.LPTStr)] string pszRegVal);
+
+			//private static string BuildMessageID(string MessageID)
+			//{
+			//    if (string.IsNullOrWhiteSpace(MessageID)) throw new ArgumentNullException(nameof(MessageID));
+			//    return Application.ProductName + "_" + MessageID; // This Is the value Of the registry key
+			//}
+
+			/////// <summary>Displays a message box that gives the user the option of suppressing further occurrences. If the user has already opted to suppress the message box, the function does not display a dialog box and instead simply returns the default value.</summary>
+			/////// <param name="MessageID">ID под которым в реестре храниться результат установки галочки "не показывать более"</param>
+			/////// <param name="iDefault">Это значение возвращается в конце функции, если в предыдущем вызове, была установлена галочка.</param>
+			/////// <returns>В текущем вызове ВСЕГДА вернётся код нажатой кнопки (независимо от состояния галочки).
+			/////// Если галочку установили сейчас, то в этом вызове вернётся код нажатой кнопки, а во всех последющих будет возвращаться iDefault и диалог не будет показываться.</returns>
+			////internal static MsgBoxResult SHMessageBoxCheck(
+			//// IWin32Window WND,
+			//// string pszText,
+			//// string MessageID,
+			//// string pszTitle = null,
+			//// MsgBoxStyle.vbYesNo | MsgBoxStyle.Information, MsgBoxResult iDefault = MsgBoxResult.Abort)
+			////{
+			//// IntPtr hwnd = WND.Handle;
+			//// if (string.IsNullOrWhiteSpace(pszTitle)) pszTitle = Application.ProductName;
+			//// string sID = BuildMessageID(MessageID); // This Is the value Of the registry key
+			//// return SHMessageBoxCheck(hwnd, pszText, pszTitle, uType, iDefault, sID);
+			////}
+
+			///// <summary>SHMessageBoxCheckCleanup will reset the state of the message box (i.e. the users choice wether or not to see the message box again will be reset).</summary>
+			///// <param name="MessageID">ID под которым в реестре храниться результат установки галочки "не показывать более"</param>
+			//internal static void SHMessageBoxCheckCleanup(string MessageID)
+			//{
+			//    // # delete the registry key that Is used To store the checkbox status so we can start fresh Next time
+			//    // DeleteRegValue HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\DontShowMeThisDialogAgain" "${_PSZ_REG_VAL}"
+			//    const string C_KEY_PATH = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\DontShowMeThisDialogAgain";
+			//    string sID = BuildMessageID(MessageID); // This Is the value Of the registry key
+			//    try
+			//    {
+			//        using (var hKey = Registry.CurrentUser.OpenSubKey(C_KEY_PATH, true))
+			//        {
+			//            if (hKey?.GetValue(sID) != null)
+			//            {
+			//                hKey?.DeleteValue(sID);
+			//                hKey?.Flush();
+			//            }
+			//        }
+			//    }
+			//    catch (Exception ex) { }                    // Ignore Any Errors
+			//}
+
+			#endregion
+
+
+			#region SHFileOperation
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static bool SHFO_Delete (
+				IntPtr hWndOwner,
+				IEnumerable<string> itemsToDelete,
+				string? title = null,
+				bool allowUndo = true,
+				Shell32.FILEOP_FLAGS? flagsModifers = null
+				)
+			{
+
+				Shell32.FILEOP_FLAGS flg = Shell32.FILEOP_FLAGS.FOFX_NOMINIMIZEBOX;
+				if (allowUndo) flg |= Shell32.FILEOP_FLAGS.FOF_ALLOWUNDO;
+				if (flagsModifers.HasValue) flg |= flagsModifers.Value;
+
+				string pathList = itemsToDelete.eToAPIMultiStringZ ();
+
+				//Use RunWithGCPinned to avoid copy array of strings at memory
+				return pathList.RunWithGCPinned (filesToDeletePtr =>
+				{
+					Shell32.SHFILEOPSTRUCT fo = new ()
+					{
+						hwnd = hWndOwner,
+						lpszProgressTitle = title,
+						wFunc = Shell32.ShellFileOperation.FO_DELETE,
+						pFrom = filesToDeletePtr,
+						fFlags = flg
+					};
+					return ( Shell32.SHFileOperation (ref fo) == 0 ) && !fo.fAnyOperationsAborted;
+				});
+			}
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static bool SHFO_Move (
+				IntPtr hWndOwner,
+				IEnumerable<string> sources,
+				IEnumerable<string> targets,
+				string? title = null,
+				bool allowUndo = true,
+				Shell32.FILEOP_FLAGS? flagsModifers = null
+				)
+			{
+
+				Shell32.FILEOP_FLAGS flg = Shell32.FILEOP_FLAGS.FOFX_NOMINIMIZEBOX;
+				if (allowUndo) flg |= Shell32.FILEOP_FLAGS.FOF_ALLOWUNDO;
+				if (flagsModifers.HasValue) flg |= flagsModifers.Value;
+
+				var a = new List<string> { sources.eToAPIMultiStringZ (), targets.eToAPIMultiStringZ () };
+				//Use RunWithGCPinned to avoid copy array of strings at memory
+				return a.RunWithGCPinned (ptrList =>
+				{
+					Shell32.SHFILEOPSTRUCT fo = new ()
+					{
+						hwnd = hWndOwner,
+						lpszProgressTitle = title,
+						wFunc = Shell32.ShellFileOperation.FO_MOVE,
+						fFlags = flg,
+						pFrom = ptrList[ 0 ],
+						pTo = ptrList[ 1 ],
+					};
+					return ( Shell32.SHFileOperation (ref fo) == 0 ) && !fo.fAnyOperationsAborted;
+				});
+			}
+
+
+			/// <summary>Копирование в заданную ОДНУ папку, без перенименования!</summary>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static bool SHFO_Copy (
+				IntPtr hWndOwner,
+				IEnumerable<string> sources,
+				string targetFolder,
+				string? title = null,
+				bool allowUndo = true,
+				Shell32.FILEOP_FLAGS? flagsModifers = null
+				)
+			{
+
+				Shell32.FILEOP_FLAGS flg = Shell32.FILEOP_FLAGS.FOFX_NOMINIMIZEBOX;
+				if (allowUndo) flg |= Shell32.FILEOP_FLAGS.FOF_ALLOWUNDO;
+				if (flagsModifers.HasValue) flg |= flagsModifers.Value;
+
+				var a = new List<string> { sources.eToAPIMultiStringZ (), targetFolder + "\0\0" };
+				//Use RunWithGCPinned to avoid copy array of strings at memory
+				return a.RunWithGCPinned (ptrList =>
+				{
+					Shell32.SHFILEOPSTRUCT fo = new ()
+					{
+						hwnd = hWndOwner,
+						lpszProgressTitle = title,
+						wFunc = Shell32.ShellFileOperation.FO_COPY,
+						fFlags = flg,
+						pFrom = ptrList[ 0 ],
+						pTo = ptrList[ 1 ],
+					};
+					return ( Shell32.SHFileOperation (ref fo) == 0 ) && !fo.fAnyOperationsAborted;
+				});
+			}
+
+
+			/// <summary>Копирование массива исходных файлов с переименованием</summary>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static bool SHFO_Copy (
+				IntPtr HwndOwner,
+				IEnumerable<string> sources,
+				IEnumerable<string> targets,
+				string? title = null,
+				bool allowUndo = true,
+				Shell32.FILEOP_FLAGS? flagsModifers = null
+				)
+			{
+
+				Shell32.FILEOP_FLAGS flg = Shell32.FILEOP_FLAGS.FOF_MULTIDESTFILES | Shell32.FILEOP_FLAGS.FOFX_NOMINIMIZEBOX;
+				if (allowUndo) flg |= Shell32.FILEOP_FLAGS.FOF_ALLOWUNDO;
+				if (flagsModifers.HasValue) flg |= flagsModifers.Value;
+
+				var a = new List<string> { sources.eToAPIMultiStringZ (), targets.eToAPIMultiStringZ () };
+				//Use RunWithGCPinned to avoid copy array of strings at memory
+				return a.RunWithGCPinned (ptrList =>
+				{
+					Shell32.SHFILEOPSTRUCT fo = new ()
+					{
+						hwnd = IntPtr.Zero,// HwndOwner,
+						lpszProgressTitle = title,
+						wFunc = Shell32.ShellFileOperation.FO_COPY,
+						fFlags = flg,
+						pFrom = ptrList[ 0 ],
+						pTo = ptrList[ 1 ],
+					};
+					return ( Shell32.SHFileOperation (ref fo) == 0 ) && !fo.fAnyOperationsAborted;
+				});
+			}
+
+			#endregion
+
+
+
+
+			// Function GetSysImageList(ByVal Flags As E_SHGFI_Flags, Optional ByVal Refresh As bool  = False) As Integer
+			// UPGRADE_WARNING: Couldn't resolve default property of object lHSysImL. Click for more: 'ms-help://MS.VSCC/commoner/redir/redirect.htm?keyword="vbup1037"'
+			// UPGRADE_WARNING: Arrays in structure FI may need to be initialized before they can be used. Click for more: 'ms-help://MS.VSCC/commoner/redir/redirect.htm?keyword="vbup1063"'
+			// Dim FI As Win.SHFILEINFO
+			// If Refresh Or lHSysImL = 0 Then
+			// UPGRADE_ISSUE: COM expression not supported: Module methods of COM objects. Click for more: 'ms-help://MS.VSCC/commoner/redir/redirect.htm?keyword="vbup1060"'
+			// UPGRADE_WARNING: Couldn't resolve default property of object lHSysImL. Click for more: 'ms-help://MS.VSCC/commoner/redir/redirect.htm?keyword="vbup1037"'
+			// lHSysImL = Win.SHGetFileInfo("", 0, FI, Len(FI), E_SHGFI_Flags.SHGFI_SYSICONINDEX Or Flags)
+			// End If
+			// UPGRADE_WARNING: Couldn't resolve default property of object lHSysImL. Click for more: 'ms-help://MS.VSCC/commoner/redir/redirect.htm?keyword="vbup1037"'
+			// GetSysImageList = lHSysImL
+			// End Function
+
+
+
+
+
+			#region Path APIs...
+
+
+			/// <inheritdoc cref="ShlwApi.PathCompactPath" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static string PathCompactPath ( this string path, IntPtr HDC, uint PixelWidth )
+			{
+				var sb = new StringBuilder (path, path.Length + Kernel32.MAX_PATH);
+				ShlwApi.PathCompactPath (HDC, sb, PixelWidth);
+				return sb.ToString ();
+			}
+
+			/// <inheritdoc cref="ShlwApi.PathCompactPathEx" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static string PathCompactPathEx ( this string path, uint NeedCahrCount )
+			{
+				var SB = new StringBuilder ((int) NeedCahrCount * 2);
+				ShlwApi.PathCompactPathEx (SB, path, NeedCahrCount, 0).ThrowLastWin32ErrorIfFailed ();
+				return SB.ToString ();
+			}
+
+
+			/// <inheritdoc cref="ShlwApi.PathFindNextComponent" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static string? PathFindNextComponent ( this string path )
+			{
+				var ptrStr = ShlwApi.PathFindNextComponent (path);
+				return !ptrStr.IsNullOrEmpty
+					? ptrStr.ToString ()
+					: string.Empty;
+			}
+
+
+
+
+			/// <summary>Finds the command line arguments within a given path.
+			/// <code>
+			/// OUTPUT:
+			/// ===========
+			/// The path passed to the function was : test.exe temp.txt sample.doc
+			/// The arg(s)found in path 1 were      : temp.txt sample.doc
+			/// The path passed to the function was : test.exe 1 2 3
+			/// The arg(s)found in path 2 were      : 1 2 3
+			/// The path passed to the function was : test.exe sample All 15
+			/// The arg(s)found in path 3 were      : sample All 15
+			/// The path passed to the function was : test.exe
+			/// The arg(s)found in path 4 were      :
+			/// </code>
+			/// </summary>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static string? PathGetArgs ( this string path )
+			{
+				var ptrStr = ShlwApi.PathGetArgs (path);
+				return !ptrStr.IsNullOrEmpty
+					? ptrStr.ToString ()
+					: string.Empty;
+			}
+
+
+			/// <inheritdoc cref="ShlwApi.PathFileExists" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static bool PathFileExists ( this string path )
+				=> ShlwApi.PathFileExists (path);
+
+
+			/// <inheritdoc cref="ShlwApi.PathIsRelative" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static bool PathIsRelative ( this string path )
+				=> ShlwApi.PathIsRelative (path);
+
+
+			/// <inheritdoc cref="ShlwApi.PathCanonicalize" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static bool PathCanonicalize ( this StringBuilder pathDst, string pathSrc )
+				=> ShlwApi.PathCanonicalize (pathDst, pathSrc);
+
+
+			/// <inheritdoc cref="ShlwApi.PathCommonPrefix" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static int PathCommonPrefix ( string path1, string path2, StringBuilder CommonPath )
+				=> ShlwApi.PathCommonPrefix (path1, path2, CommonPath);
+
+
+			/// <inheritdoc cref="ShlwApi.PathIsFileSpec" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static bool PathIsFileSpec ( string path )
+				=> ShlwApi.PathIsFileSpec (path);
+
+			/// <inheritdoc cref="ShlwApi.PathRemoveFileSpec" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			[Obsolete ("This function is deprecated. We recommend the use of the PathCchRemoveFileSpec function in its place.")]
+			internal static string PathRemoveFile ( this string path )
+			{
+				var sb = path.eToStringBuilder ();
+				ShlwApi.PathRemoveFileSpec (sb).ThrowLastWin32ErrorIfFailed ();
+				return sb.ToString ();
+			}
+
+			// <DllImport(UOM.Win32.WINDLL_SHLWAPI, SetLastError:=True, CharSet:=CharSet.Auto, ExactSpelling:=False, CallingConvention:=CallingConvention.Winapi)>
+			// Friend Function PathCchRemoveFileSpec(<MarshalAs(UnmanagedType.LPTStr)> ByVal pszPath As string,
+			// cchPath As Integer) As IntPtr
+			// End Function
+
+
+
+			/// <inheritdoc cref="ShlwApi.PathIsNetworkPath" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static bool PathIsNetworkPath ( this string path )
+				=> ShlwApi.PathIsNetworkPath (path);
+
+
+			/// <inheritdoc cref="ShlwApi.PathIsSameRoot" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static bool PathIsSameRoot ( this string path1, string path2 )
+				=> ShlwApi.PathIsSameRoot (path1, path2);
+
+
+			/// <inheritdoc cref="ShlwApi.PathIsURL" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static bool PathIsURL ( string path )
+				=> ShlwApi.PathIsURL (path);
+
+
+			/// <inheritdoc cref="ShlwApi.PathIsDirectory" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static bool PathIsDirectory ( this string path )
+				=> ShlwApi.PathIsDirectory (path);
+
+
+			/// <inheritdoc cref="ShlwApi.PathRelativePathTo" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static string GetRelativePathTo ( this string pathFrom, FileFlagsAndAttributes dwAttrFrom, string pathTo, FileFlagsAndAttributes dwAttrTo )
+			{
+				StringBuilder sb = new (Kernel32.MAX_PATH + 100);
+				ShlwApi.PathRelativePathTo (sb, pathFrom, dwAttrFrom, pathTo, dwAttrTo)
+					.ThrowLastWin32ErrorIfFailed ();
+
+				return sb.ToString ();
+			}
+
+
+			#endregion
+
+
+			// <DllImport(UOM.Win32.WINDLL_SHELL, _
+			// SetLastError:=True, _
+			// CharSet:=CharSet.Auto, _
+			// ExactSpelling:=False, _
+			// CallingConvention:=CallingConvention.Winapi)> _
+			// Friend Overloads shared Function SHGetDesktopFolder(ByRef ppshf As UOM.Shell.Interfaces.IShellFolder) As Integer
+			// End Function
+			// Friend Overloads shared Function SHGetDesktopFolder() As UOM.Shell.Interfaces.IShellFolder
+			// Dim SH As UOM.Shell.Interfaces.IShellFolder
+			// Call SHGetDesktopFolder(SH)
+			// Return SH
+			// End Function
+
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static (DialogResult DislogResult, string? IconFile, int IconIndex) PickIconDlg (
+				this IWin32Window hWnd,
+				string? iconFile = null,
+				int iIconIndex = 0 )
+			{
+				const int C_DEFAULT_BUFFER_SIZE = 2000;
+				StringBuilder sbPath = ( null != iconFile )
+					? new StringBuilder (iconFile, C_DEFAULT_BUFFER_SIZE)
+					: new StringBuilder (C_DEFAULT_BUFFER_SIZE);
+
+				if (!Shell32.PickIconDlg (hWnd.Handle, sbPath, (uint) sbPath.Capacity, ref iIconIndex))
+					return (DialogResult.Cancel, null, -1);
+
+				iconFile = Environment.ExpandEnvironmentVariables (sbPath.ToString ());
+				return (DialogResult.OK, iconFile, iIconIndex);
+			}
 
 
 		}
@@ -3165,11 +4120,374 @@ namespace uom
 		internal static partial class Extensions_WinAPI_Windows
 		{
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static WinAPI.windows.WindowMessages eToWindowMessages(this int windowMwssageCode)
-				=> (WinAPI.windows.WindowMessages)windowMwssageCode;
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static User32.WindowMessage eToWindowMessages ( this int windowMwssageCode )
+				=> (User32.WindowMessage) windowMwssageCode;
+
+
+
+
+			/// <summary>
+			/// Used when system uses High DPI modes since Windows 8.1 <see href="https://learn.microsoft.com/en-us/windows/win32/hidpi/high-dpi-desktop-application-development-on-windows"/>
+			/// <br/>
+			/// For this to work correctly on Windows 10 anniversary, you need to add dpiAwareness to app.manifest of your project:
+			/// </summary>
+			/// <returns>
+			/// 1.25 = 125%
+			/// <br/>
+			/// 1.5 = 150%
+			/// </returns>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static float GetHighDPIScaleFactor ( this IntPtr hwnd )
+			{
+				try
+				{
+					return User32.GetDpiForWindow (hwnd) / (float) uom.OS.DEFAULT_SCREEN_DPI;
+				}
+				catch { return 1f; }// Or fallback to GDI solutions above
+			}
+
+			/// <inheritdoc>GetHighDPIScaleFactor </inheritdoc> />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static float GetHighDPIScaleFactor ( this IWin32Window wnd )
+				=> wnd.Handle.GetHighDPIScaleFactor ();
+
+
+
+			#region AppCommand
+
+
+			/// <summary>
+			/// This commands mostly used by remote control apps for send commands from remote control to the system. Like Media players with remote or like the MediaCenter etc.
+			/// https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-appcommand
+			/// https://docs.microsoft.com/en-us/previous-versions/windows/desktop/windows-media-center-sdk/bb417079(v=msdn.10)
+			/// </summary>
+			public enum FAPPCOMMAND_CMD : int
+			{
+				APPCOMMAND_BROWSER_BACKWARD = 1,//Navigate backward.
+				APPCOMMAND_BROWSER_FORWARD = 2,//Navigate forward.
+				APPCOMMAND_BROWSER_REFRESH = 3,//Refresh page.
+				APPCOMMAND_BROWSER_STOP = 4,//Stop download.
+				APPCOMMAND_BROWSER_SEARCH = 5,//Open search.
+				APPCOMMAND_BROWSER_FAVORITES = 6,//Open favorites.
+				APPCOMMAND_BROWSER_HOME = 7,//Navigate home.
+
+				/// <summary>Mute the volume.</summary>
+				APPCOMMAND_VOLUME_MUTE = 8, //APPCOMMAND_VOLUME_MUTE = 0x8_00_00,
+				/// <summary>Lower the volume.</summary>
+				APPCOMMAND_VOLUME_DOWN = 9, //APPCOMMAND_VOLUME_DOWN = 0x9_00_00,
+				/// <summary>Raise the volume.</summary>
+				APPCOMMAND_VOLUME_UP = 10,  //APPCOMMAND_VOLUME_UP = 0xA_00_00,                
+
+
+				APPCOMMAND_MEDIA_NEXTTRACK = 11,//Go to next track.
+				APPCOMMAND_MEDIA_PREVIOUSTRACK = 12,//Go to previous track.
+				APPCOMMAND_MEDIA_STOP = 13,//Stop playback.
+				APPCOMMAND_MEDIA_PLAY_PAUSE = 14,//Play or pause playback.If there are discrete Play and Pause buttons, applications should take action on this command as well as APPCOMMAND_MEDIA_PLAY and APPCOMMAND_MEDIA_PAUSE.
+
+				APPCOMMAND_LAUNCH_MAIL = 15,//Open mail.
+				APPCOMMAND_LAUNCH_MEDIA_SELECT = 16,//Go to Media Select mode.
+				APPCOMMAND_LAUNCH_APP1 = 17,//Start App1.
+				APPCOMMAND_LAUNCH_APP2 = 18,//Start App2.
+
+
+				APPCOMMAND_BASS_DOWN = 19,  //Decrease the bass.
+				APPCOMMAND_BASS_BOOST = 20, //Toggle the bass boost on and off.
+				APPCOMMAND_BASS_UP = 21,    //Increase the bass.
+				APPCOMMAND_TREBLE_DOWN = 22,//Decrease the treble.
+				APPCOMMAND_TREBLE_UP = 23,//Increase the treble.
+
+				APPCOMMAND_MICROPHONE_VOLUME_MUTE = 24,//Mute the microphone.
+				APPCOMMAND_MICROPHONE_VOLUME_DOWN = 25,//Decrease microphone volume.
+				APPCOMMAND_MICROPHONE_VOLUME_UP = 26,//Increase microphone volume.
+
+				APPCOMMAND_HELP = 27,//Open the Help dialog.
+				APPCOMMAND_FIND = 28,//Open the Find dialog.
+				APPCOMMAND_NEW = 29,//Create a new window.
+				APPCOMMAND_OPEN = 30,//Open a window.
+				APPCOMMAND_CLOSE = 31,//Close the window (not the application).
+
+				APPCOMMAND_SAVE = 32,//Save current document.
+				APPCOMMAND_PRINT = 33,//Print current document.
+
+				APPCOMMAND_UNDO = 34,//Undo last action.
+				APPCOMMAND_REDO = 35,//Redo last action.
+				APPCOMMAND_COPY = 36,//Copy the selection.
+				APPCOMMAND_CUT = 37,//Cut the selection.
+				APPCOMMAND_PASTE = 38,//Paste
+
+				APPCOMMAND_REPLY_TO_MAIL = 39,//Reply to a mail message.
+				APPCOMMAND_FORWARD_MAIL = 40,//Forward a mail message.
+				APPCOMMAND_SEND_MAIL = 41,//Send a mail message.
+				APPCOMMAND_SPELL_CHECK = 42,//Initiate a spell check.
+				APPCOMMAND_DICTATE_OR_COMMAND_CONTROL_TOGGLE = 43,//Toggles between two modes of speech input: dictation and command/control(giving commands to an application or accessing menus).
+				APPCOMMAND_MIC_ON_OFF_TOGGLE = 44,//Toggle the microphone.
+				APPCOMMAND_CORRECTION_LIST = 45,//Brings up the correction list when a word is incorrectly identified during speech input.
+
+				APPCOMMAND_MEDIA_PLAY = 46,//Begin playing at the current position.If already paused, it will resume.This is a direct PLAY command that has no state.If there are discrete Play and Pause buttons, applications should take action on this command as well as APPCOMMAND_MEDIA_PLAY_PAUSE.
+				APPCOMMAND_MEDIA_PAUSE = 47,//Pause.If already paused, take no further action.This is a direct PAUSE command that has no state.If there are discrete Play and Pause buttons, applications should take action on this command as well as APPCOMMAND_MEDIA_PLAY_PAUSE.
+				APPCOMMAND_MEDIA_RECORD = 48,//Begin recording the current stream.
+				APPCOMMAND_MEDIA_FAST_FORWARD = 49,//Increase the speed of stream playback. This can be implemented in many ways, for example, using a fixed speed or toggling through a series of increasing speeds.
+				APPCOMMAND_MEDIA_REWIND = 50,//Go backward in a stream at a higher rate of speed.This can be implemented in many ways, for example, using a fixed speed or toggling through a series of increasing speeds.
+				APPCOMMAND_MEDIA_CHANNEL_UP = 51,//Increment the channel value, for example, for a TV or radio tuner.
+				APPCOMMAND_MEDIA_CHANNEL_DOWN = 52,//Decrement the channel value, for example, for a TV or radio tuner.
+
+			}
+
+			//The uDevice component indicates the input device that generated the input event, and can be one of the following values.
+			public enum FAPPCOMMAND_SRC : int
+			{
+				/// <summary>User pressed a key.</summary>
+				FAPPCOMMAND_KEY = 0,
+				/// <summary>User clicked a mouse button.</summary>
+				FAPPCOMMAND_MOUSE = 0x8000,
+				/// <summary>An unidentified hardware source generated the event. It could be a mouse or a keyboard event.</summary>
+				FAPPCOMMAND_OEM = 0x1000,
+			}
+
+			//The dwKeys component indicates whether various virtual keys are down, and can be one or more of the following values.
+			public enum FAPPCOMMAND_VKEY : int
+			{
+				MK_NONE = 0,
+
+				/// <summary>The CTRL key is down.</summary>
+				MK_CONTROL = 0x0008,
+				/// <summary>The left mouse button is down.</summary>
+				MK_LBUTTON = 0x0001,
+				/// <summary>The middle mouse button is down.</summary>
+				MK_MBUTTON = 0x0010,
+				/// <summary>The right mouse button is down.</summary>
+				MK_RBUTTON = 0x0002,
+				/// <summary>The SHIFT key is down.</summary>
+				MK_SHIFT = 0x0004,
+				/// <summary>The first X button is down.</summary>
+				MK_XBUTTON1 = 0x0020,
+				/// <summary>The second X button is down.</summary>
+				MK_XBUTTON2 = 0x0040,
+			}
+
+
+			/// <summary>Send to the system an "app command", it is like pressing volume up / down / mute button or other like this.</summary>
+			public static void SendAppCommand ( this
+				IntPtr hwnd,
+				FAPPCOMMAND_CMD cmd,
+				FAPPCOMMAND_SRC source = FAPPCOMMAND_SRC.FAPPCOMMAND_KEY,
+				FAPPCOMMAND_VKEY vkey = FAPPCOMMAND_VKEY.MK_NONE )
+			{
+				int fullCode = (int) cmd << 16 | (int) source | (int) vkey;
+				User32.SendMessage (hwnd, User32.WindowMessage.WM_APPCOMMAND, hwnd, new IntPtr (fullCode));
+			}
+
+
+			#endregion
+
+
+
+
+			/// <inheritdoc cref="User32.GetWindowText" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static string GetWindowText ( this IntPtr hwnd )
+			{
+				int lenght = User32.GetWindowTextLength (hwnd);
+				if (lenght < 1) return string.Empty;
+
+				StringBuilder sb = new (lenght + 2);
+				lenght = User32.GetWindowText (hwnd, sb, sb.Capacity);
+				return ( lenght > 0 )
+					? sb.ToString ()
+					: string.Empty;
+			}
+
+			/// <inheritdoc cref="GetWindowText" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static string GetWindowText ( this IWin32Window wnd )
+				=> GetWindowText (wnd.Handle);
+
+
+			/// <inheritdoc cref="User32.GetClassName" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static string GetClassName ( this IntPtr hwnd )
+			{
+				StringBuilder sb = new (1024);
+				int len = User32.GetClassName (hwnd, sb, sb.Capacity);
+				return ( len > 0 )
+					? sb.ToString ()
+					: string.Empty;
+			}
+
+			/// <inheritdoc cref="GetClassName" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static string GetClassName ( this IWin32Window wnd ) => GetClassName (wnd.Handle);
+
+
+
+
+			/// <inheritdoc cref="User32.GetWindowRect" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static Rectangle GetWindowRect ( this IntPtr hwnd )
+				=> User32.GetWindowRect (hwnd, out var rc)
+				? rc
+				: throw new Win32Exception ();
+
+			/// <inheritdoc cref="GetWindowRect" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static Rectangle GetWindowRect ( this IWin32Window wind ) => GetWindowRect (wind.Handle);
+
+			/// <inheritdoc cref="GetWindowRect" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static Rectangle GetWindowRect ( this HWND hwnd )
+				=> GetWindowRect ((IntPtr) hwnd);
+
+
+			/// <inheritdoc cref="User32.GetClientRect" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static Rectangle GetClientRect ( this IntPtr hwnd )
+							=> User32.GetClientRect (hwnd, out var rcClient)
+								? rcClient
+								: throw new Win32Exception ();
+
+			/// <inheritdoc cref="GetClientRect" />
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static Rectangle GetClientRect ( this IWin32Window wind ) => GetClientRect (wind.Handle);
+
 
 		}
+
+		internal static partial class Extensions_WinAPI_Windows_DWM
+		{
+
+
+			#region DwmGetWindowAttribute / DwmSetWindowAttribute
+
+
+			/// <summary>Gets window rect without shadow</summary>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static Rectangle DwmGetWindowAttribute_DWMWA_EXTENDED_FRAME_BOUNDS ( this IntPtr hwnd )
+			{
+				var r = DwmApi.DwmGetWindowAttribute (hwnd, DwmApi.DWMWINDOWATTRIBUTE.DWMWA_EXTENDED_FRAME_BOUNDS, out RECT rect);
+				if (!r.Succeeded) Marshal.ThrowExceptionForHR (r.Code);
+				return rect;
+			}
+
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void DwmSetWindowAttribute ( IntPtr hwnd, DwmApi.DWMWINDOWATTRIBUTE dwAttribute, bool value )
+			{
+				var r = DwmApi.DwmSetWindowAttribute (hwnd, dwAttribute, value);
+				if (!r.Succeeded) Marshal.ThrowExceptionForHR (r.Code);
+			}
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void DwmSetWindowAttribute_DWMWA_USE_IMMERSIVE_DARK_MODE ( IntPtr hwnd, bool value )
+				=> DwmSetWindowAttribute (hwnd, DwmApi.DWMWINDOWATTRIBUTE.DWMWA_USE_IMMERSIVE_DARK_MODE, value);
+
+
+			#endregion
+
+
+
+			/// <summary>Gets window rect without shadow</summary>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static Rectangle GetWindowRectWithoutShadow ( this IntPtr hwnd )
+				=> DwmGetWindowAttribute_DWMWA_EXTENDED_FRAME_BOUNDS (hwnd);
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static Rectangle GetWindowRectWithoutShadow ( this IWin32Window wnd )
+				=> wnd.Handle.GetWindowRectWithoutShadow ();
+
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static void SetWindowRectWithoutShadow ( this IntPtr handle, Rectangle window )
+			{
+				Rectangle excludeshadow = GetWindowRectWithoutShadow (handle);
+				Rectangle includeshadow = handle.GetWindowRect ();
+
+				RECT shadow = new ()
+				{
+					Left = includeshadow.X - excludeshadow.X,
+					Right = includeshadow.Right - excludeshadow.Right,
+					Top = includeshadow.Top - excludeshadow.Top,
+					Bottom = includeshadow.Bottom - excludeshadow.Bottom
+				};
+
+				int width = ( window.Right + shadow.Right ) - ( window.Left + shadow.Left );
+				int height = ( window.Bottom + shadow.Bottom ) - ( window.Top - shadow.Top );
+
+				User32.SetWindowPos (handle, IntPtr.Zero,
+					  window.Left + shadow.Left,
+					  window.Top + shadow.Top,
+					  width,
+					  height,
+					  0);
+			}
+
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static void SetWindowRectWithoutShadow ( this IWin32Window wnd, Rectangle rc )
+				=> wnd.Handle.SetWindowRectWithoutShadow (rc);
+
+
+
+			//https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-messagebox
+			public static User32.MB_RESULT MessageBox ( this string text, IntPtr hWndParent, User32.MB_FLAGS f = User32.MB_FLAGS.MB_OK )
+				=> User32.MessageBox (
+					hWndParent,
+					text,
+					uom.AppInfo.Title ?? uom.AppInfo.ProductName ?? string.Empty,
+					f);
+
+
+			//https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-messagebox
+			public static User32.MB_RESULT MessageBox ( this IWin32Window wnd, string text, User32.MB_FLAGS f = User32.MB_FLAGS.MB_OK )
+				=> text.MessageBox (wnd.Handle, f);
+
+		}
+
+
+		internal static partial class Extensions_WinAPI_Console
+		{
+
+			/// <summary>
+			/// https://stackoverflow.com/questions/1277563/how-do-i-get-the-handle-of-a-console-applications-window
+			/// <br/>
+			/// use this only for other process console!
+			/// <br/>
+			/// for own console use 'uom.AppTools.GetConsoleWindowForCurrentProcess ()'!
+			/// </summary>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static HWND GetConsoleWindowForProcess ( this int processID )
+			{
+				bool is_attached = false;
+
+				Kernel32.HandlerRoutine consoleCtrlDelegateDetach = new (ct =>
+				{
+					if (is_attached = !Kernel32.FreeConsole ())
+					{
+						var wex = new Win32Exception ();
+						Trace.TraceError ($"FreeConsole on {ct}: {wex}");
+					}
+					return true;
+				});
+
+				Kernel32.SetConsoleCtrlHandler (consoleCtrlDelegateDetach, true);
+
+				is_attached = Kernel32.AttachConsole ((uint) processID);
+				if (!is_attached) throw new Win32Exception ();
+
+				var hwnd = uom.AppTools.GetConsoleWindowForCurrentProcess_Net ();
+				if (is_attached) Kernel32.FreeConsole ();
+
+				return hwnd;
+			}
+
+
+
+
+
+		}
+
+
 
 
 		internal static partial class Extensions_WinAPI_Resources
@@ -3197,6 +4515,150 @@ namespace uom
 
 
 
+			/// <summary>Expands a Microsoft indirect string, such as '@vmms.exe,-279', which can be mapped
+			/// to a normal human-readable string.  Also supports indirect strings similar to this:
+			/// '@{Microsoft.Cortana?ms-resource://Microsoft.Cortana/resources/ProductDescription}'.
+			/// Microsoft indirect strings begin with an "@" symbol and are common in the registry. See https://msdn.microsoft.com/en-us/library/windows/desktop/bb759919(v=vs.85).aspx
+			/// </summary>
+			/// <param name="indirectString">
+			/// Win32: '@{Filepath?resource}'
+			/// AppX: '@{PackageFullName?resource-id}'
+			/// SAMPLE:
+			/// @{C:\Program Files\WindowsApps\Microsoft.BingMaps_2.1.3230.2048_x64__8wekyb3d8bbwe\resources.pri?ms-resource://Microsoft.BingMaps/Resources/AppShortDisplayName};
+			/// </param>			
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static string SHLoadIndirectString ( this string indirectString, int bufferSize = 1024 )
+			{
+				//@{s}
+				if (indirectString.Length < 5 || indirectString[ 0 ] != '@')
+					throw new ArgumentException ($"'{nameof (indirectString)}' should begin with the '@' symbol!");
+
+
+				StringBuilder sb = new (bufferSize);
+				var result = ShlwApi.SHLoadIndirectString (indirectString, sb, (uint) sb.Capacity);
+				result.ThrowIfFailed ();
+
+				string s = sb.ToString ();
+				if (s != indirectString) return s;//Resource loaded OK
+
+				throw new ArgumentException ($"'{nameof (indirectString)}' is not an indirect string!");
+			}
+
+
+
+
+			/// <param name="ResID">ms-resource:AppxManifest_DisplayName</param>
+			/// <returns>@{C:\Program Files\WindowsApps\Microsoft.BingMaps_2.1.3230.2048_x64__8wekyb3d8bbwe\resources.pri?ms-resource://Microsoft.BingMaps/Resources/AppShortDisplayName};</returns>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static string SHLoadIndirectppPackageResourceString ( string ResID, string PackageName, string PackageFullName, string InstallLocation )
+			{
+				if (!ResID.StartsWith (core.MS_RESX_PREFIX, StringComparison.InvariantCultureIgnoreCase)) throw new ArgumentOutOfRangeException (nameof (ResID));
+
+				//@{PackageFullName?resource-id}
+				//ms-resource://PackageName/Resources/Id
+				/*
+				 * https://stackoverflow.com/questions/18219915/get-localized-friendly-names-for-all-winrt-metro-apps-installed-from-wpf-applica
+				 Я обнаружил, что путь к PRI является лучшим решением, чем указание имени пакета. Много раз SHLoadIndirectString не разрешает ресурс, когда указано только имя пакета. Путь к PRI — это место установки пакета + resources.pri . Пример: C:\Program Files\WindowsApps\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\Resources.pri.
+				 */
+
+				string resID2 = ResID[ core.MS_RESX_PREFIX.Length.. ];
+
+				{
+					string pack = PackageFullName;
+
+					try
+					{
+						string input = @$"{pack}? {core.MS_RESX_PREFIX}//{PackageName}/Resources/{resID2}";
+						input = @"@{" + input + @"}";
+
+						string parsedString = input.SHLoadIndirectString ();
+						if (!string.IsNullOrWhiteSpace (parsedString))
+						{
+							return parsedString;
+						}
+					}
+					catch (Exception ex) { var ttt = ex; }
+
+					try
+					{
+						string input = @$"{pack}? {core.MS_RESX_PREFIX}//{PackageName}/{resID2}";
+						input = @"@{" + input + @"}";
+
+						string parsedString = input.SHLoadIndirectString ();
+						if (!string.IsNullOrWhiteSpace (parsedString))
+						{
+							return parsedString;
+						}
+					}
+					catch (Exception ex) { var ttt = ex; }
+				}
+
+				{
+					string pack = InstallLocation;
+					try
+					{
+						string input = @$"{pack}? {core.MS_RESX_PREFIX}//{PackageName}/Resources/{resID2}";
+						input = @"@{" + input + @"}";
+
+						string parsedString = input.SHLoadIndirectString ();
+						if (!string.IsNullOrWhiteSpace (parsedString))
+						{
+							return parsedString;
+						}
+					}
+					catch (Exception ex) { var ttt = ex; }
+
+					try
+					{
+						string input = @$"{pack}? {core.MS_RESX_PREFIX}//{PackageName}/{resID2}";
+						input = @"@{" + input + @"}";
+
+						string parsedString = input.SHLoadIndirectString ();
+						if (!string.IsNullOrWhiteSpace (parsedString))
+						{
+							return parsedString;
+						}
+					}
+					catch (Exception ex) { var ttt = ex; }
+				}
+
+				{
+					string pack = InstallLocation;
+					try
+					{
+						string input = @$"{pack}\resources.pri? {core.MS_RESX_PREFIX}//{PackageName}/Resources/{resID2}";
+						input = @"@{" + input + @"}";
+
+						string parsedString = input.SHLoadIndirectString ();
+						if (!parsedString.IsNullOrWhiteSpace ()) return parsedString;
+					}
+					catch (Exception ex) { var ttt = ex; }
+
+					try
+					{
+						string input = @$"{pack}\resources.pri? {core.MS_RESX_PREFIX}//{PackageName}/{resID2}";
+						input = @"@{" + input + @"}";
+
+						string parsedString = input.SHLoadIndirectString ();
+						if (!parsedString.IsNullOrWhiteSpace ()) return parsedString;
+					}
+					catch (Exception ex) { var ttt = ex; }
+
+					try
+					{
+						string input = @$"{pack}\resources.pri? {core.MS_RESX_PREFIX}//{resID2}";
+						input = @"@{" + input + @"}";
+
+						string parsedString = input.SHLoadIndirectString ();
+						if (!parsedString.IsNullOrWhiteSpace ()) return parsedString;
+					}
+					catch (Exception ex) { var ttt = ex; }
+				}
+
+				return string.Empty;
+			}
+
+
 
 		}
 
@@ -3208,21 +4670,21 @@ namespace uom
 			internal const string LOCALIZED_RES_NAME_TEMPLATE_L_ENUM = "L_ENUM_{0}";
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string? eGetLocalizedText(this string? resName, System.Resources.ResourceManager? rm = null, string resNameTemplate = LOCALIZED_RES_NAME_TEMPLATE_L_UI)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static string? eGetLocalizedText ( this string? resName, System.Resources.ResourceManager? rm = null, string resNameTemplate = LOCALIZED_RES_NAME_TEMPLATE_L_UI )
 			{
-				if (resName.eIsNullOrWhiteSpace())
+				if (resName.IsNullOrWhiteSpace ())
 				{
 					return null;
 				}
 
-				resName = resNameTemplate.eFormat(resName!);
+				resName = resNameTemplate.eFormat (resName!);
 
-				rm ??= uom.AppInfo.LocalizedStringsManager.Value;
+				rm ??= uom.AppTools.LocalizedStringsManager.Value;
 
-				string? resStringValue = rm.GetString(resName);
+				string? resStringValue = rm.GetString (resName);
 
-				if (resStringValue.eIsNotNullOrWhiteSpace())
+				if (resStringValue.IsNotNullOrWhiteSpace ())
 				{
 					return resStringValue;
 				}
@@ -3231,30 +4693,30 @@ namespace uom
 			}
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static string? eGetLocalizedTextByPropertyName(this Component c, string propertyName = "Name")
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			private static string? eGetLocalizedTextByPropertyName ( this Component c, string propertyName = "Name" )
 			{
-				string? componentName = c.eGetPropertyValueAs<string>(propertyName, null, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-				if (componentName.eIsNotNullOrWhiteSpace())
+				string? componentName = c.eGetPropertyValueAs<string> (propertyName, null, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+				if (componentName.IsNotNullOrWhiteSpace ())
 				{
-					return componentName.eGetLocalizedText();
+					return componentName.eGetLocalizedText ();
 				}
 
 				return null;
 			}
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static string eLocalize(this Enum value, System.Resources.ResourceManager? rm = null)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static string eLocalize ( this Enum value, System.Resources.ResourceManager? rm = null )
 			{
-				string enumResSuffix = value.eGetFullName(false);
-				string? localizedString = enumResSuffix.eGetLocalizedText(rm, LOCALIZED_RES_NAME_TEMPLATE_L_ENUM);
-				if (localizedString.eIsNotNullOrWhiteSpace())
+				string enumResSuffix = value.eGetFullName (false);
+				string? localizedString = enumResSuffix.eGetLocalizedText (rm, LOCALIZED_RES_NAME_TEMPLATE_L_ENUM);
+				if (localizedString.IsNotNullOrWhiteSpace ())
 				{
 					return localizedString!;
 				}
 
-				return value.ToString().eInsertSpacesBeforeUpperCaseChars();
+				return value.ToString ().eInsertSpacesBeforeUpperCaseChars ();
 			}
 
 
@@ -3269,253 +4731,96 @@ namespace uom
 
 
 
-		[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-		internal partial struct RECT(int L, int T, int R, int B)
-		{
-			public int Left = L;
-			public int Top = T;
-			public int Right = R;
-			public int Bottom = B;
-
-
-			internal readonly int Width => Right - Left;
-			internal readonly int Height => Bottom - Top;
-
-
-			#region Operator
-
-			public static bool operator ==(RECT R1, RECT R2)
-				=> R1.Left == R2.Left && R1.Top == R2.Top && R1.Right == R2.Right && R1.Bottom == R2.Bottom;
-
-
-			public static bool operator !=(RECT R1, RECT R2)
-				=> !(R1 == R2);
-
-
-			#endregion
-
-
-
-
-			// Public Declare Function FillRectRc Lib "user32"  Alias "FillRect"(ByVal hdc As Integer, ByRef lpRect As Win.RECT, ByVal hBrush As Integer) As Integer
-			// Public Declare Function FrameRect Lib "user32" (ByVal hdc As Integer, ByRef lpRect As Win.RECT, ByVal hBrush As Integer) As Integer
-			// Public Declare Function InvertRect Lib "user32" (ByVal hdc As Integer, ByRef lpRect As Win.RECT) As Integer
-			// Public Declare Function SetRect Lib "user32" (ByRef lpRect As Win.RECT, ByVal X1 As Integer, ByVal Y1 As Integer, ByVal X2 As Integer, ByVal Y2 As Integer) As Integer
-			// Public Declare Function SetRectEmpty Lib "user32" (ByRef lpRect As Win.RECT) As Integer
-			// Public Declare Function CopyRect Lib "user32" (ByRef lpTargetикRect As Win.RECT, ByRef lpSourceникRect As Win.RECT) As Integer
-
-			// Public Declare Function InflateRect Lib "user32" (ByRef lpRect As Win.RECT, ByVal Dx As Integer, ByVal DY As Integer) As Integer
-
-			// Public Declare Function IntersectRect Lib "user32" (ByRef lpTargetикRect As Win.RECT, ByRef lpSourceник1Rect As Win.RECT, ByRef lpSourceник2Rect As Win.RECT) As Integer
-			// Public Declare Function UnionRect Lib "user32" (ByRef lpTargetикRect As Win.RECT, ByRef lpSourceник1Rect As Win.RECT, ByRef lpSourceник2Rect As Win.RECT) As Integer
-			// Public Declare Function SubtractRect Lib "user32" (ByRef lprcTargetик As Win.RECT, ByRef lprcSourceник1 As Win.RECT, ByRef lprcSourceник2 As Win.RECT) As Integer
-			// Public Declare Function OffSetRect Lib "user32" (lpRect As Win.RECT, ByVal X&, ByVal Y&) As Long
-			// Public Declare Function IsRectEmpty Lib "user32" (ByRef lpRect As Win.RECT) As Integer
-			// Public Declare Function EqualRect Lib "user32" (ByRef lpRect1 As Win.RECT, ByRef lpRect2 As Win.RECT) As Integer
-
-			// '	'UPGRADE_ISSUE: Declaring a parameter 'As Any' is not supported. Click for more: 'ms-help://MS.VSCC/commoner/redir/redirect.htm?keyword="vbup1016"'
-			// '	Public Declare Function CopyRectAny Lib "user32"  Alias "CopyRect"(ByRef lpTargetикRect As Any, ByRef lpSourceникRect As Any) As Integer
-
-		}
-
 
 		/// <summary>Win32 Safe Handles for diferent API</summary>
 		internal static partial class safeHandles
 		{
 
 			//[SecurityPermission(SecurityAction.LinkDemand, UnmanagedCode = true)]
-			[DebuggerDisplay("Win32FilebHandle={handle}")]
+			[DebuggerDisplay ("Win32FilebHandle={handle}")]
 			internal partial class Win32FileHandle : Microsoft.Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid
 			{
-				public Win32FileHandle(bool OwnsHandle = true) : base(OwnsHandle) { SetHandle(IntPtr.Zero); }
+				public Win32FileHandle ( bool OwnsHandle = true ) : base (OwnsHandle) { SetHandle (IntPtr.Zero); }
 
-				public Win32FileHandle(IntPtr hFile, bool OwnsHandle = true) : this(OwnsHandle) { SetHandle(hFile); }
+				public Win32FileHandle ( IntPtr hFile, bool OwnsHandle = true ) : this (OwnsHandle) { SetHandle (hFile); }
 
-				public new void Close() => ReleaseHandle();
+				public new void Close () => ReleaseHandle ();
 
-				protected override bool ReleaseHandle()
+				protected override bool ReleaseHandle ()
 				{
 					if (IsInvalid)
 					{
 						return true;
 					}
 
-					bool bResult = WinAPI.core.CloseHandle(handle);
+					bool bResult = Kernel32.CloseHandle (handle);
 					if (bResult)
 					{
-						SetHandle(IntPtr.Zero);
+						SetHandle (IntPtr.Zero);
 					}
 
 					return bResult;
 				}
 			}
 
+
 			//[SecurityPermission(SecurityAction.LinkDemand, UnmanagedCode = true)]
-			[DebuggerDisplay("Win32LibHandle={handle}")]
-			internal partial class Win32LibHandle : Microsoft.Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid
+			[DebuggerDisplay ("Win32LibHandle={handle}")]
+			internal partial class Win32LibHandle : Kernel32.SafeHINSTANCE
 			{
-
-				#region LoadLibrary / FreeLibrary
-
-				[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-				internal static extern IntPtr GetModuleHandle(
-					[In, MarshalAs(UnmanagedType.LPTStr)] string lpModuleName);
-
-
-				[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-				internal static extern IntPtr LoadLibrary(
-					[In, MarshalAs(UnmanagedType.LPTStr)] string lpLibFileName);
-
-				internal enum LoadLibraryExFlags : int
-				{
-					DONT_RESOLVE_DLL_REFERENCES = 0x1,
-					LOAD_LIBRARY_AS_DATAFILE = 0x2,
-					LOAD_IGNORE_CODE_AUTHZ_LEVEL = 0x10,
-					LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE = 0x40,
-					LOAD_LIBRARY_AS_IMAGE_RESOURCE = 0x20,
-					LOAD_WITH_ALTERED_SEARCH_PATH = 0x8
-				}
-
-				[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-				internal static extern IntPtr LoadLibraryEx(
-					[In, MarshalAs(UnmanagedType.LPTStr)] string lpLibFileName,
-					[In] IntPtr hFile,
-					[In] LoadLibraryExFlags dwFlags);
-
-
-				[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-				internal static extern bool FreeLibrary([In] IntPtr hLibModule);
-
-				#endregion
-
-
-				[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-				internal static extern IntPtr GetProcAddress(
-					[In] IntPtr hModule,
-					[In] string lpProcName);
-
-
-				[MethodImpl(MethodImplOptions.AggressiveInlining)]
-				internal IntPtr GetProcAddress(string lpProcName)
-					=> GetProcAddress(DangerousGetHandle(), lpProcName);
 
 
 				/// <summary>Только для информации. НИГДЕ НЕ ПРИМЕНЯЕТСЯ!</summary>
 				public readonly string? LibFile;
 
+
 				#region Constructor/destructor
-				[DebuggerNonUserCode, DebuggerStepThrough]
-				public Win32LibHandle(IntPtr hLib, bool ownsHandle = true, string? sLibFileName = null) : base(ownsHandle)
-				{
-					if (hLib.eIsNotValid())
-					{
-						throw new ArgumentNullException(nameof(hLib));
-					}
 
-					SetHandle(hLib);
+
+				public Win32LibHandle ( IntPtr hLib, bool ownsHandle = true, string? sLibFileName = null ) : base (hLib, ownsHandle)
+				{
 					LibFile = sLibFileName;
-					if (IsInvalid)
-					{
-						errors.ThrowLastWin23Error();
-					}
 				}
 
-				[DebuggerNonUserCode, DebuggerStepThrough]
-				public Win32LibHandle(string LibFileName) : this(LibFileName, LoadLibraryExFlags.LOAD_LIBRARY_AS_DATAFILE) { }
-
-				[DebuggerNonUserCode, DebuggerStepThrough]
-				public Win32LibHandle(string sLibFileName, LoadLibraryExFlags Flags, bool ownsHandle = true) : base(ownsHandle)
+				public Win32LibHandle ( Kernel32.SafeHINSTANCE hLib, bool ownsHandle = true, string? sLibFileName = null ) : base (hLib.DangerousGetHandle (), ownsHandle)
 				{
-					SetHandle(LoadLibraryEx(sLibFileName, IntPtr.Zero, Flags));
 					LibFile = sLibFileName;
-					if (IsInvalid)
-					{
-						errors.ThrowLastWin23Error();
-					}
-				}
-
-				[MethodImpl(MethodImplOptions.AggressiveInlining)]
-				protected override bool ReleaseHandle()
-				{
-					if (IsInvalid)
-					{
-						return true;
-					}
-
-					bool bResult = FreeLibrary(handle);
-					if (bResult)
-					{
-						SetHandle(IntPtr.Zero);
-					}
-
-					return bResult;
-				}
-				#endregion
-
-
-
-
-				[MethodImpl(MethodImplOptions.AggressiveInlining)]
-				internal static Win32LibHandle GetRunningLibraryOrLoad(string LibFileName, LoadLibraryExFlags LLF, bool NotUnloadLibOnDispose = false)
-				{
-					// check first to see if the module is already mapped into this process.
-					var hModule = GetModuleHandle(LibFileName);
-					if (hModule.eIsValid())
-					{
-						return new Win32LibHandle(hModule, false, LibFileName);
-					}
-
-					// need to load module into this process.
-					return new Win32LibHandle(LibFileName, LLF, NotUnloadLibOnDispose);
-				}
-
-
-				[MethodImpl(MethodImplOptions.AggressiveInlining)]
-				internal static Win32LibHandle GetRunningLibraryOrLoad_AsResource(string LibFileName, bool NotUnloadLibOnDispose = false)
-					=> GetRunningLibraryOrLoad(LibFileName, LoadLibraryExFlags.LOAD_LIBRARY_AS_IMAGE_RESOURCE, NotUnloadLibOnDispose);
-
-
-				#region IsProcedureExported - used to determine if an API function is exported.
-
-
-				/// <summary>used to determine if an API function is exported.</summary>
-				public static bool IsProcedureExported(string ModuleName, string ProcName, bool NotUnloadLibOnDispose = false)
-				{
-					bool bNeedFreeLib = false;
-
-					// check first to see if the module is already mapped into this process.
-					var hModule = GetModuleHandle(ModuleName);
-
-					// need to load module into this process.
-					if (!hModule.eIsValid())
-					{
-						hModule = LoadLibrary(ModuleName);
-						bNeedFreeLib = !NotUnloadLibOnDispose;
-					}
-
-					try
-					{
-						// if the module is mapped, check procedure address to verify it's exported.
-						if (hModule.eIsValid())
-						{
-							var lpProc = GetProcAddress(hModule, ProcName);
-							return lpProc.eIsValid();
-						}
-					}
-					finally
-					{
-						// unload library if we loaded it here.
-						if (bNeedFreeLib)
-						{
-							FreeLibrary(hModule);
-						}
-					}
-
-					return false;
 				}
 
 
 				#endregion
+
+
+				public static Win32LibHandle LoadLibraryEx ( string file, Kernel32.LoadLibraryExFlags Flags, bool ownsHandle = true )
+				{
+					var hLib = Kernel32.LoadLibraryEx (file, IntPtr.Zero, Flags);
+					if (hLib.IsInvalid) throw new Win32Exception ();
+					Win32LibHandle lib = new (hLib, ownsHandle, file);
+					return lib;
+				}
+
+				public static Win32LibHandle LoadLibraryEx ( string file )
+					=> LoadLibraryEx (file, Kernel32.LoadLibraryExFlags.LOAD_LIBRARY_AS_DATAFILE, true);
+
+
+				[MethodImpl (MethodImplOptions.AggressiveInlining)]
+				internal static Win32LibHandle GetRunningLibraryOrLoad ( string LibFileName, Kernel32.LoadLibraryExFlags llef, bool notUnloadLibOnDispose = false )
+				{
+					// check first to see if the module is already mapped into this process.
+					var hModule = Kernel32.GetModuleHandle (LibFileName);
+					if (hModule.eIsValid ()) return new Win32LibHandle (hModule, false, LibFileName);
+
+					// need to load module into this process.
+					return LoadLibraryEx (LibFileName, llef, notUnloadLibOnDispose);
+				}
+
+
+				[MethodImpl (MethodImplOptions.AggressiveInlining)]
+				internal static Win32LibHandle GetRunningLibraryOrLoad_AsResource ( string LibFileName, bool NotUnloadLibOnDispose = false )
+					=> GetRunningLibraryOrLoad (LibFileName, Kernel32.LoadLibraryExFlags.LOAD_LIBRARY_AS_IMAGE_RESOURCE, NotUnloadLibOnDispose);
+
+
+
 
 
 
@@ -3529,13 +4834,13 @@ namespace uom
 				// Return (Not (LMB1 = LMB2))
 				// End Operator
 
-				public static implicit operator IntPtr(Win32LibHandle WLH)
+				public static implicit operator IntPtr ( Win32LibHandle WLH )
 				{
-					return WLH.DangerousGetHandle();
+					return WLH.DangerousGetHandle ();
 				}
 
 
-				// Public Shared Widening Operator CType(ByVal LMB1 As LocalMemory) As String
+				// Public Shared Widening Operator CType(ByVal LMB1 As LocalMemory) As string
 				// Return LMB1.ToString
 				// End Operator
 				// Public Shared Widening Operator CType(ByVal LMB1 As LocalMemory) As Integer()
@@ -7804,131 +9109,69 @@ namespace uom
 
 				#region Constructor
 
-				private Win32ExceptionEx(int iError, string? ErrorAction = null) : base(iError, ErrorAction) { }
+				private Win32ExceptionEx ( int iError, string? ErrorAction = null ) : base (iError, ErrorAction) { }
 
-				public Win32ExceptionEx(Win32Exception wex) : base(wex.NativeErrorCode) { }
+				public Win32ExceptionEx ( Win32Exception wex ) : base (wex.NativeErrorCode) { }
 
-				public Win32ExceptionEx(string? ErrorAction = null) : this(Marshal.GetLastWin32Error(), ErrorAction) { }
+				public Win32ExceptionEx ( string? ErrorAction = null ) : this (Marshal.GetLastWin32Error (), ErrorAction) { }
 
-				public Win32ExceptionEx(Win32Errors err, string? ErrorAction = null) : this(
-					(int)err,
-					($"[{(int)err} - {err}]: {GetErrorMessage(err)}" + (ErrorAction.eIsNullOrWhiteSpace() ? String.Empty : ($"\nError source: {ErrorAction}"))).Trim()
+				public Win32ExceptionEx ( Win32Errors err, string? ErrorAction = null ) : this (
+					(int) err,
+					( $"[{(int) err} - {err}]: {GetErrorMessage (err)}" + ( ErrorAction.IsNullOrWhiteSpace () ? string.Empty : ( $"\nError source: {ErrorAction}" ) ) ).Trim ()
 					)
 				{ }
 
 				#endregion
 
-				public new Win32Errors NativeErrorCode => (Win32Errors)base.NativeErrorCode;
+				public new Win32Errors NativeErrorCode => (Win32Errors) base.NativeErrorCode;
 
-				public string FullMessage => string.Format($"[{NativeErrorCode}] {Message}");
+				public string FullMessage => string.Format ($"[{NativeErrorCode}] {Message}");
 
-				public override string ToString() => FullMessage;
+				public override string ToString () => FullMessage;
 			}
 
 
 			#region API FormatMessage/ GetLastError/SetLastError
 
 
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern Win32Errors GetLastError();
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern void SetLastError(Win32Errors dwErrCode = Win32Errors.ERROR_SUCCESS);
-
-
-			#region FormatMessage
-
-			[Flags()]
-			internal enum FormatMessageFlags : int
+			internal static string GetErrorMessage ( int code )
 			{
-				FORMAT_MESSAGE_ALLOCATE_BUFFER = 0x100,
-				FORMAT_MESSAGE_IGNORE_INSERTS = 0x200,
-				FORMAT_MESSAGE_FROM_STRING = 0x400,
-				FORMAT_MESSAGE_FROM_HMODULE = 0x800,
-				FORMAT_MESSAGE_FROM_SYSTEM = 0x1000,
-				FORMAT_MESSAGE_ARGUMENT_ARRAY = 0x2000,
-				FORMAT_MESSAGE_MAX_WIDTH_MASK = 0xFF
-			}
+				return ErrorHelper.GetErrorMessage<Win32Error, int> (code);
 
-			//[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			//internal static extern int FormatMessage(
-			//    [In] FormatMessageFlags dwFlags,
-			//    [In] IntPtr lpSource,
-			//    [In] Win32Errors dwMessageId,
-			//    [In] int dwLanguageId,
-			//    [In, Out, MarshalAs(UnmanagedType.LPTStr)] ref StringBuilder lpBuffer,
-			//    [In] int nSize,
-			//    [In, Optional] IntPtr Arguments);
-
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern int FormatMessage(
-				[In] FormatMessageFlags dwFlags,
-				[In] IntPtr lpSource,
-				[In] int dwMessageId,
-				[In] int dwLanguageId,
-				[In, Out, MarshalAs(UnmanagedType.LPTStr)] ref StringBuilder? lpBuffer,
-				[In] int nSize,
-				[In, Optional] IntPtr Arguments);
-
-
-			#endregion
-
-
-			#region SetLastErrorEx
-
-			internal enum SetLastErrorExFlags : int
-			{
-				SLE_ERROR = 0x1,
-				SLE_MINORERROR = 0x2,
-				SLE_WARNING = 0x3
-			}
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern void SetLastErrorEx(int dwErrCode, SetLastErrorExFlags dwType);
-			#endregion
-
-
-			internal static (string Message, bool Found) GetErrorMessage(int iCode)
-			{
-				StringBuilder? sb = null;
-				try
-				{
-					int strLen = FormatMessage(
-						FormatMessageFlags.FORMAT_MESSAGE_FROM_SYSTEM |
-						FormatMessageFlags.FORMAT_MESSAGE_IGNORE_INSERTS |
-						FormatMessageFlags.FORMAT_MESSAGE_ALLOCATE_BUFFER,
-						IntPtr.Zero,
-						iCode,
-						0,
-						ref sb,
-						0,
-						IntPtr.Zero);
-
-					if (strLen > 0 && sb != null)
+				/*
+					StringBuilder? sb = null;
+					try
 					{
-						string err = sb!.ToString().eTrimEnd(constants.vbCrLf);
-						return (err, true);
+						var strLen = Kernel32.FormatMessage (
+							Kernel32.FormatMessageFlags.FORMAT_MESSAGE_FROM_SYSTEM |
+							Kernel32.FormatMessageFlags.FORMAT_MESSAGE_IGNORE_INSERTS |
+							Kernel32.FormatMessageFlags.FORMAT_MESSAGE_ALLOCATE_BUFFER,
+							IntPtr.Zero,
+							iCode,
+							0,
+							ref sb,
+							0,
+							IntPtr.Zero);
+
+						if (strLen > 0 && sb != null)
+						{
+							string err = sb!.ToString ().eTrimEnd (constants.vbCrLf);
+							return (err, true);
+						}
+						//Can't read error message!
 					}
-					//Can't read error message!
-				}
-				catch { }
-				finally
-				{
-					sb = null;//Free mem;						
-				}
-
-				return ($"Unknown Error: {iCode}", false);
+					catch { }
+					finally
+					{
+						sb = null;//Free mem;						
+					}
+									return ($"Unknown Error: {iCode}", false);
+				 */
 			}
 
+			internal static string GetErrorMessage ( Win32Errors eCode )
+				=> GetErrorMessage ((int) eCode) ?? eCode.ToString ();
 
-			internal static string GetErrorMessage(Win32Errors eCode)
-			{
-				var r = GetErrorMessage((int)eCode);
-				return r.Found
-					? r.Message
-					: eCode.ToString();
-			}
 
 			#endregion
 
@@ -7936,18 +9179,13 @@ namespace uom
 
 			internal static class WinsockErrors
 			{
-				[DllImport(core.WINDLL_WS232, CharSet = CharSet.Auto, SetLastError = true)]
-				internal static extern int WSAGetLastError();
+				[DllImport (Lib.Ws2_32, CharSet = CharSet.Auto, SetLastError = true)]
+				internal static extern int WSAGetLastError ();
 
-				public static string WSAGetError(int? iCode = null)
-				{
-					var (ErrorMessage, MessageFound) = GetErrorMessage(iCode ??= WSAGetLastError());
-					return MessageFound
-						? ErrorMessage
-						: $"Unknown WSA Error: {iCode}";
-				}
+				public static string WSAGetError ( int? code = null )
+					=> GetErrorMessage (code ??= WSAGetLastError ()) ?? $"Unknown WSA Error: {code}";
+
 			}
-
 
 
 			internal static class COMErrors
@@ -7999,7 +9237,7 @@ namespace uom
 				}
 				*/
 
-				[StructLayout(LayoutKind.Explicit, Pack = 2)]
+				[StructLayout (LayoutKind.Explicit, Pack = 2)]
 				internal struct _HRESULT
 				{
 
@@ -8126,44 +9364,44 @@ namespace uom
 
 
 					/// <summary>is the facility's status code</summary>
-					[FieldOffset(0)][MarshalAs(UnmanagedType.U2)] public readonly UInt16 Code = 0;
-					[FieldOffset(2)][MarshalAs(UnmanagedType.U2)] private readonly FACILITY_CODES _facility = 0;
-					[FieldOffset(0)][MarshalAs(UnmanagedType.I4)] public readonly Int32 iHResult = 0;
-					[FieldOffset(0)][MarshalAs(UnmanagedType.U4)] public readonly UInt32 uHResult = 0;
+					[FieldOffset (0)][MarshalAs (UnmanagedType.U2)] public readonly UInt16 Code = 0;
+					[FieldOffset (2)][MarshalAs (UnmanagedType.U2)] private readonly FACILITY_CODES _facility = 0;
+					[FieldOffset (0)][MarshalAs (UnmanagedType.I4)] public readonly Int32 iHResult = 0;
+					[FieldOffset (0)][MarshalAs (UnmanagedType.U4)] public readonly UInt32 uHResult = 0;
 
-					public COM_SEVERITY Severity => (COM_SEVERITY)(uHResult >> 31);
+					public COM_SEVERITY Severity => (COM_SEVERITY) ( uHResult >> 31 );
 
 					/// <summary>Facility - is the facility code</summary>
-					public FACILITY_CODES Facility => (FACILITY_CODES)((UInt16)_facility & ~(UInt16)0b_10000000_00000000);
+					public FACILITY_CODES Facility => (FACILITY_CODES) ( (UInt16) _facility & ~(UInt16) 0b_10000000_00000000 );
 
 					#region Constructors
 
-					public _HRESULT(int hR) { iHResult = hR; }
-					public _HRESULT(uint hR) { uHResult = hR; }
+					public _HRESULT ( int hR ) { iHResult = hR; }
+					public _HRESULT ( uint hR ) { uHResult = hR; }
 
-					public _HRESULT(COMException cex) { iHResult = cex.HResult; }
+					public _HRESULT ( COMException cex ) { iHResult = cex.HResult; }
 
-					public _HRESULT(COM_SEVERITY severity, FACILITY_CODES facility, uint errorNo)
+					public _HRESULT ( COM_SEVERITY severity, FACILITY_CODES facility, uint errorNo )
 					{
 
 						this._facility = facility;
-						this.Code = (ushort)errorNo;
-						uHResult = uHResult | (((uint)severity) << 31);
+						this.Code = (ushort) errorNo;
+						uHResult = uHResult | ( ( (uint) severity ) << 31 );
 					}
 
-					public _HRESULT(FACILITY_CODES facility, uint errorNo) : this(COM_SEVERITY.SEVERITY_ERROR, facility, errorNo) { }
+					public _HRESULT ( FACILITY_CODES facility, uint errorNo ) : this (COM_SEVERITY.SEVERITY_ERROR, facility, errorNo) { }
 
-					public _HRESULT(uint facility, uint errorNo) : this((FACILITY_CODES)((UInt16)facility), errorNo) { }
+					public _HRESULT ( uint facility, uint errorNo ) : this ((FACILITY_CODES) ( (UInt16) facility ), errorNo) { }
 
 					#endregion
 
 
-					public Win32Errors ToWin32()
+					public Win32Errors ToWin32 ()
 					{
 						//SEVERITY_ERROR
 						if (Facility == FACILITY_CODES.FACILITY_WIN32)
 						{
-							return (Win32Errors)Code;
+							return (Win32Errors) Code;
 						}
 
 						if (iHResult == uom.WinAPI.core.S_OK)
@@ -8184,28 +9422,28 @@ namespace uom
 					 */
 
 
-					public override string ToString() => $"HRESULT: {iHResult} ({Severity}, Facility: {Facility}, ErrorCode: {Code})";
+					public override string ToString () => $"HRESULT: {iHResult} ({Severity}, Facility: {Facility}, ErrorCode: {Code})";
 
 
 					#region Conversions
-					public static implicit operator int(_HRESULT Hr) => Hr.iHResult;
-					public static implicit operator uint(_HRESULT Hr) => Hr.uHResult;
-					public static implicit operator COMException(_HRESULT Hr) => new COMException(null, Hr.iHResult);
+					public static implicit operator int ( _HRESULT Hr ) => Hr.iHResult;
+					public static implicit operator uint ( _HRESULT Hr ) => Hr.uHResult;
+					public static implicit operator COMException ( _HRESULT Hr ) => new COMException (null, Hr.iHResult);
 
-					public static implicit operator _HRESULT(int Hr) => new _HRESULT(Hr);
-					public static implicit operator _HRESULT(uint Hr) => new _HRESULT(Hr);
-					public static implicit operator _HRESULT(COMException cex) => new _HRESULT(cex);
+					public static implicit operator _HRESULT ( int Hr ) => new _HRESULT (Hr);
+					public static implicit operator _HRESULT ( uint Hr ) => new _HRESULT (Hr);
+					public static implicit operator _HRESULT ( COMException cex ) => new _HRESULT (cex);
 
 					#endregion
-					public static bool operator ==(_HRESULT hr1, _HRESULT hr2) => hr1.uHResult == hr2.uHResult;
-					public static bool operator !=(_HRESULT hr1, _HRESULT hr2) => hr1.uHResult != hr2.uHResult;
+					public static bool operator == ( _HRESULT hr1, _HRESULT hr2 ) => hr1.uHResult == hr2.uHResult;
+					public static bool operator != ( _HRESULT hr1, _HRESULT hr2 ) => hr1.uHResult != hr2.uHResult;
 
 
 #pragma warning disable CS8765 // Nullability of type of parameter doesn't match overridden member (possibly because of nullability attributes).
-					public override bool Equals(object obj) => (this == (_HRESULT)obj);
+					public override bool Equals ( object obj ) => ( this == (_HRESULT) obj );
 #pragma warning restore CS8765 // Nullability of type of parameter doesn't match overridden member (possibly because of nullability attributes).
 
-					public override int GetHashCode() => iHResult;
+					public override int GetHashCode () => iHResult;
 				}
 
 
@@ -8215,7 +9453,7 @@ namespace uom
 
 				// HRESULT definitions
 
-				public static readonly _HRESULT NOERROR = new(0);
+				public static readonly _HRESULT NOERROR = new (0);
 
 
 				#region Error definitions follow
@@ -18218,68 +19456,69 @@ namespace uom
 
 #if !UWP
 			/// <summary>Wrires message into NTLog and _ERRORS.LOG file in AppData Local dir</summary>
-			internal static void ErrorLogWrite(string message, EventLogEntryType et = EventLogEntryType.Error, UInt16 eventID = 1001, string NT_LOG_NAME = "UOM")
+			internal static void ErrorLogWrite ( string message, EventLogEntryType et = EventLogEntryType.Error, UInt16 eventID = 1001, string NT_LOG_NAME = "UOM" )
 			{
-				StringBuilder sb = new(4096);
-				sb.AppendLine($"{DateTime.Now.eToFileName()} | {message}");
+				StringBuilder sb = new (4096);
+				sb.AppendLine ($"{DateTime.Now.eToFileName ()} | {message}");
 #if DEBUG
-				sb.AppendLine("mode: DEBUG");
+				sb.AppendLine ("mode: DEBUG");
 #else
 				sb.AppendLine("mode: RELEASE");
 #endif
 
 				var loc = uom.AppInfo.Assembly.Location;
 
-				sb.AppendLine($"Product Name: {Application.ProductName} (Version: {Application.ProductVersion})");
-				sb.AppendLine($"ExecutablePath: {Application.ExecutablePath}");
-				sb.AppendLine(uom.AppInfo.Assembly.eDumpObjectToString(excludeMembers: ["EscapedCodeBase", "CustomAttributes", "DefinedTypes", "ExportedTypes", "IsCollectible", "Modules", "ReflectionOnly", "SecurityRuleSet"]));
+				sb.AppendLine ($"Product Name: {Application.ProductName} (Version: {Application.ProductVersion})");
+				sb.AppendLine ($"ExecutablePath: {Application.ExecutablePath}");
+				sb.AppendLine (uom.AppInfo.Assembly.eDumpObjectToString (excludeMembers: [ "EscapedCodeBase", "CustomAttributes", "DefinedTypes", "ExportedTypes", "IsCollectible", "Modules", "ReflectionOnly", "SecurityRuleSet" ]));
 				//sb.AppendLine($"FileVersionInfo: {uom.AppInfo.AssemblyFileVersionInfo.eDumpObjectToString()}");
 
-				string[] exl = ["DefaultThreadCurrentCulture", "DefaultThreadCurrentUICulture", "IetfLanguageTag", "InvariantCulture", "NumberFormat", "OptionalCalendars", "UseUserOverride", "IsReadOnly", "CultureTypes", "DateTimeFormat", "EnglishName", "IsNeutralCulture", "InstalledUICulture", "DisplayName"];
+				string[] exl = [ "DefaultThreadCurrentCulture", "DefaultThreadCurrentUICulture", "IetfLanguageTag", "InvariantCulture", "NumberFormat", "OptionalCalendars", "UseUserOverride", "IsReadOnly", "CultureTypes", "DateTimeFormat", "EnglishName", "IsNeutralCulture", "InstalledUICulture", "DisplayName" ];
 				//sb.AppendLine($"CurrentCulture: {System.Globalization.CultureInfo.CurrentCulture.eDumpObjectToString(excludeMembers: exl)}");
-				sb.AppendLine($"CurrentThread.CurrentUICulture: {Thread.CurrentThread.CurrentUICulture.eDumpObjectToString(excludeMembers: exl)}");
-				sb.AppendLine(typeof(System.Environment).eDumpStaticMembers("ExitCode", "NewLine", "StackTrace"));
+				sb.AppendLine ($"CurrentThread.CurrentUICulture: {Thread.CurrentThread.CurrentUICulture.eDumpObjectToString (excludeMembers: exl)}");
+				sb.AppendLine (typeof (System.Environment).eDumpStaticMembers ("ExitCode", "NewLine", "StackTrace"));
 
-				message = sb.ToString();
+				message = sb.ToString ();
 
-				void WriteNTLog()
+				void WriteNTLog ()
 				{
 
 					lock (_eaNTLogLockObject.Value)
 					{
 						//Trying Write To Standart Application Event Log...
-						static void WriteToApplicationLog(string msg, EventLogEntryType et, UInt16 eventID)
+						static void WriteToApplicationLog ( string msg, EventLogEntryType et, UInt16 eventID )
 						{
-							Extensions_DebugAndErrors.eTryCatch(delegate
+							var a = delegate ()
 							{
 								const string src = "Application";
-								using EventLog elApplication = new(src);
+								using EventLog elApplication = new (src);
 								elApplication.Source = src;
-								elApplication.WriteEntry(msg, et, eventID);
-							});
+								elApplication.WriteEntry (msg, et, eventID);
+							};
+							a.eTryCatch ();
 						}
 
-						var fiApp = new FileInfo(Application.ExecutablePath);
+						var fiApp = new FileInfo (Application.ExecutablePath);
 						string src = fiApp.Name;
 						try
 						{
 							// searching the source throws a security exception ONLY if not exists!
-							if (!EventLog.SourceExists(src))
+							if (!EventLog.SourceExists (src))
 							{
-								EventLog.CreateEventSource(src, NT_LOG_NAME);
-								using System.Diagnostics.Eventing.Reader.EventLogConfiguration elcUOM = new(NT_LOG_NAME);
+								EventLog.CreateEventSource (src, NT_LOG_NAME);
+								using System.Diagnostics.Eventing.Reader.EventLogConfiguration elcUOM = new (NT_LOG_NAME);
 								elcUOM.LogMode = System.Diagnostics.Eventing.Reader.EventLogMode.Circular;
-								elcUOM.MaximumSizeInBytes = (long)10u.eMBToBytes();
-								elcUOM.SaveChanges();
+								elcUOM.MaximumSizeInBytes = (long) 10u.eMBToBytes ();
+								elcUOM.SaveChanges ();
 							}
-							using EventLog elUOM = new(NT_LOG_NAME);
+							using EventLog elUOM = new (NT_LOG_NAME);
 							elUOM.Source = src;
-							elUOM.WriteEntry(message, et, eventID);
+							elUOM.WriteEntry (message, et, eventID);
 						}
 						catch (SecurityException)
 						{
-							WriteToApplicationLog($"{src}:\nEventlog source '{src}' is not registered for log {NT_LOG_NAME}!\nApp '{fiApp.FullName}' must be run with admin priveleges just once, to allow this source registration.", EventLogEntryType.Warning, eventID);
-							WriteToApplicationLog(message, et, eventID);
+							WriteToApplicationLog ($"{src}:\nEventlog source '{src}' is not registered for log {NT_LOG_NAME}!\nApp '{fiApp.FullName}' must be run with admin priveleges just once, to allow this source registration.", EventLogEntryType.Warning, eventID);
+							WriteToApplicationLog (message, et, eventID);
 						}
 						catch (Exception)
 						{
@@ -18288,7 +19527,7 @@ namespace uom
 					}
 				}
 
-				void WriteFileLog()
+				void WriteFileLog ()
 				{
 					const uint MAX_ERR_LOG_SIZE_MB = 10u;
 					const int MAX_ARHIVE_FILES_COUNT = 5;
@@ -18297,108 +19536,59 @@ namespace uom
 					{
 						lock (_eaFileLogLockObject.Value)
 						{
-							var fiErrorLog = uom.AppTools.GetFileIn_AppData("_Errors.log", false).eToFileInfo();
+							var fiErrorLog = uom.AppTools.GetFileIn_AppData ("_Errors.log", false).eToFileInfo ();
 							if (fiErrorLog != null)
 							{
-								if (fiErrorLog.Exists && fiErrorLog.Length >= (long)MAX_ERR_LOG_SIZE_MB.eMBToBytes())
+								if (fiErrorLog.Exists && fiErrorLog.Length >= (long) MAX_ERR_LOG_SIZE_MB.eMBToBytes ())
 								{
 									try
 									{
-										fiErrorLog.eMoveToArhive(MAX_ARHIVE_FILES_COUNT);
+										fiErrorLog.eMoveToArhive (MAX_ARHIVE_FILES_COUNT);
 									}
 									catch { }
 								}
 
-								using var sw = fiErrorLog.AppendText();
-								sw.WriteLine('*'.eRepeat());
-								sw.WriteLine(message);
-								sw.Flush();
+								using var sw = fiErrorLog.AppendText ();
+								sw.WriteLine ('*'.eRepeat ());
+								sw.WriteLine (message);
+								sw.Flush ();
 							}
 						}
 					}
 					catch { }
 				}
 
-				Task tskWriteNTLog = new(WriteNTLog, TaskCreationOptions.LongRunning);
-				Task tskWriteFileLog = new(WriteFileLog, TaskCreationOptions.LongRunning);
-				Task[] allTasks = [tskWriteNTLog, tskWriteFileLog];
-				allTasks.eForEach(t => t.Start());
-				Task.WaitAll(allTasks);
+				Task tskWriteNTLog = new (WriteNTLog, TaskCreationOptions.LongRunning);
+				Task tskWriteFileLog = new (WriteFileLog, TaskCreationOptions.LongRunning);
+				Task[] allTasks = [ tskWriteNTLog, tskWriteFileLog ];
+				allTasks.eForEach (t => t.Start ());
+				Task.WaitAll (allTasks);
 			}
 
 
 #endif
 
 
-			private static Lazy<EventArgs> _eaFileLogLockObject = new(() => new EventArgs());
-			private static Lazy<EventArgs> _eaNTLogLockObject = new(() => new EventArgs());
+			private static Lazy<EventArgs> _eaFileLogLockObject = new (() => new EventArgs ());
+			private static Lazy<EventArgs> _eaNTLogLockObject = new (() => new EventArgs ());
 
 			#endregion
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void ThrowWin23Error(Win32Errors ErrorCode, string? DescriptionOfErrorAction = null)
-				=> new Win32Exception((int)ErrorCode, DescriptionOfErrorAction).eThrow();
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void ThrowLastWin23Error(string? DescriptionOfErrorAction = null)
-				=> new Win32Exception(DescriptionOfErrorAction).eThrow();
+			/// <summary>
+			/// Obsolete! use <see cref="Vanara.PInvoke.Win32Error.ThrowLastError(string?)"/> instead!
+			/// </summary>
+			[Obsolete ("Use Vanara.PInvoke.Win32Error.ThrowLastError (); instead!", true)]
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static void ThrowLastWin23Error ( [CallerMemberName] string? errorDescription = null )
+				=> new Win32Exception (errorDescription).eThrow ();
 
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static Win32ExceptionEx LastWin23Error() => new();
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public static Win32ExceptionEx LastWin23Error ()
+				=> new ();
 
-			/// <summary>Вызывает ошибку, только если код не равен указанному</summary>
-			/// <param name="IgnoreErrorCode">Код игнорируемой ошибки</param>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void ThrowLastWin23ErrorAssert(Win32Errors IgnoreErrorCode = Win32Errors.ERROR_SUCCESS)
-			{
-				Win32ExceptionEx WEX = LastWin23Error();
-				if (WEX.NativeErrorCode != IgnoreErrorCode)
-				{
-					WEX.eThrow();
-				}
-
-				$"ThrowLastWin23ErrorAssert skip: {WEX.Message}\n\t{WEX.StackTrace}".eDebugWriteLine();
-			}
-
-			public static void trycatchWin32(Func<int> operation)
-			{
-				int result = operation.Invoke();
-				if (result == (int)Win32Errors.ERROR_SUCCESS)
-				{
-					return;
-				}
-
-				throw new Win32Exception(result);
-			}
-
-			public static void trycatchWin32(Func<int> operation, string messageTemplate, params object[] messageArgs)
-			{
-				int result = operation.Invoke();
-				if (result == (int)Win32Errors.ERROR_SUCCESS)
-				{
-					return;
-				}
-
-				throw new Win32Exception(result, messageTemplate.eFormat(messageArgs));
-			}
-
-			public static void trycatchWin32(Func<bool> operation)
-			{
-				if (!operation.Invoke())
-				{
-					ThrowLastWin23Error();
-				}
-			}
-
-			public static void trycatchWin32(Func<bool> operation, string messageTemplate, params object[] messageArgs)
-			{
-				if (!operation.Invoke())
-				{
-					ThrowLastWin23Error(messageTemplate.eFormat(messageArgs));
-				}
-			}
 
 		}
 
@@ -18406,8 +19596,6 @@ namespace uom
 		/// <summary>Win32 core API</summary>
 		internal static partial class core
 		{
-
-
 			internal const int ANYSIZE_ARRAY = 1;
 			internal const uint MAXDWORD = 0xFFFFFFFFu;
 			internal const int MINCHAR = 0x80;
@@ -18420,90 +19608,47 @@ namespace uom
 			internal const int MAXWORD = 0xFFFF;
 			internal const int S_OK = 0;
 
+			public const UInt32 INFINITE = 0xFFFFFFFF;
+			//public const UInt32 WAIT_FAILED = 0xFFFFFFFF;
+
+
+			//internal const uint STANDARD_RIGHTS_REQUIRED = 0xF0000;
+			//internal const uint GENERIC_READ = (uint) io.NativeFileAccess.GenericRead;
+			//public const Int32 GENERIC_ALL_ACCESS = 0x10000000;
+
+
 
 			internal const string DISPLAY = "DISPLAY";
-			internal const string WINDLL_KERNEL = "KERNEL32.dll";
-			internal const string WINDLL_USER = "user32.dll";
-			internal const string WINDLL_USERENV = "Userenv.dll";
-			internal const string WINDLL_ADVAPI32 = "advapi32.dll";
-			internal const string WINDLL_GDI = "gdi32.dll";
 			internal const string WINDLL_WINSPOOL = "winspool.drv";
-			internal const string WINDLL_SHELL = "Shell32.dll";
-			internal const string WINDLL_COMCTL = "comctl32.dll";
-			internal const string WINDLL_SHLWAPI = "SHLWAPI.dll";
-			internal const string WINDLL_NETAPI = "Netapi32.dll";
-			internal const string WINDLL_MPR = "Mpr.dll";
-			internal const string WINDLL_THEME = "uxtheme.dll";
-			internal const string WINDLL_TOOLHELP = WINDLL_KERNEL;
-			internal const string WINDLL_DWMAPI = "dwmapi.dll";
-			internal const string WINDLL_avicap32 = "avicap32.dll";
-			internal const string WINDLL_POWRPROF = "powrprof.dll";
-			internal const string WINDLL_NTDLL = "ntdll.dll";
+
+
+			//Lib.Kernel32
 			internal const string WINDLL_MSVCRT = "msvcrt.dll";
-			internal const string WINDLL_wlanapi = "wlanapi.dll";
-			internal const string WINDLL_iphlpapi = "iphlpapi.dll";
-			internal const string WINDLL_URL = "url.dll";
-			internal const string WINDLL_WS232 = "Ws2_32.dll";
+			//internal const string WINDLL_TOOLHELP = WINDLL_KERNEL;
+			//internal const string WINDLL_USERENV = "Userenv.dll";
+			//internal const string WINDLL_COMCTL = "comctl32.dll";
+			//internal const string WINDLL_SHLWAPI = "SHLWAPI.dll";
+			//internal const string WINDLL_NETAPI = "Netapi32.dll";
+			//internal const string WINDLL_MPR = "Mpr.dll";
+			//internal const string WINDLL_THEME = "uxtheme.dll";
+			//internal const string WINDLL_DWMAPI = "dwmapi.dll";
+			//internal const string WINDLL_avicap32 = "avicap32.dll";
+			//internal const string WINDLL_POWRPROF = "powrprof.dll";
+			//internal const string WINDLL_NTDLL = "ntdll.dll";
+			//internal const string WINDLL_wlanapi = "wlanapi.dll";
+			//internal const string WINDLL_iphlpapi = "iphlpapi.dll";
+			//internal const string WINDLL_URL = "url.dll";
+			//internal const string WINDLL_WS232 = "Ws2_32.dll";
 
 
+			/// <summary>This prefix indicates to NTFS that the path is to be treated as a non-interpretedpath in the virtual file system.</summary>
+			internal const string UNC_PATH_PREFIX = @"\\?\";
+			// Public Const LONG_PATH_PREFIX As string = "\??\"
+			public static readonly IntPtr HWND_DESKTOP = new (0);
 
-			internal const int STATUS_WAIT_0 = 0x0;
-			internal const int STATUS_ABANDONED_WAIT_0 = 0x80;
-			internal const int STATUS_USER_APC = 0xC0;
-			internal const int STATUS_TIMEOUT = 0x102;
-			internal const int STATUS_PENDING = 0x103;
-
-
-
-			internal const uint STANDARD_RIGHTS_REQUIRED = 0xF0000;
-			internal const uint GENERIC_READ = (uint)io.NativeFileAccess.GenericRead;
-
-
-
-
-
-			#region Универсальный метод получения структур WinAPI через указатель на буфер памяти
-
-			#region Example Of Use
-			// Dim A = UniversalGetWin32Structure(Of SPI_NONCLIENTMETRICS)(Sub(ByRef R1)
-			// R1.cbSize = Marshal.SizeOf(R1)
-			// End Sub,
-			// Sub(Ptr)
-			// If (Not SystemParametersInfo(SPI.SPI_GETNONCLIENTMETRICS, 0, Ptr)) Then Throw New ComponentModel.Win32Exception
-			// End Sub)
-
-			// Или можно так
-			// Return UOM.WinAPI.UniversalGetWin32Structure(Of SPI_NONCLIENTMETRICS)(
-			// Sub(ByRef R1) R1.cbSize = Marshal.SizeOf(R1),
-			// Sub(Ptr) If (Not SystemParametersInfo(SPI.SPI_GETNONCLIENTMETRICS, 0, Ptr)) Then Throw New ComponentModel.Win32Exception)
-			#endregion
-
-			internal delegate void OnStructureCreated<T>(ref T rStrucr) where T : struct;
-			/// <summary>Универсальный метод получения структур WinAPI через буфер в памяти</summary>
-			/// <typeparam name="T">Тип структуры</typeparam>
-			/// <param name="structInitializer">Действие после создания нового экземпляра структуры (инициализация полей, размеров и т.д.). Структура передаётся по-ссылке</param>
-			/// <param name="body">Метод главного вызова API, с передачей ему указателя на буфер, который потом будет преобразован в структуру</param>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static T GetWinApiStruct<T>(OnStructureCreated<T> structInitializer, Action<IntPtr> body) where T : struct
-			{
-				var rStruct = new T();
-				structInitializer?.Invoke(ref rStruct);                // Вызываем метод инициализации новой структуры - заполение полей, указание размеров и т.д., что требует конкретная API
-				using var mem = rStruct.eStructureToMemoryBlock(); // Создаём буффер в памяти размером со структуру и копируем содержимое структуры в новый буфер																	
-				body.Invoke(mem.DangerousGetHandle());          // Главный вызов API, с указателем на буфер в памяти																														
-				return mem.DangerousGetHandle().eToStructure<T>();           // Преобразование буфера обратно в структуру
-			}
-
-			#endregion
-
-
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			// ms-help://MS.MSDNQTR.2003APR.1033/sysinfo/base/closehandle.htm
-			internal static extern bool CloseHandle(IntPtr hObject);
-
+			public const string MS_RESX_PREFIX = @"ms-resource:";
 
 		}
-
 
 
 		/// <summary>Win32 Memory API</summary>
@@ -18511,327 +19656,267 @@ namespace uom
 		{
 
 
+			#region Universal way of getting WinAPI structures from Ptr					 
+
+
+			internal delegate void OnStructureCreated<T> ( ref T rStrucr ) where T : struct;
+
+
+			/// <summary>
+			/// Универсальный метод получения структур WinAPI через буфер в памяти
+			/// <br/>
+			/// Sample:
+			/// <code>
+			/// Dim A = UniversalGetWin32Structure(Of SPI_NONCLIENTMETRICS)(Sub(ByRef R1)
+			/// R1.cbSize = Marshal.SizeOf(R1)
+			/// End Sub,
+			/// Sub(Ptr)
+			/// If (Not SystemParametersInfo(SPI.SPI_GETNONCLIENTMETRICS, 0, Ptr)) Then Throw New ComponentModel.Win32Exception
+			/// End Sub)
+			/// 
+			/// Or:
+			/// Return UOM.WinAPI.UniversalGetWin32Structure(Of SPI_NONCLIENTMETRICS)(
+			/// Sub(ByRef R1) R1.cbSize = Marshal.SizeOf(R1),
+			/// Sub(Ptr) If (Not SystemParametersInfo(SPI.SPI_GETNONCLIENTMETRICS, 0, Ptr)) Then Throw New ComponentModel.Win32Exception)
+			/// </code>
+			/// </summary>
+			/// <typeparam name="T">Тип структуры</typeparam>
+			/// <param name="structInitializer">Действие после создания нового экземпляра структуры (инициализация полей, размеров и т.д.). Структура передаётся по-ссылке</param>
+			/// <param name="structGetterBody">Метод главного вызова API, с передачей ему указателя на буфер, который потом будет преобразован в структуру</param>
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static T GetWinApiStruct<T> (
+				OnStructureCreated<T> structInitializer,
+				Action<IntPtr> structGetterBody
+				) where T : struct
+			{
+				var rStruct = new T ();
+				structInitializer?.Invoke (ref rStruct);                // Вызываем метод инициализации новой структуры - заполение полей, указание размеров и т.д., что требует конкретная API
+				using var mem = rStruct.eStructureToMemoryBlock (); // Создаём буффер в памяти размером со структуру и копируем содержимое структуры в новый буфер																	
+				structGetterBody.Invoke (mem.DangerousGetHandle ());          // Главный вызов API, с указателем на буфер в памяти																														
+				return mem.DangerousGetHandle ().eToStructure<T> ();           // Преобразование буфера обратно в структуру
+			}
+
+
+			#endregion
+
+
 			/// <summary>PInvoke, для CRT функции memcmp()</summary>
-			[DllImport(core.WINDLL_MSVCRT, CallingConvention = CallingConvention.Cdecl)]
-			public static extern int memcmp(byte[] a, byte[] b, UInt64 p_Count);
+			[DllImport (core.WINDLL_MSVCRT, CallingConvention = CallingConvention.Cdecl)]
+			public static extern int memcmp ( byte[] a, byte[] b, UInt64 p_Count );
 
 #if NET
 			#region Only for stackalloc'ed arrays!
 
-			[DllImport(core.WINDLL_MSVCRT, CallingConvention = CallingConvention.Cdecl)]
-			private static extern int memcmp(in byte a, in byte b, UInt64 p_Count);
+			[DllImport (core.WINDLL_MSVCRT, CallingConvention = CallingConvention.Cdecl)]
+			private static extern int memcmp ( in byte a, in byte b, UInt64 p_Count );
 
 
 
 			/// <summary>This faster than memcmp(byte[] a, byte[] b) 
 			/// ONY when A & B is located in stack (stackalloc'ed)!
 			/// When Arrays located in RAM - this not faster.</summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public unsafe static bool memcmp(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			public unsafe static bool memcmp ( ReadOnlySpan<byte> a, ReadOnlySpan<byte> b )
 			{
-				fixed (byte* ptrA = &MemoryMarshal.GetReference(a), ptrB = &MemoryMarshal.GetReference(b))
+				fixed (byte* ptrA = &MemoryMarshal.GetReference (a), ptrB = &MemoryMarshal.GetReference (b))
 				{
-					return (memcmp(
-						Unsafe.AsRef<byte>(ptrA),
-						Unsafe.AsRef<byte>(ptrB),
-						(ulong)a.Length) == 0);
+					return ( memcmp (
+						Unsafe.AsRef<byte> (ptrA),
+						Unsafe.AsRef<byte> (ptrB),
+						(ulong) a.Length) == 0 );
 				}
 			}
+
 			#endregion
 #endif
 
-			[Flags()]
-			internal enum Flags : int
-			{
-				LMEM_FIXED = 0x0,
-				LMEM_MOVEABLE = 0x2,
-				LMEM_NOCOMPACT = 0x10,
-				LMEM_NODISCARD = 0x20,
-				LMEM_ZEROINIT = 0x40,
-				LMEM_MODIFY = 0x80,
-				LMEM_DISCARDABLE = 0xF00,
-				LMEM_VALID_FLAGS = 0xF72,
-				LMEM_INVALID_HANDLE = 0x8000,
-				LHND = LMEM_MOVEABLE + LMEM_ZEROINIT,
-				//LPTR = LMEM_FIXED + LMEM_ZEROINIT, = LMEM_ZEROINIT!
-				NONZEROLHND = LMEM_MOVEABLE,
-				NONZEROLPTR = LMEM_FIXED
-			}
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern IntPtr LocalAlloc(Flags wFlags, int wBytes);
-
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern IntPtr LocalFree(IntPtr hMem);
-
-
-			#region Global/Local Size
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern uint LocalSize(IntPtr hMem);
-
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern ulong GlobalSize(IntPtr hMem);
-			#endregion
-
-
-			/// <summary>If the function succeeds, the return value specifies the allocation values and the lock count for the memory object. 
-			/// If the function fails, the return value is GMEM_INVALID_HANDLE, indicating that the global handle is not valid. To get extended error information, call GetLastError. 
-			/// The low-order byte of the low-order word of the return value contains the lock count of the object. To retrieve the lock count from the return value, use the GMEM_LOCKCOUNT mask with the bitwise AND operator. The lock count of memory objects allocated with GMEM_FIXED is always zero. 
-			/// The high-order byte of the low-order word of the return value indicates the allocation values of the memory object. It can be zero or GMEM_DISCARDED.</summary>
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern uint GlobalFlags(IntPtr hMem);
-
-
-			/// <summary>If the function succeeds, the return value specifies the allocation values and the lock count for the memory object.
-			/// If the function fails, the return value is LMEM_INVALID_HANDLE, indicating that the local handle is not valid. To get extended error information, call GetLastError.
-			/// The low-order byte of the low-order word of the return value contains the lock count of the object. To retrieve the lock count from the return value, use the LMEM_LOCKCOUNT mask with the bitwise AND operator. The lock count of memory objects allocated with LMEM_FIXED is always zero.
-			/// The high-order byte of the low-order word of the return value indicates the allocation values of the memory object. It can be zero or LMEM_DISCARDABLE.</summary>
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern uint LocalFlags(IntPtr hMem);
 
 
 			#region CopyMemory ZeroMemory FillMemory
 
-			/// <summary>Note that if you declare the lpData parameter as String, you must pass it By Value.</summary>
-			[DllImport(core.WINDLL_KERNEL, EntryPoint = "RtlMoveMemory", SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern void CopyMemory(IntPtr Приёмник, IntPtr Источник, int Length);
+			/// <summary>Note that if you declare the lpData parameter as string, you must pass it By Value.</summary>
+			[DllImport (Lib.Kernel32, EntryPoint = "RtlMoveMemory", SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
+			internal static extern void CopyMemory ( IntPtr target, IntPtr source, int length );
 
 
-			[DllImport(core.WINDLL_KERNEL, EntryPoint = "RtlZeroMemory", SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern void ZeroMemory(IntPtr Приёмник, int nBytes);
-
-			internal static void ZeroMemory(ref byte[] A, int? nBytes = null)
+			[MethodImpl (MethodImplOptions.AggressiveInlining)]
+			internal static void ZeroMemory ( ref byte[] A, int? nBytes = null )
 			{
 				nBytes ??= A.Length;
 
-				var GCH = GCHandle.Alloc(A);
+				var GCH = GCHandle.Alloc (A);
 				try
 				{
-					var ptrAP1 = Marshal.UnsafeAddrOfPinnedArrayElement(A, 0);
-					ZeroMemory(ptrAP1, (int)nBytes);
+					var ptrAP1 = Marshal.UnsafeAddrOfPinnedArrayElement (A, 0);
+					Kernel32.RtlZeroMemory (ptrAP1, (int) nBytes);
 				}
-				finally { GCH.Free(); }
+				finally { GCH.Free (); }
 			}
 
-			[DllImport(core.WINDLL_KERNEL, EntryPoint = "RtlFillMemory", SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern void FillMemory(IntPtr Приёмник, int Length, byte FillByte);
-
-
-
 
 			#endregion
 
-
-			#region Memory Lock API
-
-			/// <summary>Locks a local memory object and returns a pointer to the first byte of the object's memory block.</summary>
-			/// <param name="hMem">A handle to the local memory object. This handle is returned by either the LocalAlloc or LocalReAlloc function.</param>
-			/// <returns>If the function succeeds, the return value is a pointer to the first byte of the memory block.
-			/// If the function fails, the return value null == . To get extended error information, call GetLastError.</returns>
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern IntPtr GlobalLock(IntPtr hMem);
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool GlobalUnlock(IntPtr hMem);
-
-			/// <summary>Locks a local memory object and returns a pointer to the first byte of the object's memory block.</summary>
-			/// <param name="hMem">A handle to the local memory object. This handle is returned by either the LocalAlloc or LocalReAlloc function.</param>
-			/// <returns>If the function succeeds, the return value is a pointer to the first byte of the memory block.
-			/// If the function fails, the return value null == . To get extended error information, call GetLastError.</returns>
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern IntPtr LocalLock(IntPtr hMem);
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool LocalUnlock(IntPtr hMem);
-
-
-
-			#endregion
 
 
 
 			/// <summary>Memory Block uses Marshal.AllocHGlobal</summary>
 			//[SecurityPermission(SecurityAction.LinkDemand, UnmanagedCode = true)]
-			[DebuggerDisplay("LocalMemory: hMem:{handle}, Lenght={Lenght}")]
+			[DebuggerDisplay ("WinApiMemory: hMem:{handle}, Lenght={Lenght}")]
 			internal sealed partial class WinApiMemory : Microsoft.Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid
 			{
 
 				private HandleRef _HandleRef = default;
 				private ulong _Size = 0UL;
-				public static WinApiMemory INVALID = new(0);
+
+				public static readonly WinApiMemory INVALID = new (0);
+
 
 				/// <summary>If true - uses LocalFree for release memory. If False - uses FreeHGlobal</summary>
 				public readonly bool IsLocal = false;
 
+
 				#region Constructor\Destructor
+
+
 				/// <summary>HGlobal</summary>
-				internal WinApiMemory(ulong lSize) : base(true) => ReAlloc(lSize);
+				internal WinApiMemory ( ulong lSize ) : base (true) => ReAlloc (lSize);
 
-				internal WinApiMemory(int iSize) : this((ulong)iSize) { }
+				internal WinApiMemory ( int iSize ) : this ((ulong) iSize) { }
 
-				internal WinApiMemory(byte[] abData) : base(true)
+				internal WinApiMemory ( byte[] abData ) : base (true)
 				{
-					if (abData!.Length < 1)
-					{
-						throw new ArgumentNullException(nameof(abData));
-					}
+					if (abData!.Length < 1) throw new ArgumentNullException (nameof (abData));
 
-					ReAlloc((ulong)abData!.Length);
-					Marshal.Copy(abData, 0, DangerousGetHandle(), abData.Length);
+					ReAlloc ((ulong) abData!.Length);
+					Marshal.Copy (abData, 0, DangerousGetHandle (), abData.Length);
 				}
 
 				/// <summary>Init from Memory Handle</summary>
 				/// <param name="bIsLocal">If true - uses LocalFree for release memory. If False - uses FreeHGlobal</param>
-				internal WinApiMemory(IntPtr hMem, bool OwnsHandle = true, bool bIsLocal = false) : base(OwnsHandle)
+				internal WinApiMemory ( IntPtr hMem, bool OwnsHandle = true, bool bIsLocal = false ) : base (OwnsHandle)
 				{
 					IsLocal = bIsLocal;
-					SetHandle(hMem);
-					if (IsInvalid)
-					{
-						errors.ThrowLastWin23Error();
-					}
+					SetHandle (hMem);
+					IsInvalid.ThrowLastWin32ErrorIfTrue ();
 
-					_HandleRef = new HandleRef(this, hMem);
-					_Size = (IsLocal) ? LocalSize(hMem) : GlobalSize(hMem);
+					_HandleRef = new HandleRef (this, hMem);
+					_Size = IsLocal
+						? Kernel32.LocalSize (hMem)
+						: Kernel32.GlobalSize (hMem);
 				}
 
 
-				public void ZeroMemory(int? nBytes = null)
+				/// <summary>Init from string (create copy of the string)</summary>
+				internal WinApiMemory ( string source, bool unicode = true ) : this (
+					( unicode
+					? Marshal.StringToHGlobalUni (source)
+					: Marshal.StringToHGlobalAnsi (source) )
+					, true, false)
+				{ }
+
+
+				public void Zero ( int? bytesCount = null )
 				{
-					if (IsValid)
-					{
-						uom.WinAPI.memory.ZeroMemory(DangerousGetHandle(), (int)(nBytes ?? Lenght));
-					}
+					if (!IsValid) return;
+					Kernel32.RtlZeroMemory (DangerousGetHandle (), (int) ( bytesCount ?? Lenght ));
 				}
 
-				internal void FillMemory(byte Data, int? nBytes = null)
+				internal void FillMemory ( byte Data, int? nBytes = null )
 				{
-					if (IsValid)
-					{
-						uom.WinAPI.memory.FillMemory(DangerousGetHandle(), (int)(nBytes ?? Lenght), Data);
-					}
+					if (!IsValid) return;
+					Kernel32.RtlFillMemory (DangerousGetHandle (), (int) ( nBytes ?? Lenght ), Data);
 				}
 
-				public void ReAlloc(ulong lSize)
+				public void ReAlloc ( ulong lSize )
 				{
-					if (IsLocal)
-					{
-						throw new NotSupportedException("ReAlloc is not supported with IsLocal flag!");
-					}
+					if (IsLocal) throw new NotSupportedException ($"ReAlloc is not supported with {nameof (IsLocal)} flag!");
 
-					ReleaseHandle();
+
+					ReleaseHandle ();
 					if (lSize > 0)
 					{
-						int iSize = (int)lSize;
-						var hMem = Marshal.AllocHGlobal(iSize);
-						SetHandle(hMem);
-						if (IsInvalid)
-						{
-							errors.ThrowLastWin23Error();
-						}
-
-						_HandleRef = new HandleRef(this, hMem);
+						int iSize = (int) lSize;
+						var hMem = Marshal.AllocHGlobal (iSize);
+						SetHandle (hMem);
+						IsInvalid.ThrowLastWin32ErrorIfTrue ();
+						_HandleRef = new HandleRef (this, hMem);
 					}
 					_Size = lSize;
 				}
 
-				protected override bool ReleaseHandle()
+
+				protected override bool ReleaseHandle ()
 				{
 					_HandleRef = default;
 					if (IsValid)
 					{
 						if (IsLocal)
-						{
-							LocalFree(DangerousGetHandle());
-						}
+							Kernel32.LocalFree (DangerousGetHandle ());
 						else
-						{
-							Marshal.FreeHGlobal(DangerousGetHandle());
-						}
+							Marshal.FreeHGlobal (DangerousGetHandle ());
 
-						SetHandle(IntPtr.Zero);
+						SetHandle (IntPtr.Zero);
 						_Size = 0UL;
 					}
 					return true;
 				}
 
+
 				#endregion
+
 
 				#region Properties
 
-				public int Lenght => (int)_Size;
+
+				public int Lenght => (int) _Size;
 
 				public ulong Lenght64 => _Size;
 
 				public bool IsValid => !IsInvalid;
 
+
 				#endregion
+
+
 
 				#region Public Methods
 
-				// <DebuggerNonUserCode, DebuggerStepThrough>
-				// Public Function ToStructure(Of T As Structure)() As T
-				// Return Me.DangerousGetHandle.ToStructure(Of T)
-				// End Function
-
-				// Public Function ToStringAnsi(ByVal Lenght As Integer, Optional ByVal Offset As Integer = 0) As String
-				// Dim NewPtr As New system.intptr(m_Ptr.ToInt32 + Offset)
-				// Return Marshal.PtrToStringAnsi(NewPtr, Lenght)
-				// End Function
-
-				// ''<summary>Reads the string from the memory block.</summary>
-				// ''<param name="iLenght">The length of the string to read, in characters.</param>
-				// Public Function ToStringUni(ByVal iLenght As Integer,
-				// Optional StringType As uom.constants.E_STRING_TYPES = E_STRING_TYPES.Uni) As String
-
-				// If (iLenght <= 0) OrElse (Me.IsInvalid) Then Return vbNullString
-				// If (iLenght > _Size) Then iLenght = Me.Lenght
-
-				// Dim S = Me.DangerousGetHandle.PtrToString(Lenght, StringType)
-				// Return S
-				// End Function
-
-
 
 				[DebuggerNonUserCode, DebuggerStepThrough]
-				public void CopyFrom(IntPtr Source, int CopySize)
+				public void CopyFrom ( IntPtr Source, int CopySize )
+				{
+					if (CopySize > Lenght) throw new OutOfMemoryException ();
+					CopyMemory (DangerousGetHandle (), Source, CopySize);
+				}
+
+				[DebuggerNonUserCode, DebuggerStepThrough]
+				public void CopyTo ( IntPtr Target, int CopySize )
 				{
 					if (CopySize > Lenght)
 					{
-						throw new OutOfMemoryException();
+						throw new OutOfMemoryException ();
 					}
 
-					CopyMemory(DangerousGetHandle(), Source, CopySize);
+					CopyMemory (Target, DangerousGetHandle (), CopySize);
 				}
 
 				[DebuggerNonUserCode, DebuggerStepThrough]
-				public void CopyTo(IntPtr Target, int CopySize)
+				public byte[] ToBytes () => DangerousGetHandle ().ePtrToBytes (Lenght);
+
+
+				public short[] ToShorts ()
 				{
-					if (CopySize > Lenght)
-					{
-						throw new OutOfMemoryException();
-					}
-
-					CopyMemory(Target, DangerousGetHandle(), CopySize);
-				}
-
-				[DebuggerNonUserCode, DebuggerStepThrough]
-				public byte[] ToBytes() => DangerousGetHandle().ePtrToBytes(Lenght);
-
-
-				public short[] ToShorts()
-				{
-					int VAL_SIZE = Marshal.SizeOf(typeof(short));
-					var Numbers = Array.Empty<short>();
-					int iCount = (int)Math.Round(Lenght / (double)VAL_SIZE);
+					int VAL_SIZE = Marshal.SizeOf (typeof (short));
+					var Numbers = Array.Empty<short> ();
+					int iCount = (int) Math.Round (Lenght / (double) VAL_SIZE);
 					if (iCount > 0)
 					{
-						Numbers = new short[iCount];
+						Numbers = new short[ iCount ];
 						int N, iOffset = default;
 						var loopTo = iCount - 1;
 						for (N = 0 ; N <= loopTo ; N++)
 						{
-							Numbers[N] = Marshal.ReadInt16(DangerousGetHandle(), iOffset);
+							Numbers[ N ] = Marshal.ReadInt16 (DangerousGetHandle (), iOffset);
 							iOffset += VAL_SIZE;
 						}
 					}
@@ -18839,19 +19924,19 @@ namespace uom
 					return Numbers;
 				}
 
-				public int[] ToIntegers()
+				public int[] ToIntegers ()
 				{
-					int VAL_SIZE = Marshal.SizeOf(typeof(int));
-					var Numbers = Array.Empty<int>();
-					int iCount = (int)Math.Round(Lenght / (double)VAL_SIZE);
+					int VAL_SIZE = Marshal.SizeOf (typeof (int));
+					var Numbers = Array.Empty<int> ();
+					int iCount = (int) Math.Round (Lenght / (double) VAL_SIZE);
 					if (iCount > 0)
 					{
-						Numbers = new int[iCount];
+						Numbers = new int[ iCount ];
 						int N, iOffset = default;
 						var loopTo = iCount - 1;
 						for (N = 0 ; N <= loopTo ; N++)
 						{
-							Numbers[N] = Marshal.ReadInt32(DangerousGetHandle(), iOffset);
+							Numbers[ N ] = Marshal.ReadInt32 (DangerousGetHandle (), iOffset);
 							iOffset += VAL_SIZE;
 						}
 					}
@@ -18859,72 +19944,77 @@ namespace uom
 					return Numbers;
 				}
 
-				public System.Drawing.Point[] ToPoints()
+				public System.Drawing.Point[] ToPoints ()
 				{
-					int VAL_SIZE = Marshal.SizeOf(typeof(System.Drawing.Point));
-					var Numbers = Array.Empty<System.Drawing.Point>();
-					int iCount = (int)Math.Round(Lenght / (double)VAL_SIZE);
+					int VAL_SIZE = Marshal.SizeOf (typeof (System.Drawing.Point));
+					var Numbers = Array.Empty<System.Drawing.Point> ();
+					int iCount = (int) Math.Round (Lenght / (double) VAL_SIZE);
 					if (iCount > 0)
 					{
-						Numbers = new System.Drawing.Point[iCount];
+						Numbers = new System.Drawing.Point[ iCount ];
 						int N, iOffset = default;
 						var loopTo = iCount - 1;
 						for (N = 0 ; N <= loopTo ; N++)
 						{
-							Numbers[N].X = Marshal.ReadInt32(DangerousGetHandle(), iOffset);
-							Numbers[N].Y = Marshal.ReadInt32(DangerousGetHandle(), iOffset + (int)Math.Round(VAL_SIZE / 2d));
+							Numbers[ N ].X = Marshal.ReadInt32 (DangerousGetHandle (), iOffset);
+							Numbers[ N ].Y = Marshal.ReadInt32 (DangerousGetHandle (), iOffset + (int) Math.Round (VAL_SIZE / 2d));
 							iOffset += VAL_SIZE;
 						}
 					}
 					return Numbers;
 				}
 
-				[Obsolete("Need Refactor inner call!", true)]
-				public string[] ToStrings(int StringSize) => ToStrings(StringSize, Marshal.SystemDefaultCharSize);
+				[Obsolete ("Need Refactor inner call!", true)]
+				public string[] ToStrings ( int StringSize ) => ToStrings (StringSize, Marshal.SystemDefaultCharSize);
 
-				[Obsolete("Need Refactor!", true)]
-				public string[] ToStrings(int stringSizeBytes, int CharSize)
+				[Obsolete ("Need Refactor!", true)]
+				public string[] ToStrings ( int stringSizeBytes, int CharSize )
 				{
 					List<string> lResult = [];
 					int sringSizeChars = stringSizeBytes * CharSize;
-					int iStringCount = (int)Math.Round(Lenght / (double)sringSizeChars);
+					int iStringCount = (int) Math.Round (Lenght / (double) sringSizeChars);
 					if (iStringCount > 0)
 					{
-						IntPtr ptr = DangerousGetHandle();
+						IntPtr ptr = DangerousGetHandle ();
 						for (int i = 1 ; i <= iStringCount ; i++)
 						{
 							//TODO: NEED Refactor!
-							string sValue = Marshal.PtrToStringAuto(ptr, stringSizeBytes)?.eNString() ?? string.Empty;
+							string sValue = Marshal.PtrToStringAuto (ptr, stringSizeBytes)?.eNString () ?? string.Empty;
 
-							lResult.Add(sValue);
+							lResult.Add (sValue);
 							ptr += sringSizeChars;
 						}
 					}
-					return lResult.ToArray();
+					return [ .. lResult ];
 				}
 
-				public string DumpHex() => DangerousGetHandle().eDumpHexToString(Lenght);
+				public string DumpHex () => DangerousGetHandle ().eToHexDump (Lenght);
 
-				public override string ToString() => DumpHex();
+				public override string ToString () => DumpHex ();
 
-				public byte[] RAWData => ToBytes();
+				public byte[] RAWData => ToBytes ();
 
-				public string RAWData_AsUnicode => Encoding.Unicode.GetString(RAWData, 0, RAWData.Length);
+				public string RAWData_AsUnicode => Encoding.Unicode.GetString (RAWData, 0, RAWData.Length);
 
-				public string RAWData_AsASCII => Encoding.ASCII.GetString(RAWData, 0, RAWData.Length);
+				public string RAWData_AsASCII => Encoding.ASCII.GetString (RAWData, 0, RAWData.Length);
 
 				#endregion
 
 
 				#region Operator
-				public static bool operator ==(WinApiMemory Mem1, WinApiMemory LMB2) => (Mem1.IsValid && LMB2.IsValid) && (Mem1.DangerousGetHandle() == LMB2.DangerousGetHandle());
+				public static bool operator == ( WinApiMemory Mem1, WinApiMemory LMB2 ) => ( Mem1.IsValid && LMB2.IsValid ) && ( Mem1.DangerousGetHandle () == LMB2.DangerousGetHandle () );
 
-				public static bool operator !=(WinApiMemory LMB1, WinApiMemory LMB2) => !(LMB1 == LMB2);
+				public static bool operator != ( WinApiMemory LMB1, WinApiMemory LMB2 ) => !( LMB1 == LMB2 );
 
-				public static implicit operator IntPtr(WinApiMemory LMB1) => LMB1.DangerousGetHandle();
+				public static implicit operator IntPtr ( WinApiMemory LMB1 ) => LMB1.DangerousGetHandle ();
 
 
-				// Public Shared Widening Operator CType(ByVal LMB1 As LocalMemory) As String
+
+
+
+
+
+				// Public Shared Widening Operator CType(ByVal LMB1 As LocalMemory) As string
 				// Return LMB1.ToString
 				// End Operator
 				// Public Shared Widening Operator CType(ByVal LMB1 As LocalMemory) As Integer()
@@ -18941,17 +20031,13 @@ namespace uom
 				#endregion
 
 
-				/// <summary>Создаём пустой массив</summary>
-				[DebuggerNonUserCode, DebuggerStepThrough]
-				[MethodImpl(MethodImplOptions.AggressiveInlining)]
-				public static byte[] CreateEmptyArray(int iSize) => new byte[iSize];
+				public MemoryLock Lock () => new (this);
 
-				public MemoryLock Lock() => new(this);
+				public override bool Equals ( object? obj )
+					=> obj is WinApiMemory memory && EqualityComparer<IntPtr>.Default.Equals (handle, memory.handle);
 
-				public override bool Equals(object? obj)
-					=> obj is WinApiMemory memory && EqualityComparer<IntPtr>.Default.Equals(handle, memory.handle);
+				public override int GetHashCode () => handle.GetHashCode ();
 
-				public override int GetHashCode() => handle.GetHashCode();
 
 				#region Class MemoryLock
 
@@ -18959,40 +20045,40 @@ namespace uom
 				{
 					protected readonly WinApiMemory? _OwnerMemory = null;
 
-					protected internal MemoryLock(WinApiMemory M) : base(true)
+					protected internal MemoryLock ( WinApiMemory M ) : base (true)
 					{
 						_OwnerMemory = M;
-						var hMem = (_OwnerMemory.IsLocal) ? LocalLock(_OwnerMemory.DangerousGetHandle()) : GlobalLock(_OwnerMemory.DangerousGetHandle());
-						SetHandle(hMem);
-						if (IsInvalid)
-						{
-							errors.ThrowLastWin23Error();
-						}
+						var hMem = ( _OwnerMemory.IsLocal )
+							? Kernel32.LocalLock (_OwnerMemory.DangerousGetHandle ())
+							: Kernel32.GlobalLock (_OwnerMemory.DangerousGetHandle ());
+
+						SetHandle (hMem);
+						IsInvalid.ThrowLastWin32ErrorIfTrue ();
 					}
 
-					protected override bool ReleaseHandle()
+					protected override bool ReleaseHandle ()
 					{
-						var hMem = DangerousGetHandle();
-						if (hMem.eIsValid())
+						var hMem = DangerousGetHandle ();
+						if (hMem.eIsValid ())
 						{
-							hMem = _OwnerMemory!.DangerousGetHandle();
-							var bUnlock = (_OwnerMemory.IsLocal) ? LocalUnlock(hMem) : GlobalUnlock(hMem);
-							if (!bUnlock)
-							{
-								errors.ThrowLastWin23Error();
-							}
+							hMem = _OwnerMemory!.DangerousGetHandle ();
 
-							SetHandle(IntPtr.Zero);
+							if (_OwnerMemory.IsLocal)
+								Kernel32.LocalUnlock (hMem).ThrowLastWin32ErrorIfFailed ();
+							else
+								Kernel32.GlobalUnlock (hMem).ThrowLastWin32ErrorIfFailed ();
+
+							SetHandle (IntPtr.Zero);
 						}
 						return true;
 					}
 				}
 				#endregion
 
+
 			}
 
 		}
-
 
 
 		/// <summary>Win32 Multithreading and syncronisation API</summary>
@@ -19001,625 +20087,104 @@ namespace uom
 
 			#region Event APIs
 
+			/*
 			//[SecurityPermission(SecurityAction.LinkDemand, UnmanagedCode = true)]
-			[DebuggerDisplay("Win32Event: hEvent:{handle}")]
+			[DebuggerDisplay ("Win32Event: hEvent:{handle}")]
 			internal sealed partial class Win32Event : Microsoft.Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid
 			{
 
 				#region Constructor\Destructor
 
-				public Win32Event(
-					IntPtr EventSecurityAttributes,
-					bool ManualReset,
-					bool InitialState,
-					string? Name = null) : base(true)
+				public Win32Event ( IntPtr hEvent, bool OwnHandle ) : base (OwnHandle)
 				{
-					ReleaseHandle();
-					var hEvent = CreateEvent(EventSecurityAttributes, ManualReset, InitialState, Name);
-					SetHandle(hEvent);
-					if (IsInvalid)
-					{
-						errors.ThrowLastWin23Error();
-					}
+					ReleaseHandle ();
+
+					SetHandle (hEvent);
+					if (IsInvalid) errors.ThrowLastWin23Error ();
 				}
 
-				public Win32Event(
-					bool ManualReset,
-					bool InitialState,
-					string? Name = null) : this(IntPtr.Zero, ManualReset, InitialState, Name) { }
+				public Win32Event ( bool ManualReset, bool InitialState, string? Name = null ) : this (IntPtr.Zero, ManualReset, InitialState, Name) { }
 
 
-				public Win32Event(IntPtr hEvent, bool OwnHandle) : base(OwnHandle)
-				{
-					SetHandle(hEvent);
-					if (IsInvalid)
-					{
-						errors.ThrowLastWin23Error();
-					}
-				}
+				public Win32Event ( SECURITY_ATTRIBUTES sa, bool ManualReset, bool InitialState, string? Name = null )
+					: this (Kernel32.CreateEvent (sa, ManualReset, InitialState, Name).DangerousGetHandle (), true)
+				{ }
 
-				protected override bool ReleaseHandle()
+
+
+
+				protected override bool ReleaseHandle ()
 				{
 					if (!IsInvalid)
 					{
-						if (!core.CloseHandle(DangerousGetHandle()))
-						{
+						if (!Kernel32.CloseHandle (DangerousGetHandle ()))
 							return false;
-						}
 
-						SetHandle(IntPtr.Zero);
+						SetHandle (IntPtr.Zero);
 					}
 					return true;
 				}
 				#endregion
 
-				internal WaitResults WaitForSingleObject(int Milliseconds = Timeout.Infinite)
-					=> WinAPI.sync.WaitForSingleObject(DangerousGetHandle(), Milliseconds);
+				internal Kernel32.WAIT_STATUS WaitForSingleObject ( int Milliseconds = Timeout.Infinite )
+					=> DangerousGetHandle ().WaitForSingleObject (Milliseconds);
 
 			}
 
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern IntPtr CreateEvent(
-				IntPtr lpEventSecurityAttributes,
-				bool bManualReset,
-				bool bInitialState,
-				[MarshalAs(UnmanagedType.LPTStr)] string? lpName);
-
-			internal enum WaitResults : uint
-			{
-				WAIT_FAILED = 0xFFFFFFFF,
-
-				/// <summary>The state of the specified object is signaled.</summary>
-				WAIT_OBJECT_0 = core.STATUS_WAIT_0,
-
-				/// <summary>The specified object is a mutex object that was not released by the thread that owned the mutex object before the owning thread terminated. Ownership of the mutex object is granted to the calling thread, and the mutex is set to nonsignaled.</summary>
-				WAIT_ABANDONED = core.STATUS_ABANDONED_WAIT_0 + 0
-			}
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern WaitResults WaitForSingleObject(IntPtr hHandle, int dwMilliseconds = Timeout.Infinite);
-
+			 */
 
 			#endregion
 
 		}
 
 
-
-
 		/// <summary>Win32 Process and Threads API</summary>
 		internal static partial class process
 		{
-			/*
-			public const Int32 GENERIC_ALL_ACCESS = 0x10000000;
-			public const UInt32 INFINITE = 0xFFFFFFFF;
-			public const UInt32 WAIT_FAILED = 0xFFFFFFFF;
-			 */
-
-
-			#region Enums
-
-
-
-			[Flags]
-			public enum CreateProcessFlags : uint
-			{
-				DEBUG_PROCESS = 0x00000001,
-				DEBUG_ONLY_THIS_PROCESS = 0x00000002,
-				CREATE_SUSPENDED = 0x00000004,
-				DETACHED_PROCESS = 0x00000008,
-				CREATE_NEW_CONSOLE = 0x00000010,
-				NORMAL_PRIORITY_CLASS = 0x00000020,
-				IDLE_PRIORITY_CLASS = 0x00000040,
-				HIGH_PRIORITY_CLASS = 0x00000080,
-				REALTIME_PRIORITY_CLASS = 0x00000100,
-				CREATE_NEW_PROCESS_GROUP = 0x00000200,
-				CREATE_UNICODE_ENVIRONMENT = 0x00000400,
-				CREATE_SEPARATE_WOW_VDM = 0x00000800,
-				CREATE_SHARED_WOW_VDM = 0x00001000,
-				CREATE_FORCEDOS = 0x00002000,
-				BELOW_NORMAL_PRIORITY_CLASS = 0x00004000,
-				ABOVE_NORMAL_PRIORITY_CLASS = 0x00008000,
-				INHERIT_PARENT_AFFINITY = 0x00010000,
-				INHERIT_CALLER_PRIORITY = 0x00020000,
-				CREATE_PROTECTED_PROCESS = 0x00040000,
-				EXTENDED_STARTUPINFO_PRESENT = 0x00080000,
-				PROCESS_MODE_BACKGROUND_BEGIN = 0x00100000,
-				PROCESS_MODE_BACKGROUND_END = 0x00200000,
-				CREATE_BREAKAWAY_FROM_JOB = 0x01000000,
-				CREATE_PRESERVE_CODE_AUTHZ_LEVEL = 0x02000000,
-				CREATE_DEFAULT_ERROR_MODE = 0x04000000,
-				CREATE_NO_WINDOW = 0x08000000,
-				PROFILE_USER = 0x10000000,
-				PROFILE_KERNEL = 0x20000000,
-				PROFILE_SERVER = 0x40000000,
-				CREATE_IGNORE_SYSTEM_DEFAULT = 0x80000000,
-			}
-
-			[Flags]
-			public enum DuplicateOptions : uint
-			{
-				DUPLICATE_CLOSE_SOURCE = 0x00000001,
-				DUPLICATE_SAME_ACCESS = 0x00000002
-			}
-
-			[Flags]
-			public enum LogonFlags
-			{
-				LOGON_WITH_PROFILE = 0x00000001,
-				LOGON_NETCREDENTIALS_ONLY = 0x00000002
-			}
-
-			[Flags]
-			public enum LogonType
-			{
-				LOGON32_LOGON_INTERACTIVE = 2,
-				LOGON32_LOGON_NETWORK = 3,
-				LOGON32_LOGON_BATCH = 4,
-				LOGON32_LOGON_SERVICE = 5,
-				LOGON32_LOGON_UNLOCK = 7,
-				LOGON32_LOGON_NETWORK_CLEARTEXT = 8,
-				LOGON32_LOGON_NEW_CREDENTIALS = 9
-			}
-
-			[Flags]
-			public enum LogonProvider
-			{
-				LOGON32_PROVIDER_DEFAULT = 0,
-				LOGON32_PROVIDER_WINNT35,
-				LOGON32_PROVIDER_WINNT40,
-				LOGON32_PROVIDER_WINNT50
-			}
-
-
-			public enum SecurityImpersonationLevel
-			{
-				SecurityAnonymous = 0,
-				SecurityIdentification = 1,
-				SecurityImpersonation = 2,
-				SecurityDelegation = 3
-			}
-
-			public enum TokenType
-			{
-				TokenPrimary = 1,
-				TokenImpersonation = 2
-			}
-
-
-			#endregion
-
-
-			public enum TokenInformationClass
-			{
-				/// <summary>
-				/// The buffer receives a TOKEN_USER structure that contains the user account of the token.
-				/// </summary>
-				TokenUser = 1,
-
-				/// <summary>
-				/// The buffer receives a TOKEN_GROUPS structure that contains the group accounts associated with the token.
-				/// </summary>
-				TokenGroups,
-
-				/// <summary>
-				/// The buffer receives a TOKEN_PRIVILEGES structure that contains the privileges of the token.
-				/// </summary>
-				TokenPrivileges,
-
-				/// <summary>
-				/// The buffer receives a TOKEN_OWNER structure that contains the default owner security identifier (SID) for newly created objects.
-				/// </summary>
-				TokenOwner,
-
-				/// <summary>
-				/// The buffer receives a TOKEN_PRIMARY_GROUP structure that contains the default primary group SID for newly created objects.
-				/// </summary>
-				TokenPrimaryGroup,
-
-				/// <summary>
-				/// The buffer receives a TOKEN_DEFAULT_DACL structure that contains the default DACL for newly created objects.
-				/// </summary>
-				TokenDefaultDacl,
-
-				/// <summary>
-				/// The buffer receives a TOKEN_SOURCE structure that contains the source of the token. TOKEN_QUERY_SOURCE access is needed to retrieve this information.
-				/// </summary>
-				TokenSource,
-
-				/// <summary>
-				/// The buffer receives a TOKEN_TYPE value that indicates whether the token is a primary or impersonation token.
-				/// </summary>
-				TokenType,
-
-				/// <summary>
-				/// The buffer receives a SECURITY_IMPERSONATION_LEVEL value that indicates the impersonation level of the token. If the access token is not an impersonation token, the function fails.
-				/// </summary>
-				TokenImpersonationLevel,
-
-				/// <summary>
-				/// The buffer receives a TOKEN_STATISTICS structure that contains various token statistics.
-				/// </summary>
-				TokenStatistics,
-
-				/// <summary>
-				/// The buffer receives a TOKEN_GROUPS structure that contains the list of restricting SIDs in a restricted token.
-				/// </summary>
-				TokenRestrictedSids,
-
-				/// <summary>
-				/// The buffer receives a DWORD value that indicates the Terminal Services session identifier that is associated with the token. 
-				/// </summary>
-				TokenSessionId,
-
-				/// <summary>
-				/// The buffer receives a TOKEN_GROUPS_AND_PRIVILEGES structure that contains the user SID, the group accounts, the restricted SIDs, and the authentication ID associated with the token.
-				/// </summary>
-				TokenGroupsAndPrivileges,
-
-				/// <summary>
-				/// Reserved.
-				/// </summary>
-				TokenSessionReference,
-
-				/// <summary>
-				/// The buffer receives a DWORD value that is nonzero if the token includes the SANDBOX_INERT flag.
-				/// </summary>
-				TokenSandBoxInert,
-
-				/// <summary>
-				/// Reserved.
-				/// </summary>
-				TokenAuditPolicy,
-
-				/// <summary>
-				/// The buffer receives a TOKEN_ORIGIN value. 
-				/// </summary>
-				TokenOrigin,
-
-				/// <summary>
-				/// The buffer receives a TOKEN_ELEVATION_TYPE value that specifies the elevation level of the token.
-				/// </summary>
-				TokenElevationType,
-
-				/// <summary>
-				/// The buffer receives a TOKEN_LINKED_TOKEN structure that contains a handle to another token that is linked to this token.
-				/// </summary>
-				TokenLinkedToken,
-
-				/// <summary>
-				/// The buffer receives a TOKEN_ELEVATION structure that specifies whether the token is elevated.
-				/// </summary>
-				TokenElevation,
-
-				/// <summary>
-				/// The buffer receives a DWORD value that is nonzero if the token has ever been filtered.
-				/// </summary>
-				TokenHasRestrictions,
-
-				/// <summary>
-				/// The buffer receives a TOKEN_ACCESS_INFORMATION structure that specifies security information contained in the token.
-				/// </summary>
-				TokenAccessInformation,
-
-				/// <summary>
-				/// The buffer receives a DWORD value that is nonzero if virtualization is allowed for the token.
-				/// </summary>
-				TokenVirtualizationAllowed,
-
-				/// <summary>
-				/// The buffer receives a DWORD value that is nonzero if virtualization is enabled for the token.
-				/// </summary>
-				TokenVirtualizationEnabled,
-
-				/// <summary>
-				/// The buffer receives a TOKEN_MANDATORY_LABEL structure that specifies the token's integrity level. 
-				/// </summary>
-				TokenIntegrityLevel,
-
-				/// <summary>
-				/// The buffer receives a DWORD value that is nonzero if the token has the UIAccess flag set.
-				/// </summary>
-				TokenUIAccess,
-
-				/// <summary>
-				/// The buffer receives a TOKEN_MANDATORY_POLICY structure that specifies the token's mandatory integrity policy.
-				/// </summary>
-				TokenMandatoryPolicy,
-
-				/// <summary>
-				/// The buffer receives the token's logon security identifier (SID).
-				/// </summary>
-				TokenLogonSid,
-
-				/// <summary>
-				/// The maximum value for this enumeration
-				/// </summary>
-				MaxTokenInfoClass
-			}
-
-
-
-			#region Struct
-
-
-
-			[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-			private struct STARTUPINFOEX
-			{
-				public STARTUPINFO StartupInfo;
-				public IntPtr lpAttributeList;
-			}
-
-			[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-			public struct PROCESS_INFORMATION
-			{
-				public IntPtr hProcess;
-				public IntPtr hThread;
-				public uint dwProcessId;
-				public uint dwThreadId;
-			}
-
-			[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-			public struct STARTUPINFO
-			{
-				public uint cb = 0;
-				public IntPtr lpReserved = IntPtr.Zero;
-				public IntPtr lpDesktop = IntPtr.Zero; // MUST be Zero
-				public string? lpTitle = null;
-				public uint dwX = 0;
-				public uint dwY;
-				public uint dwXSize = 0;
-				public uint dwYSize = 0;
-				public uint dwXCountChars = 0;
-				public uint dwYCountChars = 0;
-				public uint dwFillAttribute = 0;
-				public uint dwFlags = 0;
-				public short wShowWindow = 0;
-				public short cbReserved2 = 0;
-				public IntPtr lpReserved2 = IntPtr.Zero;
-				public IntPtr hStdInput = IntPtr.Zero;
-				public IntPtr hStdOutput = IntPtr.Zero;
-				public IntPtr hStdError = IntPtr.Zero;
-
-				public STARTUPINFO()
-				{
-					this.cb = (uint)Marshal.SizeOf(this);
-				}
-			}
-
-			[StructLayout(LayoutKind.Sequential)]
-			public struct SECURITY_ATTRIBUTES
-			{
-				public int nLength = 0;
-				public IntPtr lpSecurityDescriptor = IntPtr.Zero;
-				public bool bInheritHandle = false;
-
-				public SECURITY_ATTRIBUTES()
-				{
-					this.nLength = Marshal.SizeOf(this);
-				}
-			}
-
-
-
-
-			#endregion
-
-
-
-			// http://www.pinvoke.net/default.aspx/userenv.createenvironmentblock
-			[DllImport("userenv.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-			public static extern bool CreateEnvironmentBlock(out IntPtr lpEnvironment, IntPtr hToken, bool bInherit);
-
-
-			#region Token API
-
-
-			[DllImport(core.WINDLL_ADVAPI32, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			public static extern bool DuplicateTokenEx(
-				IntPtr hExistingToken,
-				uint dwDesiredAccess,
-				SECURITY_ATTRIBUTES lpTokenAttributes,
-				SecurityImpersonationLevel impersonationLevel,
-				TokenType tokenType,
-				out IntPtr hNewToken);
-
-
-			[DllImport(core.WINDLL_ADVAPI32, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			public static extern bool SetTokenInformation(
-				IntPtr hToken,
-				TokenInformationClass tokenInformationClass,
-				ref uint TokenInformation,
-				uint TokenInformationLength);
-
-
-			#endregion
 
 
 
 			#region Process API
 
 
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			public static extern IntPtr GetCurrentProcess();
-
-
-			/// <summary>
-			/// Creates a new process and its primary thread. The new process runs in the security context of the calling process.
-			/// If the calling process is impersonating another user, the new process uses the token for the calling process, not the impersonation token.To run the new process in the security context of the user represented by the impersonation token, use the CreateProcessAsUser or CreateProcessWithLogon function.
-			/// https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw
-			/// </summary>
-			/// <param name="lpApplicationName"></param>
-			/// <param name="lpCommandLine"></param>
-			/// <param name="lpProcessAttributes"></param>
-			/// <param name="lpThreadAttributes"></param>
-			/// <param name="bInheritHandles"></param>
-			/// <param name="dwCreationFlags"></param>
-			/// <param name="lpEnvironment"></param>
-			/// <param name="lpCurrentDirectory"></param>
-			/// <param name="lpStartupInfo"></param>
-			/// <param name="lpProcessInformation"></param>
-			/// <returns></returns>
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			[return: MarshalAs(UnmanagedType.Bool)]
-			internal static extern bool CreateProcess(
-				[In, Optional, MarshalAs(UnmanagedType.LPTStr)] string? lpApplicationName,
-				[In, Optional, MarshalAs(UnmanagedType.LPTStr)] string? lpCommandLine,
-				[In, Optional] IntPtr lpProcessAttributes,
-				[In, Optional] IntPtr lpThreadAttributes,
-				[In] bool bInheritHandles,
-				[In] uint dwCreationFlags,
-				[In, Optional] IntPtr lpEnvironment,
-				[In, Optional] string? lpCurrentDirectory,
-				[In] ref STARTUPINFO lpStartupInfo,
-				[Out] out PROCESS_INFORMATION lpProcessInformation);
-
-
 			/// <summary>c# Analog for VB.Interaction.Shell</summary>
 			/// <param name="cmdWithArgs">Sample: "cmd /c powershell"</param>
 			/// <returns></returns>
 			/// <exception cref="Win32Exception"></exception>
-			internal static PROCESS_INFORMATION InteractionShell(string cmdWithArgs, bool waitForExit = false)
+			internal static Kernel32.SafePROCESS_INFORMATION InteractionShell ( string cmdWithArgs, bool waitForExit = false, Kernel32.CREATE_PROCESS flags = 0 )
 			{
-				STARTUPINFO si = new();
-				PROCESS_INFORMATION pi = new();
-				if (!CreateProcess(
-								   /* app name     */ null,
-								   /* cmd line     */ cmdWithArgs,
-								   /* proc atts    */ IntPtr.Zero,
-								   /* thread atts  */ IntPtr.Zero,
-								   /* inh handles  */ false,
-								   /* create flags */ 0,
-								   /* env ptr      */ IntPtr.Zero,
-								   /* current dir  */ null,
-								   /* startupinfo  */ ref si,
-								   /* processinfo  */ out pi))
+				Kernel32.STARTUPINFO si = new ();
+				if (!Kernel32.CreateProcess (
+					null,
+					new StringBuilder (cmdWithArgs),
+					null,
+					null,
+					false,
+					flags,
+					null,
+					null,
+					si,
+					out var pi))
 				{
-					throw new Win32Exception();
+					throw new Win32Exception ();
 				}
 
 				// Wait until child process exits.
 				if (waitForExit)
 				{
-					sync.WaitForSingleObject(pi.hProcess);
-					core.CloseHandle(pi.hThread);
-					core.CloseHandle(pi.hProcess);
+					pi.hProcess.DangerousGetHandle ().WaitForSingleObjectInfinite ();
+					pi.hThread.Close ();
+					pi.hProcess.Close ();
 				}
 				return pi;
 			}
 
 
-
-			[DllImport(core.WINDLL_ADVAPI32, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			[return: MarshalAs(UnmanagedType.Bool)]
-			internal static extern bool CreateProcessAsUser(
-				IntPtr hToken,
-				String lpApplicationName,
-				[In] StringBuilder lpCommandLine,
-				SECURITY_ATTRIBUTES lpProcessAttributes,
-				SECURITY_ATTRIBUTES lpThreadAttributes,
-				bool bInheritHandles,
-				CreateProcessFlags dwCreationFlags,
-				IntPtr lpEnvironment,
-				String lpCurrentDirectory,
-				[In] STARTUPINFO lpStartupInfo,
-				out PROCESS_INFORMATION lpProcessInformation
-				);
-
-
-			[DllImport(core.WINDLL_ADVAPI32, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			[return: MarshalAs(UnmanagedType.Bool)]
-			internal static extern bool CreateProcessWithLogon
-			(
-				String lpUserName,
-				String lpDomain,
-				String lpPassword,
-				LogonFlags dwLogonFlags,
-				String lpApplicationName,
-				StringBuilder lpCommandLine,
-				CreateProcessFlags dwCreationFlags,
-				IntPtr lpEnvironment,
-				String lpCurrentDirectory,
-				[In] STARTUPINFO lpStartupInfo,
-				out PROCESS_INFORMATION lpProcessInformation
-			);
-
-
-			[DllImport(core.WINDLL_ADVAPI32, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			[return: MarshalAs(UnmanagedType.Bool)]
-			internal static extern bool CreateProcessWithToken
-			(
-				IntPtr hToken,
-				LogonFlags dwLogonFlags,
-				String lpApplicationName,
-				String lpCommandLine,
-				CreateProcessFlags dwCreationFlags,
-				IntPtr lpEnvironment,
-				String lpCurrentDirectory,
-				[In] STARTUPINFO lpStartupInfo,
-				out PROCESS_INFORMATION lpProcessInformation
-			);
-
-
-
 			#endregion
 
 
-			#region  Threads API
-
-			/// <summary>Retrieves the thread identifier of the calling thread.
-			/// Until the thread terminates, the thread identifier uniquely identifies the thread throughout the system.</summary>
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			public static extern int GetCurrentThreadId();
 
 
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern uint ResumeThread(IntPtr hThread);
-
-
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			public static extern IntPtr GetThreadDesktop(int dwThreadId);
-
-
-			#endregion
-
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern IntPtr GetEnvironmentStrings();
-
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			public static extern IntPtr GetProcessWindowStation();
-
-
-
-			#region ProcThreadAttribute API
-
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			[return: MarshalAs(UnmanagedType.Bool)]
-			internal static extern bool UpdateProcThreadAttribute(IntPtr lpAttributeList, uint dwFlags, IntPtr Attribute, IntPtr lpValue, IntPtr cbSize, IntPtr lpPreviousValue, IntPtr lpReturnSize);
-
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			[return: MarshalAs(UnmanagedType.Bool)]
-			internal static extern bool InitializeProcThreadAttributeList(IntPtr lpAttributeList, int dwAttributeCount, int dwFlags, ref IntPtr lpSize);
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			[return: MarshalAs(UnmanagedType.Bool)]
-			internal static extern bool InitializeProcThreadAttributeList(out IntPtr lpAttributeList, int dwAttributeCount, int dwFlags, ref IntPtr lpSize);
-
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			[return: MarshalAs(UnmanagedType.Bool)]
-			internal static extern bool DeleteProcThreadAttributeList(IntPtr lpAttributeList);
-
-
-			#endregion
 
 
 
@@ -19627,95 +20192,23 @@ namespace uom
 			#region ADVAPI32 User, Logon and Impersonation API
 
 
-			[DllImport(core.WINDLL_ADVAPI32, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			[return: MarshalAs(UnmanagedType.Bool)]
-			internal static extern bool RevertToSelf();
-
-
-
-			[DllImport(core.WINDLL_ADVAPI32, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			[return: MarshalAs(UnmanagedType.Bool)]
-			public static extern bool LogonUser(
-				String lpszUserName,
-				String lpszDomain,
-				String lpszPassword,
-				LogonType dwLogonType,
-				LogonProvider dwLogonProvider,
-				out IntPtr phToken);
-
-
-
-
-			internal enum ProfileInfoFlags : Int32
-			{
-				PI_NOUI = 0x00000001,
-
-				/// <summary>Not supported</summary>
-				PI_APPLYPOLICY = 0x00000002
-			}
-
-
-			[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-			internal class ProfileInfo
-			{
-				public Int32 dwSize = 0;
-
-				public ProfileInfoFlags dwFlags = ProfileInfoFlags.PI_NOUI;
-
-				[MarshalAs(UnmanagedType.LPTStr)]
-				public String lpUserName = string.Empty;
-
-				[MarshalAs(UnmanagedType.LPTStr)]
-				public String lpProfilePath = string.Empty;
-
-				[MarshalAs(UnmanagedType.LPTStr)]
-				public String lpDefaultPath = string.Empty;
-
-				[MarshalAs(UnmanagedType.LPTStr)]
-				public String lpServerName = string.Empty;
-
-				[MarshalAs(UnmanagedType.LPTStr)]
-				public String lpPolicyPath = string.Empty;
-
-				public IntPtr hProfile = IntPtr.Zero;
-
-				public ProfileInfo()
-				{
-					this.dwSize = Marshal.SizeOf(this);
-				}
-			}
-
-			[DllImport(core.WINDLL_USERENV, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool LoadUserProfile(
-				[In] IntPtr hToken,
-				[In, Out] ref ProfileInfo lpProfileInfo);
-
-
-			[DllImport(core.WINDLL_USERENV, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool UnloadUserProfile(IntPtr hToken, IntPtr hProfile);
-
 
 
 			internal sealed class SafeUserTokenHandle : SafeHandleZeroOrMinusOneIsInvalid
 			{
-				public SafeUserTokenHandle() : base(true)
-				{
-				}
+				public SafeUserTokenHandle () : base (true) { }
 
-				public SafeUserTokenHandle(IntPtr existingHandle) : base(true)
-				{
-					base.SetHandle(existingHandle);
-				}
+				public SafeUserTokenHandle ( IntPtr existingHandle ) : base (true)
+					=> base.SetHandle (existingHandle);
 
-				public static explicit operator IntPtr(SafeUserTokenHandle userTokenHandle)
-				{
-					return userTokenHandle.DangerousGetHandle();
-				}
 
-				protected override bool ReleaseHandle()
-				{
-					return uom.WinAPI.core.CloseHandle(this.handle);
-				}
+				public static explicit operator IntPtr ( SafeUserTokenHandle userTokenHandle )
+					=> userTokenHandle.DangerousGetHandle ();
+
+
+				protected override bool ReleaseHandle ()
+					=> Kernel32.CloseHandle (this.handle);
+
 			}
 
 
@@ -19802,45 +20295,11 @@ namespace uom
 		}
 
 
-
 		internal static class hooks
 		{
 
 
-			internal enum CbtHookAction
-			{
-				HCBT_MOVESIZE,
-				HCBT_MINMAX,
-				HCBT_QS,
-				HCBT_CREATEWND,
-				HCBT_DESTROYWND,
-				HCBT_ACTIVATE,
-				HCBT_CLICKSKIPPED,
-				HCBT_KEYSKIPPED,
-				HCBT_SYSCOMMAND,
-				HCBT_SETFOCUS
-			}
-
-			internal enum HookType
-			{
-				WH_JOURNALRECORD,
-				WH_JOURNALPLAYBACK,
-				WH_KEYBOARD,
-				WH_GETMESSAGE,
-				WH_CALLWNDPROC,
-				WH_CBT,
-				WH_SYSMSGFILTER,
-				WH_MOUSE,
-				WH_HARDWARE,
-				WH_DEBUG,
-				WH_SHELL,
-				WH_FOREGROUNDIDLE,
-				WH_CALLWNDPROCRET,
-				WH_KEYBOARD_LL,
-				WH_MOUSE_LL
-			}
-
-			internal class CbtEventArgs(IntPtr hwnd, string title, string className, bool isDialog) : EventArgs()
+			internal class CbtEventArgs ( IntPtr hwnd, string title, string className, bool isDialog ) : EventArgs ()
 			{
 				public readonly IntPtr Handle = hwnd;
 				public readonly string Title = title;
@@ -19848,7 +20307,7 @@ namespace uom
 				public readonly bool IsDialogWindow = isDialog;
 			}
 
-			internal class HookEventArgs(int code, IntPtr wp, IntPtr lp) : EventArgs()
+			internal class HookEventArgs ( int code, IntPtr wp, IntPtr lp ) : EventArgs ()
 			{
 				public readonly int HookCode = code;
 				public readonly IntPtr wParam = wp;
@@ -19857,136 +20316,125 @@ namespace uom
 
 			internal class LocalWindowsHook : AutoDisposableUniversal
 			{
-				public delegate int HookProc(int code, IntPtr wParam, IntPtr lParam);
 
-				public delegate void HookEventHandler(object sender, HookEventArgs e);
 
-				protected IntPtr _hhook = IntPtr.Zero;
-				protected HookProc _filterFunc;
-				protected HookType _hookType;
+				protected User32.SafeHHOOK? _hhook = null;
+				protected readonly User32.HookProc _filterFunc;
+				protected readonly User32.HookType _hookType;
 
-				public event HookEventHandler HookInvoked = delegate { };
 
-				protected void OnHookInvoked(HookEventArgs e) => HookInvoked?.Invoke(this, e);
+				public event EventHandler<HookEventArgs> HookInvoked = delegate { };
 
-				private LocalWindowsHook(HookProc? func) : base()
+
+				private LocalWindowsHook ( User32.HookProc? func ) : base ()
 				{
 					_filterFunc = func ?? CoreHookProc;
-					this.RegisterDisposeCallback(() => Uninstall(), false);
+					RegisterDisposeCallback (Uninstall, false);
 				}
 
-				public LocalWindowsHook(HookType hook) : this(null) { _hookType = hook; }
+				public LocalWindowsHook ( User32.HookType hook ) : this (null) { _hookType = hook; }
 
-				public LocalWindowsHook(HookType hook, HookProc func) : this(func) { _hookType = hook; }
+				public LocalWindowsHook ( User32.HookType hook, User32.HookProc func ) : this (func) { _hookType = hook; }
 
 
-				protected int CoreHookProc(int code, IntPtr wParam, IntPtr lParam)
+				protected void OnHookInvoked ( HookEventArgs e )
+					=> HookInvoked?.Invoke (this, e);
+
+
+				protected IntPtr CoreHookProc ( int code, IntPtr wParam, IntPtr lParam )
 				{
-					if (code < 0)
-					{
-						return CallNextHookEx(_hhook, code, wParam, lParam);
-					}
+					if (code < 0) return User32.CallNextHookEx (_hhook!, code, wParam, lParam);
 
-					HookEventArgs hookEventArgs = new(code, wParam, lParam);
-					OnHookInvoked(hookEventArgs);
-					return CallNextHookEx(_hhook, code, wParam, lParam);
+					HookEventArgs hookEventArgs = new (code, wParam, lParam);
+					OnHookInvoked (hookEventArgs);
+					return User32.CallNextHookEx (_hhook!, code, wParam, lParam);
 				}
 
-				public void Install()
+
+				public void Install ()
 				{
 					//Don't Work: m_hhook = SetWindowsHookEx(m_hookType, m_filterFunc, IntPtr.Zero, System.Threading.Thread.CurrentThread.ManagedThreadId);
-					_hhook = SetWindowsHookEx(_hookType, _filterFunc, IntPtr.Zero, uom.WinAPI.process.GetCurrentThreadId());
+					_hhook = User32.SetWindowsHookEx (_hookType, _filterFunc, IntPtr.Zero, (int) Kernel32.GetCurrentThreadId ());
 				}
 
-				public void Uninstall()
+
+				public void Uninstall ()
 				{
-					if (_hhook.eIsValid())
-					{
-						UnhookWindowsHookEx(_hhook);
-					}
-
-					_hhook = IntPtr.Zero;
+					_hhook?.Dispose ();// User32.UnhookWindowsHookEx (_hhook);
+					_hhook = null;
 				}
 
-
-				[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-				internal static extern IntPtr SetWindowsHookEx(HookType code, HookProc func, IntPtr hInstance, int threadID);
-
-				[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-				internal static extern int UnhookWindowsHookEx(IntPtr hhook);
-
-				[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-				internal static extern int CallNextHookEx(IntPtr hhook, int code, IntPtr wParam, IntPtr lParam);
 			}
+
 
 			internal class LocalCbtHook : LocalWindowsHook
 			{
-				//public delegate void CbtEventHandler(object sender, CbtEventArgs e);
 
 				protected IntPtr _hwnd = IntPtr.Zero;
-				protected string _title = "";
-				protected string _class = "";
+				protected string _title = string.Empty;
+				protected string _class = string.Empty;
 				protected bool _isDialog = false;
 				public event EventHandler<CbtEventArgs> WindowCreated = delegate { };
 				public event EventHandler<CbtEventArgs> WindowDestroyed = delegate { };
 				public event EventHandler<CbtEventArgs> WindowActivated = delegate { };
 
-				public LocalCbtHook() : base(HookType.WH_CBT) { base.HookInvoked += CbtHookInvoked; }
+				public LocalCbtHook () : base (User32.HookType.WH_CBT) { base.HookInvoked += CbtHookInvoked!; }
 
-				public LocalCbtHook(HookProc func) : base(HookType.WH_CBT, func) { base.HookInvoked += CbtHookInvoked; }
+				public LocalCbtHook ( User32.HookProc func ) : base (User32.HookType.WH_CBT, func) { base.HookInvoked += CbtHookInvoked!; }
 
-				private void CbtHookInvoked(object sender, HookEventArgs e)
+				private void CbtHookInvoked ( object sender, HookEventArgs e )
 				{
-					CbtHookAction hookCode = (CbtHookAction)e.HookCode;
+					User32.HCBT hookCode = (User32.HCBT) e.HookCode;
 					IntPtr wParam = e.wParam;
 					IntPtr lParam = e.lParam;
 					switch (hookCode)
 					{
-						case CbtHookAction.HCBT_CREATEWND:
-							HandleCreateWndEvent(wParam, lParam);
+						case User32.HCBT.HCBT_CREATEWND:
+							HandleCreateWndEvent (wParam, lParam);
 							break;
-						case CbtHookAction.HCBT_DESTROYWND:
-							HandleDestroyWndEvent(wParam, lParam);
+						case User32.HCBT.HCBT_DESTROYWND:
+							HandleDestroyWndEvent (wParam, lParam);
 							break;
-						case CbtHookAction.HCBT_ACTIVATE:
-							HandleActivateEvent(wParam, lParam);
+						case User32.HCBT.HCBT_ACTIVATE:
+							HandleActivateEvent (wParam, lParam);
 							break;
 					}
 				}
 
-				private void HandleCreateWndEvent(IntPtr wParam, IntPtr lParam)
+				private void HandleCreateWndEvent ( IntPtr wParam, IntPtr lParam )
 				{
-					UpdateWindowData(wParam);
-					OnWindowCreated();
+					UpdateWindowData (wParam);
+					OnWindowCreated ();
 				}
 
-				private void HandleDestroyWndEvent(IntPtr wParam, IntPtr lParam)
+				private void HandleDestroyWndEvent ( IntPtr wParam, IntPtr lParam )
 				{
-					UpdateWindowData(wParam);
-					OnWindowDestroyed();
+					UpdateWindowData (wParam);
+					OnWindowDestroyed ();
 				}
 
-				private void HandleActivateEvent(IntPtr wParam, IntPtr lParam)
+				private void HandleActivateEvent ( IntPtr wParam, IntPtr lParam )
 				{
-					UpdateWindowData(wParam);
-					OnWindowActivated();
+					UpdateWindowData (wParam);
+					OnWindowActivated ();
 				}
 
-				private void UpdateWindowData(IntPtr wParam)
+
+				private void UpdateWindowData ( IntPtr wParam )
 				{
 					_hwnd = wParam;
-					_class = uom.WinAPI.windows.GetClassName(_hwnd);
-					_title = uom.WinAPI.windows.GetWindowText(_hwnd);
+					_class = _hwnd.GetClassName ();
+					_title = _hwnd.GetWindowText ();
 					_isDialog = _class == "#32770";
 				}
 
-				protected virtual void OnWindowCreated() => WindowCreated?.Invoke(this, PrepareEventData());
+				protected virtual void OnWindowCreated () => WindowCreated?.Invoke (this, PrepareEventData ());
 
-				protected virtual void OnWindowDestroyed() => WindowDestroyed?.Invoke(this, PrepareEventData());
+				protected virtual void OnWindowDestroyed () => WindowDestroyed?.Invoke (this, PrepareEventData ());
 
-				protected virtual void OnWindowActivated() => WindowActivated?.Invoke(this, PrepareEventData());
+				protected virtual void OnWindowActivated () => WindowActivated?.Invoke (this, PrepareEventData ());
 
-				private CbtEventArgs PrepareEventData() => new(_hwnd, _title, _class, _isDialog);
+				private CbtEventArgs PrepareEventData () => new (_hwnd, _title, _class, _isDialog);
 
 			}
 
@@ -19995,3244 +20443,6 @@ namespace uom
 
 
 
-		/// <summary>Win32 I/O API</summary>
-		internal static partial class io
-		{
-
-			internal const int MAX_PATH = 260;
-
-			/// <summary>This prefix indicates to NTFS that the path is to be treated as a non-interpretedpath in the virtual file system.</summary>
-			internal const string UNC_PATH_PREFIX = @"\\?\";
-			// Public Const LONG_PATH_PREFIX As String = "\??\"
-
-
-			/// <summary>Use System.Runtime.InteropServices.ComTypes.FILETIME instead</summary>
-			[Obsolete("Use System.Runtime.InteropServices.ComTypes.FILETIME instead")]
-			[StructLayout(LayoutKind.Sequential)]
-			internal partial struct FILETIME
-			{
-				public int dwLowDateTime;
-				public int dwHighDateTime;
-			}
-
-			[StructLayout(LayoutKind.Sequential)]
-			internal partial struct SYSTEMTIME
-			{
-				public short wYear;
-				public short wMonth;
-				public short wDayOfWeek;
-				public short wDay;
-				public short wHour;
-				public short wMinute;
-				public short wSecond;
-				public short wMilliseconds;
-			}
-
-
-			/// <summary>Переполнится, когда они код отработает 585 миллиардов лет.
-			/// При гибернации не сбрасывается!</summary>
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern ulong GetTickCount64();
-
-
-			public static DateTime SystemTimeToDate(ref SYSTEMTIME stx, bool Localize = false)
-			{
-				var st = default(SYSTEMTIME);
-				var ft = default(System.Runtime.InteropServices.ComTypes.FILETIME);
-				// Windows NT/2000 *ONLY* Shortcut:
-				// Using NULL for lpTimeZoneInformation converts SYSTEMTIME structure from UTC to currently active time zone with call
-				// to SystemTimeToTzSpecificLocalTime
-				// If Localize Then
-				// Call SystemTimeToTzSpecificLocalTime(ByVal 0&, stx, st)
-
-				if (Localize)
-				{
-					// Convert to FILETIME, localize, then convert back to SYSTEMTIME.
-					_ = SystemTimeToFileTime(ref stx, ref ft);
-					_ = FileTimeToLocalFileTime(ref ft, ref ft);
-					_ = FileTimeToSystemTime(ref ft, ref st);
-				}
-				else
-				{
-					// Structures can't be passed byval; make copy.  :-(
-					st = stx;
-				}
-				// Convert to VB-style date (double).
-				return new DateTime(st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
-			}
-
-
-
-
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			public static extern int FileTimeToLocalFileTime(
-				[In] ref System.Runtime.InteropServices.ComTypes.FILETIME lpFileTime,
-				[In, Out] ref System.Runtime.InteropServices.ComTypes.FILETIME lpLocalFileTime);
-
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			public static extern int FileTimeToSystemTime(
-				[In] ref System.Runtime.InteropServices.ComTypes.FILETIME lpFileTime,
-				[In, Out] ref SYSTEMTIME lpSystemTime);
-
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			public static extern int SystemTimeToFileTime(
-				[In] ref SYSTEMTIME lpSystemTime,
-				[In, Out] ref System.Runtime.InteropServices.ComTypes.FILETIME lpFileTime);
-
-			#region Files
-
-			#region GetFileType
-			[Flags()]
-			public enum FileTypes : int
-			{
-				/// <summary>The specified file is a character file, typically an LPT device or a console.</summary>
-				FILE_TYPE_CHAR = 0x2,
-				/// <summary>The specified file is a disk file.</summary>
-				FILE_TYPE_DISK = 0x1,
-				/// <summary>The specified file is a socket, a named pipe, or an anonymous pipe.</summary>
-				FILE_TYPE_PIPE = 0x3,
-				/// <summary>Unused.</summary>
-				FILE_TYPE_REMOTE = 0x8000,
-				/// <summary>Either the type of the specified file is unknown, or the function failed.</summary>
-				FILE_TYPE_UNKNOWN = 0x0
-			}
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			public static extern FileTypes GetFileType(Microsoft.Win32.SafeHandles.SafeFileHandle handle);
-
-			#endregion
-
-			#region CreateFile
-			[Flags()]
-			public enum NativeFileFlags : uint
-			{
-				OPEN_EXISTING = 3,
-				FILE_SHARE_READ = 0x1,
-				FILE_SHARE_WRITE = 0x2,
-				FILE_ATTRIBUTE_NORMAL = 0x80,
-				OpenNoRecall = 0x100000,
-				PosixSemantics = 0x1000000,
-				DeleteOnClose = 0x4000000,
-				SequentialScan = 0x8000000,
-				RandomAccess = 0x10000000,
-				NoBuffering = 0x20000000,
-				Overlapped = 0x40000000,
-				WriteThrough = 0x80000000,
-				FILE_FLAG_BACKUP_SEMANTICS = 0x2000000,
-				FILE_FLAG_OPEN_REPARSE_POINT = 0x200000
-			}
-
-			[Flags()]
-			public enum NativeFileAccess : uint
-			{
-				GenericRead = 0x80000000,
-				GenericWrite = 0x40000000,
-				GenericExecute = 0x20000000,
-				GenericAll = 0x10000000
-			}
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			public static extern IntPtr CreateFile([In, MarshalAs(UnmanagedType.LPTStr)] string name, [In, MarshalAs(UnmanagedType.I4)] NativeFileAccess access, [In, MarshalAs(UnmanagedType.I4)] FileShare share, [In, MarshalAs(UnmanagedType.SysInt)] IntPtr security, [In, MarshalAs(UnmanagedType.I4)] FileMode mode, [In, MarshalAs(UnmanagedType.I4)] NativeFileFlags flags, [In, MarshalAs(UnmanagedType.SysInt)] IntPtr template);
-
-
-			[DllImport(core.WINDLL_KERNEL, EntryPoint = "CreateFile", SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			public static extern Microsoft.Win32.SafeHandles.SafeFileHandle CreateFileAsSafeFileHandle([In, MarshalAs(UnmanagedType.LPTStr)] string name, [In, MarshalAs(UnmanagedType.I4)] NativeFileAccess access, [In, MarshalAs(UnmanagedType.I4)] FileShare share, [In, MarshalAs(UnmanagedType.SysInt)] IntPtr security, [In, MarshalAs(UnmanagedType.I4)] FileMode mode, [In, MarshalAs(UnmanagedType.I4)] NativeFileFlags flags, [In, MarshalAs(UnmanagedType.SysInt)] IntPtr template);
-			#endregion
-
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool DeleteFile(string name);
-
-
-			[Flags()]
-			public enum EFileAttributes : uint
-			{
-				FILE_ATTRIBUTE_READONLY = 0x1,    // A file that is read-only. Applications can read the file, but cannot write to it or delete it. This attribute is not honored on directories. For more information, see Online  "You cannot view or change the Read-only or the System attributes of folders in Windows Server 2003, in Windows XP, or in Windows Vista".
-				FILE_ATTRIBUTE_HIDDEN = 0x2,    // The file or directory is hidden. It is not included in an ordinary directory listing.
-				FILE_ATTRIBUTE_SYSTEM = 0x4,    // A file or directory that the operating system uses a part of, or uses exclusively.
-				FILE_ATTRIBUTE_DIRECTORY = 0x10,    // The handle that identifies a directory.
-				FILE_ATTRIBUTE_ARCHIVE = 0x20,    // A file or directory that is an archive file or directory. Applications typically use this attribute to mark files for backup or removal.
-				FILE_ATTRIBUTE_DEVICE = 0x40,    // This value is reserved for system use.
-				FILE_ATTRIBUTE_NORMAL = 0x80,    // A file that does not have other attributes set. This attribute is valid only when used alone.
-				FILE_ATTRIBUTE_TEMPORARY = 0x100,    // A file that is being used for temporary storage. File systems avoid writing data back to mass storage if sufficient cache memory is available, because typically, an application deletes a temporary file after the handle is closed. In that scenario, the system can entirely avoid writing the data. Otherwise, the data is written after the handle is closed.
-				FILE_ATTRIBUTE_SPARSE_FILE = 0x200,    // A file that is a sparse file.
-				FILE_ATTRIBUTE_REPARSE_POINT = 0x400,    // A file or directory that has an associated reparse point, or a file that is a symbolic link.
-				FILE_ATTRIBUTE_COMPRESSED = 0x800,    // A file or directory that is compressed. For a file, all of the data in the file is compressed. For a directory, compression is the default for newly created files and subdirectories.
-				FILE_ATTRIBUTE_ENCRYPTED = 0x4000,    // Afile or directory that is encrypted. For a file, all data streams in the file are encrypted. For a directory, encryption is the default for newly created files and subdirectories.
-				FILE_ATTRIBUTE_NOT_CONTENT_INDEXED = 0x2000,    // The file or directory is not to be indexed by the content indexing service.
-				FILE_ATTRIBUTE_OFFLINE = 0x1000,    // The data of a file is not available immediately. This attribute indicates that the file data is physically moved to offline storage. This attribute is used by Remote Storage, which is the hierarchical storage management software. Applications should not arbitrarily change this attribute.
-				FILE_ATTRIBUTE_VIRTUAL = 0x10000,  // This value is reserved for system use.
-
-				Write_Through = 0x80000000,
-				Overlapped = 0x40000000,
-				NoBuffering = 0x20000000,
-				RandomAccess = 0x10000000,
-				SequentialScan = 0x8000000,
-				DeleteOnClose = 0x4000000,
-				BackupSemantics = 0x2000000,
-				PosixSemantics = 0x1000000,
-				OpenReparsePoint = 0x200000,
-				OpenNoRecall = 0x100000,
-				FirstPipeInstance = 0x80000
-			}
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern EFileAttributes GetFileAttributes(string fileName);
-
-
-			#region GetFileInformationByHandle
-			[StructLayout(LayoutKind.Sequential)]
-			internal partial struct BY_HANDLE_FILE_INFORMATION
-			{
-				public int dwFileAttributes;
-				public System.Runtime.InteropServices.ComTypes.FILETIME ftCreationTime;
-				public System.Runtime.InteropServices.ComTypes.FILETIME ftLastAccessTime;
-				public System.Runtime.InteropServices.ComTypes.FILETIME ftLastWriteTime;
-				public int dwVolumeSerialNumber;
-				public int nFileSizeHigh;
-				public int nFileSizeLow;
-				public int nNumberOfLinks;
-				public int nFileIndexHigh;
-				public int nFileIndexLow;
-			}
-
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			private static extern bool GetFileInformationByHandle(
-				IntPtr hFile,
-			   [In, Out] ref BY_HANDLE_FILE_INFORMATION lpFileInformation);
-
-
-			internal static BY_HANDLE_FILE_INFORMATION GetFileInformationByHandle(IntPtr hFile)
-			{
-				BY_HANDLE_FILE_INFORMATION BHFI = new();
-
-				GetFileInformationByHandle(hFile, ref BHFI)
-					.eThrowLastWin32Exception_AssertFalse();
-
-
-				//if (!bResult) "GetFileInformationByHandle".eThrowLastWin32Exception();
-				return BHFI;
-			}
-
-
-			#endregion
-
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern int GetFinalPathNameByHandle(
-				[In] IntPtr hFile,
-				[In, Out, MarshalAs(UnmanagedType.LPTStr)] StringBuilder lpszFilePath,
-				[In, Out] ref Int32 cchFilePath,
-				[In] Int32 dwFlags);
-
-
-			// < DllImport("kernel32", CharSet = CharSet.Unicode, SetLastError = true)> 
-			// < return: MarshalAs(UnmanagedType. bool  )> 
-			// private static extern  bool   GetFileSizeEx(SafeFileHandle handle, [Out ] LargeInteger size) 
-
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool ReadFile(IntPtr hFile, byte[] lpBuffer, int nNumberOfBytesToRead, ref int lpNumberOfBytesRead, IntPtr lpOverlapped);
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool ReadFile(IntPtr hFile, IntPtr lpBuffer, int nNumberOfBytesToRead, ref int lpNumberOfBytesRead, ref NativeOverlapped lpOverlapped);
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool WriteFile(IntPtr hFile, byte[] lpBuffer, int nNumberOfBytesToWrite, ref int lpNumberOfBytesWritten, IntPtr lpOverlapped);
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool WriteFile(IntPtr hFile, IntPtr lpBuffer, int nNumberOfBytesToWrite, ref int lpNumberOfBytesWritten, ref NativeOverlapped lpOverlapped);
-
-
-			/// <summary>Flushes the buffers of a specified file and causes all buffered data to be written to a file.</summary>
-			/// <param name="hFile">A handle to the open file.
-			/// The file handle must have the GENERIC_WRITE access right. For more information, see File Security And Access Rights.
-			/// If hFile Is a handle To a communications device, the Function only flushes the transmit buffer.
-			/// If hFile Is a handle To the server End Of a named pipe, the Function does Not Return until the client has read all buffered data from the pipe.</param>
-			/// <returns></returns>
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool FlushFileBuffers(IntPtr hFile);
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool GetOverlappedResult([In] IntPtr hFile,
-				[In] NativeOverlapped lpOverlapped,
-				[In, Out] ref int lpNumberOfBytesTransferred,
-				[In] bool bWait);
-
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool CancelIo([In] IntPtr hFile);
-
-			#endregion
-
-
-
-		}
-
-
-		/// <summary>Win32 Security API</summary>
-		internal static partial class security
-		{
-			#region Privilege Names
-			internal enum PRIVELEGE_NAMES
-			{
-				SeAssignPrimaryTokenPrivilege,
-				SeAuditPrivilege,
-				SeBackupPrivilege,
-				SeChangeNotifyPrivilege,
-				SeCreateGlobalPrivilege,
-				SeCreatePagefilePrivilege,
-				SeCreatePermanentPrivilege,
-				SeCreateSymbolicLinkPrivilege,
-				SeCreateTokenPrivilege,
-				SeDebugPrivilege,
-				SeDelegateSessionUserImpersonatePrivilege,
-				SeEnableDelegationPrivilege,
-				SeImpersonatePrivilege,
-				SeIncreaseBasePriorityPrivilege,
-				SeIncreaseQuotaPrivilege,
-				SeIncreaseWorkingSetPrivilege,
-				SeLoadDriverPrivilege,
-				SeLockMemoryPrivilege,
-				SeMachineAccountPrivilege,
-				SeManageVolumePrivilege,
-				SeProfileSingleProcessPrivilege,
-				SeRelabelPrivilege,
-				SeRemoteShutdownPrivilege,
-				SeRestorePrivilege,
-				SeSecurityPrivilege,
-				SeShutdownPrivilege,
-				SeSyncAgentPrivilege,
-				SeSystemEnvironmentPrivilege,
-				SeSystemProfilePrivilege,
-				SeSystemtimePrivilege,
-				SeTakeOwnershipPrivilege,
-				SeTcbPrivilege,
-				SeTimeZonePrivilege,
-				SeTrustedCredManAccessPrivilege,
-				SeUndockPrivilege,
-				SeUnsolicitedInputPrivilege
-			}
-			internal static class Priveleges
-			{
-				internal static readonly string SE_ASSIGNPRIMARYTOKEN_NAME = PRIVELEGE_NAMES.SeAssignPrimaryTokenPrivilege.ToString();
-				internal static readonly string SE_AUDIT_NAME = PRIVELEGE_NAMES.SeAuditPrivilege.ToString();
-				internal static readonly string SE_BACKUP_NAME = PRIVELEGE_NAMES.SeBackupPrivilege.ToString();
-				internal static readonly string SE_CHANGE_NOTIFY_NAME = PRIVELEGE_NAMES.SeChangeNotifyPrivilege.ToString();
-				internal static readonly string SE_CREATE_GLOBAL_NAME = PRIVELEGE_NAMES.SeCreateGlobalPrivilege.ToString();
-				internal static readonly string SE_CREATE_PAGEFILE_NAME = PRIVELEGE_NAMES.SeCreatePagefilePrivilege.ToString();
-				internal static readonly string SE_CREATE_PERMANENT_NAME = PRIVELEGE_NAMES.SeCreatePermanentPrivilege.ToString();
-				internal static readonly string SE_CREATE_SYMBOLIC_LINK_NAME = PRIVELEGE_NAMES.SeCreateSymbolicLinkPrivilege.ToString();
-				internal static readonly string SE_CREATE_TOKEN_NAME = PRIVELEGE_NAMES.SeCreateTokenPrivilege.ToString();
-				internal static readonly string SE_DEBUG_NAME = PRIVELEGE_NAMES.SeDebugPrivilege.ToString();
-				internal static readonly string SE_DELEGATE_SESSION_USER_IMPERSONATE_NAME = PRIVELEGE_NAMES.SeDelegateSessionUserImpersonatePrivilege.ToString();
-				internal static readonly string SE_ENABLE_DELEGATION_NAME = PRIVELEGE_NAMES.SeEnableDelegationPrivilege.ToString();
-				internal static readonly string SE_IMPERSONATE_NAME = PRIVELEGE_NAMES.SeImpersonatePrivilege.ToString();
-				internal static readonly string SE_INC_BASE_PRIORITY_NAME = PRIVELEGE_NAMES.SeIncreaseBasePriorityPrivilege.ToString();
-				internal static readonly string SE_INCREASE_QUOTA_NAME = PRIVELEGE_NAMES.SeIncreaseQuotaPrivilege.ToString();
-				internal static readonly string SE_INC_WORKING_SET_NAME = PRIVELEGE_NAMES.SeIncreaseWorkingSetPrivilege.ToString();
-				internal static readonly string SE_LOAD_DRIVER_NAME = PRIVELEGE_NAMES.SeLoadDriverPrivilege.ToString();
-				internal static readonly string SE_LOCK_MEMORY_NAME = PRIVELEGE_NAMES.SeLockMemoryPrivilege.ToString();
-				internal static readonly string SE_MACHINE_ACCOUNT_NAME = PRIVELEGE_NAMES.SeMachineAccountPrivilege.ToString();
-				internal static readonly string SE_MANAGE_VOLUME_NAME = PRIVELEGE_NAMES.SeManageVolumePrivilege.ToString();
-				internal static readonly string SE_PROF_SINGLE_PROCESS_NAME = PRIVELEGE_NAMES.SeProfileSingleProcessPrivilege.ToString();
-				internal static readonly string SE_RELABEL_NAME = PRIVELEGE_NAMES.SeRelabelPrivilege.ToString();
-				internal static readonly string SE_REMOTE_SHUTDOWN_NAME = PRIVELEGE_NAMES.SeRemoteShutdownPrivilege.ToString();
-				internal static readonly string SE_RESTORE_NAME = PRIVELEGE_NAMES.SeRestorePrivilege.ToString();
-				internal static readonly string SE_SECURITY_NAME = PRIVELEGE_NAMES.SeSecurityPrivilege.ToString();
-				internal static readonly string SE_SHUTDOWN_NAME = PRIVELEGE_NAMES.SeShutdownPrivilege.ToString();
-				internal static readonly string SE_SYNC_AGENT_NAME = PRIVELEGE_NAMES.SeSyncAgentPrivilege.ToString();
-				internal static readonly string SE_SYSTEM_ENVIRONMENT_NAME = PRIVELEGE_NAMES.SeSystemEnvironmentPrivilege.ToString();
-				internal static readonly string SE_SYSTEM_PROFILE_NAME = PRIVELEGE_NAMES.SeSystemProfilePrivilege.ToString();
-				internal static readonly string SE_SYSTEMTIME_NAME = PRIVELEGE_NAMES.SeSystemtimePrivilege.ToString();
-				internal static readonly string SE_TAKE_OWNERSHIP_NAME = PRIVELEGE_NAMES.SeTakeOwnershipPrivilege.ToString();
-				internal static readonly string SE_TCB_NAME = PRIVELEGE_NAMES.SeTcbPrivilege.ToString();
-				internal static readonly string SE_TIME_ZONE_NAME = PRIVELEGE_NAMES.SeTimeZonePrivilege.ToString();
-				internal static readonly string SE_TRUSTED_CREDMAN_ACCESS_NAME = PRIVELEGE_NAMES.SeTrustedCredManAccessPrivilege.ToString();
-				internal static readonly string SE_UNDOCK_NAME = PRIVELEGE_NAMES.SeUndockPrivilege.ToString();
-				internal static readonly string SE_UNSOLICITED_INPUT_NAME = PRIVELEGE_NAMES.SeUnsolicitedInputPrivilege.ToString();
-			}
-			#endregion
-
-			#region TokenPrivileges
-			public const uint SE_PRIVILEGE_ENABLED = 0x2;
-			// Public Const TOKEN_ADJUST_PRIVILEGES As UInteger = 0x20
-
-			[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto, Pack = 1)]
-			public partial struct LUID
-			{
-				public uint LowPart;
-				public int HighPart;
-			}
-
-			[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto, Pack = 1)]
-			public partial struct LUID_AND_ATTRIBUTES
-			{
-				public LUID Luid;
-				public uint Attributes;
-			}
-
-			[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto, Pack = 1)]
-			public partial struct TOKEN_PRIVILEGES
-			{
-				public uint PrivilegeCount;
-				[MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
-				public LUID_AND_ATTRIBUTES[] Privileges;
-
-				public TOKEN_PRIVILEGES(LUID_AND_ATTRIBUTES[] ap)
-				{
-					PrivilegeCount = (uint)ap.Length;
-					Privileges = ap;
-				}
-			}
-
-			#region OpenProcessToken
-
-			//  Token Specific Access Rights
-
-			// Public Const STANDARD_RIGHTS_REQUIRED As UInt32 = 0xF0000
-			// Public Const STANDARD_RIGHTS_READ As UInt32 = 0x20000
-			// Public Const TOKEN_ASSIGN_PRIMARY As UInt32 = 1
-			// Public Const TOKEN_DUPLICATE As UInt32 = 2
-			// Public Const TOKEN_IMPERSONATE As UInt32 = 4
-			// Public Const TOKEN_QUERY As UInt32 = 8
-			// Public Const TOKEN_QUERY_SOURCE As UInt32 = 0x10
-			// Public Const TOKEN_ADJUST_PRIVILEGES As UInt32 = 0x20
-			// Public Const TOKEN_ADJUST_GROUPS As UInt32 = 0x40
-			// Public Const TOKEN_ADJUST_DEFAULT As UInt32 = 0x80
-			// Public Const TOKEN_ADJUST_SESSIONID As UInt32 = 0x100
-			// Public Const TOKEN_READ As UInt32 = (STANDARD_RIGHTS_READ Or TOKEN_QUERY)
-			// Public Const TOKEN_ALL_ACCESS As UInt32 = (STANDARD_RIGHTS_REQUIRED Or TOKEN_ASSIGN_PRIMARY Or TOKEN_DUPLICATE Or
-			// TOKEN_IMPERSONATE Or TOKEN_QUERY Or TOKEN_QUERY_SOURCE Or
-			// TOKEN_ADJUST_PRIVILEGES Or TOKEN_ADJUST_GROUPS Or TOKEN_ADJUST_DEFAULT Or
-			// TOKEN_ADJUST_SESSIONID)
-
-
-
-			/// <summary>The OpenProcessToken function opens the access token associated with a process.</summary>
-			/// <param name="ProcessHandle">A handle to the process whose access token is opened. The process must have the PROCESS_QUERY_INFORMATION access permission.</param>
-			/// <param name="DesiredAccess">Specifies an access mask that specifies the requested types of access to the access token. These requested access types are compared with the discretionary access control list (DACL) of the token to determine which accesses are granted or denied.</param>
-			/// <param name="TokenHandle">A pointer to a handle that identifies the newly opened access token when the function returns.</param>
-			/// <returns>If the function succeeds, the return value is nonzero.If the function fails, the return value is zero. To get extended error information, call GetLastError.</returns>
-			/// <remarks>Close the access token handle returned through the TokenHandle parameter by calling CloseHandle.</remarks>
-			[DllImport(core.WINDLL_ADVAPI32, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			[SecurityCritical]
-			private static extern bool OpenProcessToken(
-				[In] IntPtr ProcessHandle,
-				[In] TokenAccessLevels DesiredAccess,
-				[In, Out] ref IntPtr TokenHandle);
-
-
-			/// <summary>The OpenProcessToken function opens the access token associated with a process.</summary>
-			/// <param name="ProcessHandle">A handle to the process whose access token is opened. The process must have the PROCESS_QUERY_INFORMATION access permission.</param>
-			/// <param name="DesiredAccess">Specifies an access mask that specifies the requested types of access to the access token. These requested access types are compared with the discretionary access control list (DACL) of the token to determine which accesses are granted or denied.</param>
-			[SecurityCritical]
-			public static Microsoft.Win32.SafeHandles.SafeFileHandle OpenProcessToken(IntPtr ProcessHandle, TokenAccessLevels DesiredAccess)
-			{
-				var ProcessToken = IntPtr.Zero;
-				bool bResult = OpenProcessToken(ProcessHandle, DesiredAccess, ref ProcessToken);
-				if (!bResult)
-				{
-					errors.ThrowLastWin23Error("OpenProcessToken");
-				}
-
-				var rProcessToken = new Microsoft.Win32.SafeHandles.SafeFileHandle(ProcessToken, true);
-				return rProcessToken;
-			}
-
-			/// <summary>Open Token for Current Process</summary>
-			[SecurityCritical]
-			public static Microsoft.Win32.SafeHandles.SafeFileHandle OpenCurrentProcessToken(TokenAccessLevels DesiredAccess)
-			{
-				var hProcess = uom.WinAPI.process.GetCurrentProcess();
-				return OpenProcessToken(hProcess, DesiredAccess);
-			}
-
-			#endregion
-
-
-			[DllImport(core.WINDLL_ADVAPI32, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			[SecurityCritical]
-			private static extern bool LookupPrivilegeDisplayName(
-				[In, MarshalAs(UnmanagedType.LPTStr)] string? lpSystemName,
-				[In, MarshalAs(UnmanagedType.LPTStr)] string lpName,
-				[In, Out, MarshalAs(UnmanagedType.LPTStr)] StringBuilder? lpDisplayName,
-				[In, Out] ref int cchDisplayName,
-				[In, Out] ref int lpLanguageId);
-
-			[SecurityCritical]
-			public static (string PrivilegeDisplayName, int LanguageId) LookupPrivilegeDisplayName(PRIVELEGE_NAMES pn, string? systemName = null)
-			{
-				//First get the buffer sizes for string
-				int cchDisplayName = 0;
-				int lpLanguageId = 0;
-				string spn = pn.ToString();
-				var bResult = LookupPrivilegeDisplayName(systemName, spn, null, ref cchDisplayName, ref lpLanguageId);
-				if (!bResult)
-				{
-					WinAPI.errors.ThrowLastWin23ErrorAssert(errors.Win32Errors.ERROR_INSUFFICIENT_BUFFER);
-				}
-
-				//Get the value to buffer
-				StringBuilder sbDisplayName = new(cchDisplayName + 1);
-				bResult = LookupPrivilegeDisplayName(systemName, spn, sbDisplayName, ref cchDisplayName, ref lpLanguageId);
-				if (!bResult)
-				{
-					WinAPI.errors.ThrowLastWin23ErrorAssert(errors.Win32Errors.ERROR_INSUFFICIENT_BUFFER);
-				}
-
-				return (sbDisplayName.ToString(), lpLanguageId);
-			}
-
-
-			/// <summary>retrieves the locally unique identifier (LUID) used on a specified system to locally represent the specified privilege name.</summary>
-			/// <param name="lpSystemName">A pointer to a null-terminated string that specifies the name of the system on which the privilege name is retrieved. If a null string is specified, the function attempts to find the privilege name on the local system.</param>
-			/// <param name="lpName">A pointer to a null-terminated string that specifies the name of the privilege, as defined in the Winnt.h header file. For example, this parameter could specify the constant, SE_SECURITY_NAME, or its corresponding string, "SeSecurityPrivilege".</param>
-			/// <param name="lpLuid"></param>            
-			[DllImport(core.WINDLL_ADVAPI32, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			[SecurityCritical]
-			public static extern bool LookupPrivilegeValue(
-				[In, MarshalAs(UnmanagedType.LPTStr)] string? lpSystemName,
-				[In] string lpName,
-				[In, Out] ref LUID lpLuid);
-
-			[SecurityCritical]
-			public static LUID LookupPrivilegeValue(string pn, string? systemName = null)
-			{
-				LUID Luid = new();
-				LookupPrivilegeValue(systemName, pn, ref Luid).eThrowLastWin32Exception_AssertFalse("LookupPrivilegeValue");
-				return Luid;
-			}
-
-			[SecurityCritical]
-			public static LUID LookupPrivilegeValue(PRIVELEGE_NAMES epn, string? systemName = null)
-				=> LookupPrivilegeValue(epn.ToString(), systemName);
-
-
-
-			[SecurityCritical]
-			[DllImport(core.WINDLL_ADVAPI32, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			public static extern bool AdjustTokenPrivileges(
-				IntPtr TokenHandle,
-				[MarshalAs(UnmanagedType.Bool)] bool DisableAllPrivileges,
-				ref TOKEN_PRIVILEGES NewState,
-				int BufferLength,
-				IntPtr PreviousState,
-				IntPtr ReturnLength);
-
-
-			/// <returns>processToken</returns>
-			[SecurityCritical]
-			public static SafeFileHandle AdjustProcessPrivilege(PRIVELEGE_NAMES pn)
-				=> AdjustProcessPrivilege(pn.ToString());
-
-			/// <returns>processToken</returns>
-			[SecurityCritical]
-			public static SafeFileHandle AdjustProcessPrivilege(string pn)
-			{
-				//using SafeFileHandle ProcessToken = OpenCurrentProcessToken(TokenAccessLevels.Query | TokenAccessLevels.AdjustPrivileges);
-				SafeFileHandle processToken = OpenCurrentProcessToken(TokenAccessLevels.Query | TokenAccessLevels.AdjustPrivileges);
-				LUID luid = LookupPrivilegeValue(pn);
-				LUID_AND_ATTRIBUTES[] P = new LUID_AND_ATTRIBUTES[1];
-				P[0].Luid = luid;
-				P[0].Attributes = SE_PRIVILEGE_ENABLED;
-				TOKEN_PRIVILEGES tokenPrivileges = new(P);
-				AdjustTokenPrivileges(
-					processToken.DangerousGetHandle(),
-					false,
-					ref tokenPrivileges,
-					Marshal.SizeOf(tokenPrivileges),
-					IntPtr.Zero,
-					IntPtr.Zero)
-					.eThrowLastWin32Exception_AssertFalse("AdjustTokenPrivileges");
-
-				return processToken;
-			}
-
-			[SecurityCritical]
-			public static void AdjustProcessPrivilegeAndCloseToken(PRIVELEGE_NAMES pn)
-			{
-				using SafeFileHandle token = AdjustProcessPrivilege(pn);
-			}
-
-			#endregion
-
-			/// <summary>The TOKEN_INFORMATION_CLASS enumeration type contains values that specify the type of information being assigned to or retrieved from an access token.</summary>
-			internal enum TOKEN_INFORMATION_CLASS : int
-			{
-				TokenUser = 1,
-				TokenGroups,
-				TokenPrivileges,
-				TokenOwner,
-				TokenPrimaryGroup,
-				TokenDefaultDacl,
-				TokenSource,
-				TokenType,
-				TokenImpersonationLevel,
-				TokenStatistics,
-				TokenRestrictedSids,
-				TokenSessionId,
-				TokenGroupsAndPrivileges,
-				TokenSessionReference,
-				TokenSandBoxInert,
-				TokenAuditPolicy,
-				TokenOrigin,
-				TokenElevationType,
-				TokenLinkedToken,
-				TokenElevation,
-				TokenHasRestrictions,
-				TokenAccessInformation,
-				TokenVirtualizationAllowed,
-				TokenVirtualizationEnabled,
-				TokenIntegrityLevel,
-				TokenUIAccess,
-				TokenMandatoryPolicy,
-				TokenLogonSid,
-				TokenIsAppContainer,
-				TokenCapabilities,
-				TokenAppContainerSid,
-				TokenAppContainerNumber,
-				TokenUserClaimAttributes,
-				TokenDeviceClaimAttributes,
-				TokenRestrictedUserClaimAttributes,
-				TokenRestrictedDeviceClaimAttributes,
-				TokenDeviceGroups,
-				TokenRestrictedDeviceGroups,
-				TokenSecurityAttributes,
-				TokenIsRestricted,
-				TokenProcessTrustLevel,
-				TokenPrivateNameSpace,
-				TokenSingletonAttributes,
-				TokenBnoIsolation,
-				TokenChildProcessFlags,
-				TokenIsLessPrivilegedAppContainer,
-				TokenIsSandboxed,
-				MaxTokenInfoClass
-			}
-
-
-			/// <summary>The WELL_KNOWN_SID_TYPE enumeration type is a list of commonly used security identifiers (SIDs). Programs can pass these values to the CreateWellKnownSid function to create a SID from this list.</summary>
-			internal enum WELL_KNOWN_SID_TYPE
-			{
-				WinNullSid = 0,
-				WinWorldSid = 1,
-				WinLocalSid = 2,
-				WinCreatorOwnerSid = 3,
-				WinCreatorGroupSid = 4,
-				WinCreatorOwnerServerSid = 5,
-				WinCreatorGroupServerSid = 6,
-				WinNtAuthoritySid = 7,
-				WinDialupSid = 8,
-				WinNetworkSid = 9,
-				WinBatchSid = 10,
-				WinInteractiveSid = 11,
-				WinServiceSid = 12,
-				WinAnonymousSid = 13,
-				WinProxySid = 14,
-				WinEnterpriseControllersSid = 15,
-				WinSelfSid = 16,
-				WinAuthenticatedUserSid = 17,
-				WinRestrictedCodeSid = 18,
-				WinTerminalServerSid = 19,
-				WinRemoteLogonIdSid = 20,
-				WinLogonIdsSid = 21,
-				WinLocalSystemSid = 22,
-				WinLocalServiceSid = 23,
-				WinNetworkServiceSid = 24,
-				WinBuiltinDomainSid = 25,
-				WinBuiltinAdministratorsSid = 26,
-				WinBuiltinUsersSid = 27,
-				WinBuiltinGuestsSid = 28,
-				WinBuiltinPowerUsersSid = 29,
-				WinBuiltinAccountOperatorsSid = 30,
-				WinBuiltinSystemOperatorsSid = 31,
-				WinBuiltinPrintOperatorsSid = 32,
-				WinBuiltinBackupOperatorsSid = 33,
-				WinBuiltinReplicatorSid = 34,
-				WinBuiltinPreWindows2000CompatibleAccessSid = 35,
-				WinBuiltinRemoteDesktopUsersSid = 36,
-				WinBuiltinNetworkConfigurationOperatorsSid = 37,
-				WinAccountAdministratorSid = 38,
-				WinAccountGuestSid = 39,
-				WinAccountKrbtgtSid = 40,
-				WinAccountDomainAdminsSid = 41,
-				WinAccountDomainUsersSid = 42,
-				WinAccountDomainGuestsSid = 43,
-				WinAccountComputersSid = 44,
-				WinAccountControllersSid = 45,
-				WinAccountCertAdminsSid = 46,
-				WinAccountSchemaAdminsSid = 47,
-				WinAccountEnterpriseAdminsSid = 48,
-				WinAccountPolicyAdminsSid = 49,
-				WinAccountRasAndIasServersSid = 50,
-				WinNTLMAuthenticationSid = 51,
-				WinDigestAuthenticationSid = 52,
-				WinSChannelAuthenticationSid = 53,
-				WinThisOrganizationSid = 54,
-				WinOtherOrganizationSid = 55,
-				WinBuiltinIncomingForestTrustBuildersSid = 56,
-				WinBuiltinPerfMonitoringUsersSid = 57,
-				WinBuiltinPerfLoggingUsersSid = 58,
-				WinBuiltinAuthorizationAccessSid = 59,
-				WinBuiltinTerminalServerLicenseServersSid = 60,
-				WinBuiltinDCOMUsersSid = 61,
-				WinBuiltinIUsersSid = 62,
-				WinIUserSid = 63,
-				WinBuiltinCryptoOperatorsSid = 64,
-				WinUntrustedLabelSid = 65,
-				WinLowLabelSid = 66,
-				WinMediumLabelSid = 67,
-				WinHighLabelSid = 68,
-				WinSystemLabelSid = 69,
-				WinWriteRestrictedCodeSid = 70,
-				WinCreatorOwnerRightsSid = 71,
-				WinCacheablePrincipalsGroupSid = 72,
-				WinNonCacheablePrincipalsGroupSid = 73,
-				WinEnterpriseReadonlyControllersSid = 74,
-				WinAccountReadonlyControllersSid = 75,
-				WinBuiltinEventLogReadersGroup = 76,
-				WinNewEnterpriseReadonlyControllersSid = 77,
-				WinBuiltinCertSvcDComAccessGroup = 78
-			}
-
-
-			/// <summary>The SECURITY_IMPERSONATION_LEVEL enumeration type contains values that specify security impersonation levels. Security impersonation levels govern the degree to which a server process can act on behalf of a client process.</summary>
-			internal enum SECURITY_IMPERSONATION_LEVEL
-			{
-				SecurityAnonymous = 0,
-				SecurityIdentification,
-				SecurityImpersonation,
-				SecurityDelegation
-			}
-
-
-			/// <summary>The TOKEN_ELEVATION_TYPE enumeration indicates the elevation type of token
-			/// when UAC is turned off, elevation type always returns TokenElevationTypeDefault
-			/// </summary>
-			internal enum TOKEN_ELEVATION_TYPE : Int32
-			{
-				/// <summary>Токен не имеет связанного токена (UAC is turned off)</summary>
-				TokenElevationTypeDefault = 1,
-
-				/// <summaryс повышенными правами.</summary>
-				TokenElevationTypeFull,
-
-				/// <summary>ограниченный токен.</summary>
-				TokenElevationTypeLimited
-			}
-
-
-			/// <summary>The structure represents a security identifier (SID) and its attributes.
-			/// SIDs are used to uniquely identify users or groups.</summary>
-			[StructLayout(LayoutKind.Sequential)]
-			internal partial struct SID_AND_ATTRIBUTES
-			{
-				public IntPtr Sid;
-				public int Attributes;
-			}
-
-
-			/// <summary>The structure indicates whether a token has elevated privileges.</summary>
-			[StructLayout(LayoutKind.Sequential)]
-			internal partial struct TOKEN_ELEVATION
-			{
-				public int TokenIsElevated;
-			}
-
-
-			/// <summary>The structure specifies the mandatory integrity level for a token.</summary>
-			[StructLayout(LayoutKind.Sequential)]
-			internal partial struct TOKEN_MANDATORY_LABEL
-			{
-				public SID_AND_ATTRIBUTES Label;
-			}
-
-
-			/// <summary>integrity level of the process. Integrity level is only available on Windows Vista and newer operating systems, thus 
-			/// GetProcessIntegrityLevel throws a C++ exception if it is called on systems prior to Windows Vista.</summary>
-			public enum IntegrityLevels : int
-			{
-				ERROR = -1,
-
-				/// <summary>SECURITY_MANDATORY_UNTRUSTED_RID - means untrusted level. It is used by processes started by the Anonymous group. Blocks most write access. (SID: S-1-16-0x0)</summary>
-				SECURITY_MANDATORY_UNTRUSTED_RID = 0,
-
-				/// <summary>SECURITY_MANDATORY_LOW_RID - means low integrity level. It is used by Protected Mode Internet Explorer. Blocks write acess to most objects (such as files and registry keys) on the system. (SID: S-1-16-0x1000)</summary>
-				SECURITY_MANDATORY_LOW_RID = 0x1000,
-
-				/// <summary>SECURITY_MANDATORY_MEDIUM_RID - means medium integrity level. It is used by normal applications being launched while UAC is enabled. (SID: S-1-16-0x2000)</summary>
-				SECURITY_MANDATORY_MEDIUM_RID = 0x2000,
-
-				/// <summary>SECURITY_MANDATORY_HIGH_RID - means high integrity level. It is used by administrative applications launched through elevation when UAC is enabled, or normal applications if UAC is disabled and the user is an administrator. (SID: S-1-16-0x3000)</summary>
-				SECURITY_MANDATORY_HIGH_RID = 0x3000,
-
-				/// <summary>SECURITY_MANDATORY_SYSTEM_RID - means system integrity level. It is used by services and other system-level applications (such as Wininit, Winlogon, Smss, etc.)  (SID: S-1-16-0x4000)</summary>
-				SECURITY_MANDATORY_SYSTEM_RID = 0x4000
-			}
-
-
-
-
-
-
-			/// <summary>The DuplicateToken function creates an impersonation token, 
-			/// which you can use in functions such as SetThreadToken and ImpersonateLoggedOnUser. 
-			/// The token created by DuplicateToken cannot be used in the CreateProcessAsUser function, which requires a primary token. 
-			/// To create a token that you can pass to CreateProcessAsUser, use the DuplicateTokenEx function.</summary>
-			/// <param name="ExistingTokenHandle">A handle to an access token opened with TOKEN_DUPLICATE access.</param>
-			/// <param name="ImpersonationLevel">Specifies a SECURITY_IMPERSONATION_LEVEL enumerated type that supplies the impersonation level of the new token.</param>
-			/// <param name="DuplicateTokenHandle">Outputs a handle to the duplicate token. </param>
-			[DllImport(core.WINDLL_ADVAPI32, CharSet = CharSet.Auto, SetLastError = true)]
-			[SecurityCritical]
-			internal static extern bool DuplicateToken(
-				Microsoft.Win32.SafeHandles.SafeFileHandle ExistingTokenHandle,
-				SECURITY_IMPERSONATION_LEVEL ImpersonationLevel,
-				[In, Out] ref Microsoft.Win32.SafeHandles.SafeFileHandle DuplicateTokenHandle);
-
-			/// <summary>The DuplicateToken function creates an impersonation token, 
-			/// which you can use in functions such as SetThreadToken and ImpersonateLoggedOnUser. 
-			/// The token created by DuplicateToken cannot be used in the CreateProcessAsUser function, which requires a primary token. 
-			/// To create a token that you can pass to CreateProcessAsUser, use the DuplicateTokenEx function.</summary>
-			/// <param name="ExistingTokenHandle">A handle to an access token opened with TOKEN_DUPLICATE access.</param>
-			/// <param name="ImpersonationLevel">Specifies a SECURITY_IMPERSONATION_LEVEL enumerated type that supplies the impersonation level of the new token.</param>
-			internal static Microsoft.Win32.SafeHandles.SafeFileHandle DuplicateToken(Microsoft.Win32.SafeHandles.SafeFileHandle ExistingTokenHandle, SECURITY_IMPERSONATION_LEVEL ImpersonationLevel)
-			{
-				//var hToken2 = IntPtr.Zero;
-				//WinAPI.security.DuplicateToken(hToken, WinAPI.security.SECURITY_IMPERSONATION_LEVEL.SecurityIdentification, ref hToken2).eThrowLastWin32Exception_AssertFalse();
-				//hTokenToCheck = new(hToken2, true);
-
-				Microsoft.Win32.SafeHandles.SafeFileHandle hToken2 = new(IntPtr.Zero, true);
-				DuplicateToken(ExistingTokenHandle, SECURITY_IMPERSONATION_LEVEL.SecurityIdentification, ref hToken2).eThrowLastWin32Exception_AssertFalse();
-				return hToken2;
-			}
-
-
-			/// <summary>The function retrieves a specified type of information about an access token. The calling process must have appropriate access rightsto obtain the information.</summary>
-			/// <param name="hToken">A handle to an access token from which information is retrieved.</param>
-			/// <param name="tokenInfoClass">Specifies a value from the TOKEN_INFORMATION_CLASS enumerated type to identify the type of information the function retrieves.</param>
-			/// <param name="pTokenInfo">A pointer to a buffer the function fills with the requested information.</param>
-			/// <param name="tokenInfoLength">Specifies the size, in bytes, of the buffer pointed to by the TokenInformation parameter.</param>
-			/// <param name="returnLength">A pointer to a variable that receives the number of bytes needed for the buffer pointed to by the TokenInformation parameter.</param>
-			[DllImport(core.WINDLL_ADVAPI32, CharSet = CharSet.Auto, SetLastError = true), SecurityCritical]
-			public static extern bool GetTokenInformation(
-				Microsoft.Win32.SafeHandles.SafeFileHandle hToken,
-				TOKEN_INFORMATION_CLASS tokenInfoClass,
-				IntPtr pTokenInfo,
-				int tokenInfoLength,
-				[In, Out] ref int returnLength);
-
-
-			[DllImport(core.WINDLL_ADVAPI32, EntryPoint = "GetTokenInformation", CharSet = CharSet.Auto, SetLastError = true), SecurityCritical]
-			public static extern bool GetTokenInformation_Int32(
-				Microsoft.Win32.SafeHandles.SafeFileHandle hToken,
-				TOKEN_INFORMATION_CLASS tokenInfoClass,
-				[In, Out] ref Int32 pTokenInfo,
-				int tokenInfoLength,
-				[In, Out] ref int returnLength);
-
-			/// <summary>Determine token type: limited, elevated, or default. </summary>
-			internal static TOKEN_ELEVATION_TYPE GetTokenInformation_Elevation(Microsoft.Win32.SafeHandles.SafeFileHandle hToken)
-			{
-				Int32 iElevationType = 0; int cbSize = sizeof(Int32);
-				GetTokenInformation_Int32(hToken, TOKEN_INFORMATION_CLASS.TokenElevationType, ref iElevationType, cbSize, ref cbSize).eThrowLastWin32Exception_AssertFalse();
-				var eElevationType = (WinAPI.security.TOKEN_ELEVATION_TYPE)iElevationType;// Marshal the TOKEN_ELEVATION_TYPE enum from native to .NET.
-				return eElevationType;
-			}
-
-			[DllImport(core.WINDLL_ADVAPI32, EntryPoint = "GetTokenInformation", CharSet = CharSet.Auto, SetLastError = true), SecurityCritical]
-			public static extern bool GetTokenInformation_IntPtr(
-			 Microsoft.Win32.SafeHandles.SafeFileHandle hToken,
-			  TOKEN_INFORMATION_CLASS tokenInfoClass,
-			  [In, Out] ref IntPtr pTokenInfo,
-			  int tokenInfoLength,
-			  [In, Out] ref int returnLength);
-
-
-			/// <summary>The function returns a pointer to a specified subauthority in a security identifier (SID). The subauthority value is a relative identifier (RID).</summary>
-			/// <param name="pSid">A pointer to the SID structure from which a pointer to a subauthorityis to be returned.</param>
-			/// <param name="nSubAuthority">Specifies an index value identifying the subauthority array element whose address the function will return.</param>
-			/// <returns>If the function succeeds, the return value is a pointer to the specified SID subauthority. To get extended error information, call
-			/// GetLastError. If the function fails, the return value is undefined.
-			/// The function fails if the specified SID structure is not valid or if 
-			/// the index value specified by the nSubAuthority parameter is [Out ] of
-			/// bounds. 
-			/// </returns>
-			[DllImport(core.WINDLL_ADVAPI32, CharSet = CharSet.Auto, SetLastError = true)]
-			[SecurityCritical]
-			public static extern IntPtr GetSidSubAuthority(IntPtr pSid, uint nSubAuthority);
-		}
-
-
-
-
-		/// <summary>Win32 Windows UI API</summary>
-		internal static partial class windows
-		{
-			public static readonly IntPtr HWND_DESKTOP = new(0);
-
-
-			#region SendMessage
-
-
-			public enum WindowMessages : UInt32
-			{
-				/*
-				WM_PAINT = 0xF,
-				WM_APPCOMMAND = 0x319,
-				WM_NOTIFY = 0x004e,
-				WM_LBUTTONDBLCLK = 0x0203,
-				WM_USER = 0x0400,
-			 */
-
-
-				WM_NULL = 0,
-				WM_CREATE = 1,
-				WM_DESTROY = 2,
-				WM_MOVE = 3,
-				WM_SIZE = 5,
-				WM_ACTIVATE = 6,
-				WM_SETFOCUS = 7,
-				WM_KILLFOCUS = 8,
-				WM_ENABLE = 10,
-				WM_SETREDRAW = 11,
-				WM_SETTEXT = 12,
-				WM_GETTEXT = 13,
-				WM_GETTEXTLENGTH = 14,
-				WM_PAINT = 15,
-				WM_CLOSE = 16,
-				WM_QUERYENDSESSION = 17,
-				WM_QUIT = 18,
-				WM_QUERYOPEN = 19,
-				WM_ERASEBKGND = 20,
-				WM_SYSCOLORCHANGE = 21,
-				WM_ENDSESSION = 22,
-				WM_SHOWWINDOW = 24,
-				WM_CTLCOLOR = 25,
-				WM_WININICHANGE = 26,
-				WM_DEVMODECHANGE = 27,
-				WM_ACTIVATEAPP = 28,
-				WM_FONTCHANGE = 29,
-				WM_TIMECHANGE = 30,
-				WM_CANCELMODE = 31,
-				WM_SETCURSOR = 32,
-				WM_MOUSEACTIVATE = 33,
-				WM_CHILDACTIVATE = 34,
-				WM_QUEUESYNC = 35,
-				WM_GETMINMAXINFO = 36,
-				WM_PAINTICON = 38,
-				WM_ICONERASEBKGND = 39,
-				WM_NEXTDLGCTL = 40,
-				WM_SPOOLERSTATUS = 42,
-				WM_DRAWITEM = 43,
-				WM_MEASUREITEM = 44,
-				WM_DELETEITEM = 45,
-				WM_VKEYTOITEM = 46,
-				WM_CHARTOITEM = 47,
-				WM_SETFONT = 48,
-				WM_GETFONT = 49,
-				WM_SETHOTKEY = 50,
-				WM_GETHOTKEY = 51,
-				WM_QUERYDRAGICON = 55,
-				WM_COMPAREITEM = 57,
-				WM_GETOBJECT = 61,
-				WM_COMPACTING = 65,
-				WM_COMMNOTIFY = 68,
-				WM_WINDOWPOSCHANGING = 70,
-				WM_WINDOWPOSCHANGED = 71,
-				WM_POWER = 72,
-				WM_COPYDATA = 74,
-				WM_CANCELJOURNAL = 75,
-				WM_NOTIFY = 78,
-				WM_INPUTLANGCHANGEREQUEST = 80,
-				WM_INPUTLANGCHANGE = 81,
-				WM_TCARD = 82,
-				WM_HELP = 83,
-				WM_USERCHANGED = 84,
-				WM_NOTIFYFORMAT = 85,
-				WM_CONTEXTMENU = 123,
-				WM_STYLECHANGING = 124,
-				WM_STYLECHANGED = 125,
-				WM_DISPLAYCHANGE = 126,
-				WM_GETICON = 127,
-				WM_SETICON = 128,
-				WM_NCCREATE = 129,
-				WM_NCDESTROY = 130,
-				WM_NCCALCSIZE = 131,
-				WM_NCHITTEST = 132,
-				WM_NCPAINT = 133,
-				WM_NCACTIVATE = 134,
-				WM_GETDLGCODE = 135,
-				WM_SYNCPAINT = 136,
-				WM_NCMOUSEMOVE = 160,
-				WM_NCLBUTTONDOWN = 161,
-				WM_NCLBUTTONUP = 162,
-				WM_NCLBUTTONDBLCLK = 163,
-				WM_NCRBUTTONDOWN = 164,
-				WM_NCRBUTTONUP = 165,
-				WM_NCRBUTTONDBLCLK = 166,
-				WM_NCMBUTTONDOWN = 167,
-				WM_NCMBUTTONUP = 168,
-				WM_NCMBUTTONDBLCLK = 169,
-				WM_NCXBUTTONDOWN = 171,
-				WM_NCXBUTTONUP = 172,
-				WM_NCXBUTTONDBLCLK = 173,
-				WM_KEYDOWN = 256,
-				WM_KEYFIRST = 256,
-				WM_KEYUP = 257,
-				WM_CHAR = 258,
-				WM_DEADCHAR = 259,
-				WM_SYSKEYDOWN = 260,
-				WM_SYSKEYUP = 261,
-				WM_SYSCHAR = 262,
-				WM_SYSDEADCHAR = 263,
-				WM_KEYLAST = 264,
-				WM_WNT_CONVERTREQUESTEX = 265,
-				WM_CONVERTREQUEST = 266,
-				WM_CONVERTRESULT = 267,
-				WM_INTERIM = 268,
-				WM_IME_STARTCOMPOSITION = 269,
-				WM_IME_ENDCOMPOSITION = 270,
-				WM_IME_COMPOSITION = 271,
-				WM_IME_KEYLAST = 271,
-				WM_INITDIALOG = 272,
-				WM_COMMAND = 273,
-				WM_SYSCOMMAND = 274,
-				WM_TIMER = 275,
-				WM_HSCROLL = 276,
-				WM_VSCROLL = 277,
-				WM_INITMENU = 278,
-				WM_INITMENUPOPUP = 279,
-				WM_MENUSELECT = 287,
-				WM_MENUCHAR = 288,
-				WM_ENTERIDLE = 289,
-				WM_MENURBUTTONUP = 290,
-				WM_MENUDRAG = 291,
-				WM_MENUGETOBJECT = 292,
-				WM_UNINITMENUPOPUP = 293,
-				WM_MENUCOMMAND = 294,
-				WM_CHANGEUISTATE = 295,
-				WM_UPDATEUISTATE = 296,
-				WM_QUERYUISTATE = 297,
-				WM_CTLCOLORMSGBOX = 306,
-				WM_CTLCOLOREDIT = 307,
-				WM_CTLCOLORLISTBOX = 308,
-				WM_CTLCOLORBTN = 309,
-				WM_CTLCOLORDLG = 310,
-				WM_CTLCOLORSCROLLBAR = 311,
-				WM_CTLCOLORSTATIC = 312,
-				WM_MOUSEFIRST = 512,
-				WM_MOUSEMOVE = 512,
-				WM_LBUTTONDOWN = 513,
-				WM_LBUTTONUP = 514,
-				WM_LBUTTONDBLCLK = 515,
-				WM_RBUTTONDOWN = 516,
-				WM_RBUTTONUP = 517,
-				WM_RBUTTONDBLCLK = 518,
-				WM_MBUTTONDOWN = 519,
-				WM_MBUTTONUP = 520,
-				WM_MBUTTONDBLCLK = 521,
-				WM_MOUSELAST = 521,
-				WM_MOUSEWHEEL = 522,
-				WM_XBUTTONDOWN = 523,
-				WM_XBUTTONUP = 524,
-				WM_XBUTTONDBLCLK = 525,
-				WM_PARENTNOTIFY = 528,
-				WM_ENTERMENULOOP = 529,
-				WM_EXITMENULOOP = 530,
-				WM_NEXTMENU = 531,
-				WM_SIZING = 532,
-				WM_CAPTURECHANGED = 533,
-				WM_MOVING = 534,
-				WM_POWERBROADCAST = 536,
-				WM_DEVICECHANGE = 537,
-				WM_MDICREATE = 544,
-				WM_MDIDESTROY = 545,
-				WM_MDIACTIVATE = 546,
-				WM_MDIRESTORE = 547,
-				WM_MDINEXT = 548,
-				WM_MDIMAXIMIZE = 549,
-				WM_MDITILE = 550,
-				WM_MDICASCADE = 551,
-				WM_MDIICONARRANGE = 552,
-				WM_MDIGETACTIVE = 553,
-				WM_MDISETMENU = 560,
-				WM_ENTERSIZEMOVE = 561,
-				WM_EXITSIZEMOVE = 562,
-				WM_DROPFILES = 563,
-				WM_MDIREFRESHMENU = 564,
-				WM_IME_REPORT = 640,
-				WM_IME_SETCONTEXT = 641,
-				WM_IME_NOTIFY = 642,
-				WM_IME_CONTROL = 643,
-				WM_IME_COMPOSITIONFULL = 644,
-				WM_IME_SELECT = 645,
-				WM_IME_CHAR = 646,
-				WM_IME_REQUEST = 648,
-				WM_IMEKEYDOWN = 656,
-				WM_IME_KEYDOWN = 656,
-				WM_IMEKEYUP = 657,
-				WM_IME_KEYUP = 657,
-				WM_NCMOUSEHOVER = 672,
-				WM_MOUSEHOVER = 673,
-				WM_NCMOUSELEAVE = 674,
-				WM_MOUSELEAVE = 675,
-				WM_CUT = 768,
-				WM_COPY = 769,
-				WM_PASTE = 770,
-				WM_CLEAR = 771,
-				WM_UNDO = 772,
-				WM_RENDERFORMAT = 773,
-				WM_RENDERALLFORMATS = 774,
-				WM_DESTROYCLIPBOARD = 775,
-				WM_DRAWCLIPBOARD = 776,
-				WM_PAINTCLIPBOARD = 777,
-				WM_VSCROLLCLIPBOARD = 778,
-				WM_SIZECLIPBOARD = 779,
-				WM_ASKCBFORMATNAME = 780,
-				WM_CHANGECBCHAIN = 781,
-				WM_HSCROLLCLIPBOARD = 782,
-				WM_QUERYNEWPALETTE = 783,
-				WM_PALETTEISCHANGING = 784,
-				WM_PALETTECHANGED = 785,
-				WM_HOTKEY = 786,
-				WM_PRINT = 791,
-				WM_PRINTCLIENT = 792,
-				WM_APPCOMMAND = 793,
-				WM_HANDHELDFIRST = 856,
-				WM_HANDHELDLAST = 863,
-				WM_AFXFIRST = 864,
-				WM_AFXLAST = 895,
-				WM_PENWINFIRST = 896,
-				WM_RCRESULT = 897,
-				WM_HOOKRCRESULT = 898,
-				WM_GLOBALRCCHANGE = 899,
-				WM_PENMISCINFO = 899,
-				WM_SKB = 900,
-				WM_HEDITCTL = 901,
-				WM_PENCTL = 901,
-				WM_PENMISC = 902,
-				WM_CTLINIT = 903,
-				WM_PENEVENT = 904,
-				WM_PENWINLAST = 911,
-				DDM_SETFMT = 1024,
-				DM_GETDEFID = 1024,
-				NIN_SELECT = 1024,
-				TBM_GETPOS = 1024,
-				WM_PSD_PAGESETUPDLG = 1024,
-				WM_USER = 1024,
-				CBEM_INSERTITEMA = 1025,
-				DDM_DRAW = 1025,
-				DM_SETDEFID = 1025,
-				HKM_SETHOTKEY = 1025,
-				PBM_SETRANGE = 1025,
-				RB_INSERTBANDA = 1025,
-				SB_SETTEXTA = 1025,
-				TB_ENABLEBUTTON = 1025,
-				TBM_GETRANGEMIN = 1025,
-				TTM_ACTIVATE = 1025,
-				WM_CHOOSEFONT_GETLOGFONT = 1025,
-				WM_PSD_FULLPAGERECT = 1025,
-				CBEM_SETIMAGELIST = 1026,
-				DDM_CLOSE = 1026,
-				DM_REPOSITION = 1026,
-				HKM_GETHOTKEY = 1026,
-				PBM_SETPOS = 1026,
-				RB_DELETEBAND = 1026,
-				SB_GETTEXTA = 1026,
-				TB_CHECKBUTTON = 1026,
-				TBM_GETRANGEMAX = 1026,
-				WM_PSD_MINMARGINRECT = 1026,
-				CBEM_GETIMAGELIST = 1027,
-				DDM_BEGIN = 1027,
-				HKM_SETRULES = 1027,
-				PBM_DELTAPOS = 1027,
-				RB_GETBARINFO = 1027,
-				SB_GETTEXTLENGTHA = 1027,
-				TBM_GETTIC = 1027,
-				TB_PRESSBUTTON = 1027,
-				TTM_SETDELAYTIME = 1027,
-				WM_PSD_MARGINRECT = 1027,
-				CBEM_GETITEMA = 1028,
-				DDM_END = 1028,
-				PBM_SETSTEP = 1028,
-				RB_SETBARINFO = 1028,
-				SB_SETPARTS = 1028,
-				TB_HIDEBUTTON = 1028,
-				TBM_SETTIC = 1028,
-				TTM_ADDTOOLA = 1028,
-				WM_PSD_GREEKTEXTRECT = 1028,
-				CBEM_SETITEMA = 1029,
-				PBM_STEPIT = 1029,
-				TB_INDETERMINATE = 1029,
-				TBM_SETPOS = 1029,
-				TTM_DELTOOLA = 1029,
-				WM_PSD_ENVSTAMPRECT = 1029,
-				CBEM_GETCOMBOCONTROL = 1030,
-				PBM_SETRANGE32 = 1030,
-				RB_SETBANDINFOA = 1030,
-				SB_GETPARTS = 1030,
-				TB_MARKBUTTON = 1030,
-				TBM_SETRANGE = 1030,
-				TTM_NEWTOOLRECTA = 1030,
-				WM_PSD_YAFULLPAGERECT = 1030,
-				CBEM_GETEDITCONTROL = 1031,
-				PBM_GETRANGE = 1031,
-				RB_SETPARENT = 1031,
-				SB_GETBORDERS = 1031,
-				TBM_SETRANGEMIN = 1031,
-				TTM_RELAYEVENT = 1031,
-				CBEM_SETEXSTYLE = 1032,
-				PBM_GETPOS = 1032,
-				RB_HITTEST = 1032,
-				SB_SETMINHEIGHT = 1032,
-				TBM_SETRANGEMAX = 1032,
-				TTM_GETTOOLINFOA = 1032,
-				CBEM_GETEXSTYLE = 1033,
-				CBEM_GETEXTENDEDSTYLE = 1033,
-				PBM_SETBARCOLOR = 1033,
-				RB_GETRECT = 1033,
-				SB_SIMPLE = 1033,
-				TB_ISBUTTONENABLED = 1033,
-				TBM_CLEARTICS = 1033,
-				TTM_SETTOOLINFOA = 1033,
-				CBEM_HASEDITCHANGED = 1034,
-				RB_INSERTBANDW = 1034,
-				SB_GETRECT = 1034,
-				TB_ISBUTTONCHECKED = 1034,
-				TBM_SETSEL = 1034,
-				TTM_HITTESTA = 1034,
-				WIZ_QUERYNUMPAGES = 1034,
-				CBEM_INSERTITEMW = 1035,
-				RB_SETBANDINFOW = 1035,
-				SB_SETTEXTW = 1035,
-				TB_ISBUTTONPRESSED = 1035,
-				TBM_SETSELSTART = 1035,
-				TTM_GETTEXTA = 1035,
-				WIZ_NEXT = 1035,
-				CBEM_SETITEMW = 1036,
-				RB_GETBANDCOUNT = 1036,
-				SB_GETTEXTLENGTHW = 1036,
-				TB_ISBUTTONHIDDEN = 1036,
-				TBM_SETSELEND = 1036,
-				TTM_UPDATETIPTEXTA = 1036,
-				WIZ_PREV = 1036,
-				CBEM_GETITEMW = 1037,
-				RB_GETROWCOUNT = 1037,
-				SB_GETTEXTW = 1037,
-				TB_ISBUTTONINDETERMINATE = 1037,
-				TTM_GETTOOLCOUNT = 1037,
-				CBEM_SETEXTENDEDSTYLE = 1038,
-				RB_GETROWHEIGHT = 1038,
-				SB_ISSIMPLE = 1038,
-				TB_ISBUTTONHIGHLIGHTED = 1038,
-				TBM_GETPTICS = 1038,
-				TTM_ENUMTOOLSA = 1038,
-				SB_SETICON = 1039,
-				TBM_GETTICPOS = 1039,
-				TTM_GETCURRENTTOOLA = 1039,
-				RB_IDTOINDEX = 1040,
-				SB_SETTIPTEXTA = 1040,
-				TBM_GETNUMTICS = 1040,
-				TTM_WINDOWFROMPOINT = 1040,
-				RB_GETTOOLTIPS = 1041,
-				SB_SETTIPTEXTW = 1041,
-				TBM_GETSELSTART = 1041,
-				TB_SETSTATE = 1041,
-				TTM_TRACKACTIVATE = 1041,
-				RB_SETTOOLTIPS = 1042,
-				SB_GETTIPTEXTA = 1042,
-				TB_GETSTATE = 1042,
-				TBM_GETSELEND = 1042,
-				TTM_TRACKPOSITION = 1042,
-				RB_SETBKCOLOR = 1043,
-				SB_GETTIPTEXTW = 1043,
-				TB_ADDBITMAP = 1043,
-				TBM_CLEARSEL = 1043,
-				TTM_SETTIPBKCOLOR = 1043,
-				RB_GETBKCOLOR = 1044,
-				SB_GETICON = 1044,
-				TB_ADDBUTTONSA = 1044,
-				TBM_SETTICFREQ = 1044,
-				TTM_SETTIPTEXTCOLOR = 1044,
-				RB_SETTEXTCOLOR = 1045,
-				TB_INSERTBUTTONA = 1045,
-				TBM_SETPAGESIZE = 1045,
-				TTM_GETDELAYTIME = 1045,
-				RB_GETTEXTCOLOR = 1046,
-				TB_DELETEBUTTON = 1046,
-				TBM_GETPAGESIZE = 1046,
-				TTM_GETTIPBKCOLOR = 1046,
-				RB_SIZETORECT = 1047,
-				TB_GETBUTTON = 1047,
-				TBM_SETLINESIZE = 1047,
-				TTM_GETTIPTEXTCOLOR = 1047,
-				RB_BEGINDRAG = 1048,
-				TB_BUTTONCOUNT = 1048,
-				TBM_GETLINESIZE = 1048,
-				TTM_SETMAXTIPWIDTH = 1048,
-				RB_ENDDRAG = 1049,
-				TB_COMMANDTOINDEX = 1049,
-				TBM_GETTHUMBRECT = 1049,
-				TTM_GETMAXTIPWIDTH = 1049,
-				RB_DRAGMOVE = 1050,
-				TBM_GETCHANNELRECT = 1050,
-				TB_SAVERESTOREA = 1050,
-				TTM_SETMARGIN = 1050,
-				RB_GETBARHEIGHT = 1051,
-				TB_CUSTOMIZE = 1051,
-				TBM_SETTHUMBLENGTH = 1051,
-				TTM_GETMARGIN = 1051,
-				RB_GETBANDINFOW = 1052,
-				TB_ADDSTRINGA = 1052,
-				TBM_GETTHUMBLENGTH = 1052,
-				TTM_POP = 1052,
-				RB_GETBANDINFOA = 1053,
-				TB_GETITEMRECT = 1053,
-				TBM_SETTOOLTIPS = 1053,
-				TTM_UPDATE = 1053,
-				RB_MINIMIZEBAND = 1054,
-				TB_BUTTONSTRUCTSIZE = 1054,
-				TBM_GETTOOLTIPS = 1054,
-				TTM_GETBUBBLESIZE = 1054,
-				RB_MAXIMIZEBAND = 1055,
-				TBM_SETTIPSIDE = 1055,
-				TB_SETBUTTONSIZE = 1055,
-				TTM_ADJUSTRECT = 1055,
-				TBM_SETBUDDY = 1056,
-				TB_SETBITMAPSIZE = 1056,
-				TTM_SETTITLEA = 1056,
-				MSG_FTS_JUMP_VA = 1057,
-				TB_AUTOSIZE = 1057,
-				TBM_GETBUDDY = 1057,
-				TTM_SETTITLEW = 1057,
-				RB_GETBANDBORDERS = 1058,
-				MSG_FTS_JUMP_QWORD = 1059,
-				RB_SHOWBAND = 1059,
-				TB_GETTOOLTIPS = 1059,
-				MSG_REINDEX_REQUEST = 1060,
-				TB_SETTOOLTIPS = 1060,
-				MSG_FTS_WHERE_IS_IT = 1061,
-				RB_SETPALETTE = 1061,
-				TB_SETPARENT = 1061,
-				RB_GETPALETTE = 1062,
-				RB_MOVEBAND = 1063,
-				TB_SETROWS = 1063,
-				TB_GETROWS = 1064,
-				TB_GETBITMAPFLAGS = 1065,
-				TB_SETCMDID = 1066,
-				RB_PUSHCHEVRON = 1067,
-				TB_CHANGEBITMAP = 1067,
-				TB_GETBITMAP = 1068,
-				MSG_GET_DEFFONT = 1069,
-				TB_GETBUTTONTEXTA = 1069,
-				TB_REPLACEBITMAP = 1070,
-				TB_SETINDENT = 1071,
-				TB_SETIMAGELIST = 1072,
-				TB_GETIMAGELIST = 1073,
-				TB_LOADIMAGES = 1074,
-				TTM_ADDTOOLW = 1074,
-				TB_GETRECT = 1075,
-				TTM_DELTOOLW = 1075,
-				TB_SETHOTIMAGELIST = 1076,
-				TTM_NEWTOOLRECTW = 1076,
-				TB_GETHOTIMAGELIST = 1077,
-				TTM_GETTOOLINFOW = 1077,
-				TB_SETDISABLEDIMAGELIST = 1078,
-				TTM_SETTOOLINFOW = 1078,
-				TB_GETDISABLEDIMAGELIST = 1079,
-				TTM_HITTESTW = 1079,
-				TB_SETSTYLE = 1080,
-				TTM_GETTEXTW = 1080,
-				TB_GETSTYLE = 1081,
-				TTM_UPDATETIPTEXTW = 1081,
-				TB_GETBUTTONSIZE = 1082,
-				TTM_ENUMTOOLSW = 1082,
-				TB_SETBUTTONWIDTH = 1083,
-				TTM_GETCURRENTTOOLW = 1083,
-
-				EM_GETEVENTMASK = (WM_USER + 59),
-
-				TB_SETMAXTEXTROWS = 1084,
-				TB_GETTEXTROWS = 1085,
-				TB_GETOBJECT = 1086,
-				TB_GETBUTTONINFOW = 1087,
-				TB_SETBUTTONINFOW = 1088,
-				TB_GETBUTTONINFOA = 1089,
-				TB_SETBUTTONINFOA = 1090,
-				TB_INSERTBUTTONW = 1091,
-				TB_ADDBUTTONSW = 1092,
-				TB_HITTEST = 1093,
-
-				EM_SETEVENTMASK = (WM_USER + 69),
-
-				TB_SETDRAWTEXTFLAGS = 1094,
-				TB_GETHOTITEM = 1095,
-				TB_SETHOTITEM = 1096,
-				TB_SETANCHORHIGHLIGHT = 1097,
-				TB_GETANCHORHIGHLIGHT = 1098,
-				TB_GETBUTTONTEXTW = 1099,
-				TB_SAVERESTOREW = 1100,
-				TB_ADDSTRINGW = 1101,
-				TB_MAPACCELERATORA = 1102,
-				TB_GETINSERTMARK = 1103,
-				TB_SETINSERTMARK = 1104,
-				TB_INSERTMARKHITTEST = 1105,
-				TB_MOVEBUTTON = 1106,
-				TB_GETMAXSIZE = 1107,
-				TB_SETEXTENDEDSTYLE = 1108,
-				TB_GETEXTENDEDSTYLE = 1109,
-				TB_GETPADDING = 1110,
-				TB_SETPADDING = 1111,
-				TB_SETINSERTMARKCOLOR = 1112,
-				TB_GETINSERTMARKCOLOR = 1113,
-				TB_MAPACCELERATORW = 1114,
-				TB_GETSTRINGW = 1115,
-				TB_GETSTRINGA = 1116,
-				TAPI_REPLY = 1123,
-				ACM_OPENA = 1124,
-				BFFM_SETSTATUSTEXTA = 1124,
-				CDM_FIRST = 1124,
-				CDM_GETSPEC = 1124,
-				IPM_CLEARADDRESS = 1124,
-				WM_CAP_UNICODE_START = 1124,
-				ACM_PLAY = 1125,
-				BFFM_ENABLEOK = 1125,
-				CDM_GETFILEPATH = 1125,
-				IPM_SETADDRESS = 1125,
-				PSM_SETCURSEL = 1125,
-				UDM_SETRANGE = 1125,
-				WM_CHOOSEFONT_SETLOGFONT = 1125,
-				ACM_STOP = 1126,
-				BFFM_SETSELECTIONA = 1126,
-				CDM_GETFOLDERPATH = 1126,
-				IPM_GETADDRESS = 1126,
-				PSM_REMOVEPAGE = 1126,
-				UDM_GETRANGE = 1126,
-				WM_CAP_SET_CALLBACK_ERRORW = 1126,
-				WM_CHOOSEFONT_SETFLAGS = 1126,
-				ACM_OPENW = 1127,
-				BFFM_SETSELECTIONW = 1127,
-				CDM_GETFOLDERIDLIST = 1127,
-				IPM_SETRANGE = 1127,
-				PSM_ADDPAGE = 1127,
-				UDM_SETPOS = 1127,
-				WM_CAP_SET_CALLBACK_STATUSW = 1127,
-				BFFM_SETSTATUSTEXTW = 1128,
-				CDM_SETCONTROLTEXT = 1128,
-				IPM_SETFOCUS = 1128,
-				PSM_CHANGED = 1128,
-				UDM_GETPOS = 1128,
-				CDM_HIDECONTROL = 1129,
-				IPM_ISBLANK = 1129,
-				PSM_RESTARTWINDOWS = 1129,
-				UDM_SETBUDDY = 1129,
-				CDM_SETDEFEXT = 1130,
-				PSM_REBOOTSYSTEM = 1130,
-				UDM_GETBUDDY = 1130,
-				PSM_CANCELTOCLOSE = 1131,
-				UDM_SETACCEL = 1131,
-				EM_CONVPOSITION = 1132,
-				PSM_QUERYSIBLINGS = 1132,
-				UDM_GETACCEL = 1132,
-				MCIWNDM_GETZOOM = 1133,
-				PSM_UNCHANGED = 1133,
-				UDM_SETBASE = 1133,
-				PSM_APPLY = 1134,
-				UDM_GETBASE = 1134,
-				PSM_SETTITLEA = 1135,
-				UDM_SETRANGE32 = 1135,
-				PSM_SETWIZBUTTONS = 1136,
-				UDM_GETRANGE32 = 1136,
-				WM_CAP_DRIVER_GET_NAMEW = 1136,
-				PSM_PRESSBUTTON = 1137,
-				UDM_SETPOS32 = 1137,
-				WM_CAP_DRIVER_GET_VERSIONW = 1137,
-				PSM_SETCURSELID = 1138,
-				UDM_GETPOS32 = 1138,
-				PSM_SETFINISHTEXTA = 1139,
-				PSM_GETTABCONTROL = 1140,
-				PSM_ISDIALOGMESSAGE = 1141,
-				MCIWNDM_REALIZE = 1142,
-				PSM_GETCURRENTPAGEHWND = 1142,
-				MCIWNDM_SETTIMEFORMATA = 1143,
-				PSM_INSERTPAGE = 1143,
-				MCIWNDM_GETTIMEFORMATA = 1144,
-				PSM_SETTITLEW = 1144,
-				WM_CAP_FILE_SET_CAPTURE_FILEW = 1144,
-				MCIWNDM_VALIDATEMEDIA = 1145,
-				PSM_SETFINISHTEXTW = 1145,
-				WM_CAP_FILE_GET_CAPTURE_FILEW = 1145,
-				MCIWNDM_PLAYTO = 1147,
-				WM_CAP_FILE_SAVEASW = 1147,
-				MCIWNDM_GETFILENAMEA = 1148,
-				MCIWNDM_GETDEVICEA = 1149,
-				PSM_SETHEADERTITLEA = 1149,
-				WM_CAP_FILE_SAVEDIBW = 1149,
-				MCIWNDM_GETPALETTE = 1150,
-				PSM_SETHEADERTITLEW = 1150,
-				MCIWNDM_SETPALETTE = 1151,
-				PSM_SETHEADERSUBTITLEA = 1151,
-				MCIWNDM_GETERRORA = 1152,
-				PSM_SETHEADERSUBTITLEW = 1152,
-				PSM_HWNDTOINDEX = 1153,
-				PSM_INDEXTOHWND = 1154,
-				MCIWNDM_SETINACTIVETIMER = 1155,
-				PSM_PAGETOINDEX = 1155,
-				PSM_INDEXTOPAGE = 1156,
-				DL_BEGINDRAG = 1157,
-				MCIWNDM_GETINACTIVETIMER = 1157,
-				PSM_IDTOINDEX = 1157,
-				DL_DRAGGING = 1158,
-				PSM_INDEXTOID = 1158,
-				DL_DROPPED = 1159,
-				PSM_GETRESULT = 1159,
-				DL_CANCELDRAG = 1160,
-				PSM_RECALCPAGESIZES = 1160,
-				MCIWNDM_GET_SOURCE = 1164,
-				MCIWNDM_PUT_SOURCE = 1165,
-				MCIWNDM_GET_DEST = 1166,
-				MCIWNDM_PUT_DEST = 1167,
-				MCIWNDM_CAN_PLAY = 1168,
-				MCIWNDM_CAN_WINDOW = 1169,
-				MCIWNDM_CAN_RECORD = 1170,
-				MCIWNDM_CAN_SAVE = 1171,
-				MCIWNDM_CAN_EJECT = 1172,
-				MCIWNDM_CAN_CONFIG = 1173,
-				IE_GETINK = 1174,
-				IE_MSGFIRST = 1174,
-				MCIWNDM_PALETTEKICK = 1174,
-				IE_SETINK = 1175,
-				IE_GETPENTIP = 1176,
-				IE_SETPENTIP = 1177,
-				IE_GETERASERTIP = 1178,
-				IE_SETERASERTIP = 1179,
-				IE_GETBKGND = 1180,
-				IE_SETBKGND = 1181,
-				IE_GETGRIDORIGIN = 1182,
-				IE_SETGRIDORIGIN = 1183,
-				IE_GETGRIDPEN = 1184,
-				IE_SETGRIDPEN = 1185,
-				IE_GETGRIDSIZE = 1186,
-				IE_SETGRIDSIZE = 1187,
-				IE_GETMODE = 1188,
-				IE_SETMODE = 1189,
-				IE_GETINKRECT = 1190,
-				WM_CAP_SET_MCI_DEVICEW = 1190,
-				WM_CAP_GET_MCI_DEVICEW = 1191,
-				WM_CAP_PAL_OPENW = 1204,
-				WM_CAP_PAL_SAVEW = 1205,
-				IE_GETAPPDATA = 1208,
-				IE_SETAPPDATA = 1209,
-				IE_GETDRAWOPTS = 1210,
-				IE_SETDRAWOPTS = 1211,
-				IE_GETFORMAT = 1212,
-				IE_SETFORMAT = 1213,
-				IE_GETINKINPUT = 1214,
-				IE_SETINKINPUT = 1215,
-				IE_GETNOTIFY = 1216,
-				IE_SETNOTIFY = 1217,
-				IE_GETRECOG = 1218,
-				IE_SETRECOG = 1219,
-				IE_GETSECURITY = 1220,
-				IE_SETSECURITY = 1221,
-				IE_GETSEL = 1222,
-				IE_SETSEL = 1223,
-				CDM_LAST = 1224,
-				IE_DOCOMMAND = 1224,
-				MCIWNDM_NOTIFYMODE = 1224,
-				IE_GETCOMMAND = 1225,
-				IE_GETCOUNT = 1226,
-				IE_GETGESTURE = 1227,
-				MCIWNDM_NOTIFYMEDIA = 1227,
-				IE_GETMENU = 1228,
-				IE_GETPAINTDC = 1229,
-				MCIWNDM_NOTIFYERROR = 1229,
-				IE_GETPDEVENT = 1230,
-				IE_GETSELCOUNT = 1231,
-				IE_GETSELITEMS = 1232,
-				IE_GETSTYLE = 1233,
-				MCIWNDM_SETTIMEFORMATW = 1243,
-				EM_OUTLINE = 1244,
-				MCIWNDM_GETTIMEFORMATW = 1244,
-				EM_GETSCROLLPOS = 1245,
-				EM_SETSCROLLPOS = 1246,
-				EM_SETFONTSIZE = 1247,
-				MCIWNDM_GETFILENAMEW = 1248,
-				MCIWNDM_GETDEVICEW = 1249,
-				MCIWNDM_GETERRORW = 1252,
-				FM_GETFOCUS = 1536,
-				FM_GETDRIVEINFOA = 1537,
-				FM_GETSELCOUNT = 1538,
-				FM_GETSELCOUNTLFN = 1539,
-				FM_GETFILESELA = 1540,
-				FM_GETFILESELLFNA = 1541,
-				FM_REFRESH_WINDOWS = 1542,
-				FM_RELOAD_EXTENSIONS = 1543,
-				FM_GETDRIVEINFOW = 1553,
-				FM_GETFILESELW = 1556,
-				FM_GETFILESELLFNW = 1557,
-				WLX_WM_SAS = 1625,
-				SM_GETSELCOUNT = 2024,
-				UM_GETSELCOUNT = 2024,
-				WM_CPL_LAUNCH = 2024,
-				SM_GETSERVERSELA = 2025,
-				UM_GETUSERSELA = 2025,
-				WM_CPL_LAUNCHED = 2025,
-				SM_GETSERVERSELW = 2026,
-				UM_GETUSERSELW = 2026,
-				SM_GETCURFOCUSA = 2027,
-				UM_GETGROUPSELA = 2027,
-				SM_GETCURFOCUSW = 2028,
-				UM_GETGROUPSELW = 2028,
-				SM_GETOPTIONS = 2029,
-				UM_GETCURFOCUSA = 2029,
-				UM_GETCURFOCUSW = 2030,
-				UM_GETOPTIONS = 2031,
-				UM_GETOPTIONS2 = 2032,
-				//OCM__BASE = 8192 , 
-				WM_REFLECT = 0x2000,
-				OCM_CTLCOLOR = 8217,
-				OCM_DRAWITEM = (WM_REFLECT + WM_DRAWITEM), //0x202B=8235'called once when the ListView Is created, but only in Details view,
-				OCM_MEASUREITEM = (WM_REFLECT + WM_MEASUREITEM), //'0x202C=8236  , 
-
-
-				OCM_DELETEITEM = 8237,
-				OCM_VKEYTOITEM = 8238,
-				OCM_CHARTOITEM = 8239,
-				OCM_COMPAREITEM = 8249,
-				OCM_NOTIFY = (WM_REFLECT + WM_NOTIFY),
-				OCM_COMMAND = 8465,
-				OCM_HSCROLL = 8468,
-				OCM_VSCROLL = 8469,
-				OCM_CTLCOLORMSGBOX = 8498,
-				OCM_CTLCOLOREDIT = 8499,
-				OCM_CTLCOLORLISTBOX = 8500,
-				OCM_CTLCOLORBTN = 8501,
-				OCM_CTLCOLORDLG = 8502,
-				OCM_CTLCOLORSCROLLBAR = 8503,
-				OCM_CTLCOLORSTATIC = 8504,
-				OCM_PARENTNOTIFY = 8720,
-				WM_APP = 32768,
-				WM_RASDIALEVENT = 52429
-
-			}
-
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern IntPtr SendMessage(
-			[In] IntPtr hwnd,
-			[In, MarshalAs(UnmanagedType.I4)] WindowMessages wMsg,
-			[In] IntPtr wParam,
-			[In] IntPtr lParam);
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern IntPtr SendMessage(
-				[In] IntPtr hwnd,
-				[In] int wMsg,
-				[In] IntPtr wParam,
-				[In] IntPtr lParam);
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern IntPtr SendMessage(
-				[In] IntPtr hwnd,
-				[In, MarshalAs(UnmanagedType.I4)] WindowMessages wMsg,
-				[In] int wParam,
-				[In, MarshalAs(UnmanagedType.LPTStr)] string? lParam);
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern IntPtr SendMessage(
-				[In] IntPtr hwnd,
-				[In, MarshalAs(UnmanagedType.I4)] WindowMessages wMsg,
-				[In] int wParam,
-				[In] int lParam);
-
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern IntPtr SendMessage(
-				[In] IntPtr hwnd,
-				[In, MarshalAs(UnmanagedType.I4)] int wMsg,
-				[In] int wParam,
-				[In, MarshalAs(UnmanagedType.LPTStr)] string? lParam);
-
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern int SendMessage(
-			  [In] IntPtr hwnd,
-			  [In, MarshalAs(UnmanagedType.I4)] int wMsg,
-			  [In, MarshalAs(UnmanagedType.I4)] int wParam,
-			  [In, MarshalAs(UnmanagedType.I4)] int lParam);
-
-
-			#endregion
-
-
-			#region AppCommand
-
-
-			/// <summary>
-			/// This commands mostly used by remote control apps for send commands from remote control to the system. Like Media players with remote or like the MediaCenter etc.
-			/// https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-appcommand
-			/// https://docs.microsoft.com/en-us/previous-versions/windows/desktop/windows-media-center-sdk/bb417079(v=msdn.10)
-			/// </summary>
-			public enum FAPPCOMMAND_CMD : int
-			{
-				APPCOMMAND_BROWSER_BACKWARD = 1,//Navigate backward.
-				APPCOMMAND_BROWSER_FORWARD = 2,//Navigate forward.
-				APPCOMMAND_BROWSER_REFRESH = 3,//Refresh page.
-				APPCOMMAND_BROWSER_STOP = 4,//Stop download.
-				APPCOMMAND_BROWSER_SEARCH = 5,//Open search.
-				APPCOMMAND_BROWSER_FAVORITES = 6,//Open favorites.
-				APPCOMMAND_BROWSER_HOME = 7,//Navigate home.
-
-				/// <summary>Mute the volume.</summary>
-				APPCOMMAND_VOLUME_MUTE = 8, //APPCOMMAND_VOLUME_MUTE = 0x8_00_00,
-				/// <summary>Lower the volume.</summary>
-				APPCOMMAND_VOLUME_DOWN = 9, //APPCOMMAND_VOLUME_DOWN = 0x9_00_00,
-				/// <summary>Raise the volume.</summary>
-				APPCOMMAND_VOLUME_UP = 10,  //APPCOMMAND_VOLUME_UP = 0xA_00_00,                
-
-
-				APPCOMMAND_MEDIA_NEXTTRACK = 11,//Go to next track.
-				APPCOMMAND_MEDIA_PREVIOUSTRACK = 12,//Go to previous track.
-				APPCOMMAND_MEDIA_STOP = 13,//Stop playback.
-				APPCOMMAND_MEDIA_PLAY_PAUSE = 14,//Play or pause playback.If there are discrete Play and Pause buttons, applications should take action on this command as well as APPCOMMAND_MEDIA_PLAY and APPCOMMAND_MEDIA_PAUSE.
-
-				APPCOMMAND_LAUNCH_MAIL = 15,//Open mail.
-				APPCOMMAND_LAUNCH_MEDIA_SELECT = 16,//Go to Media Select mode.
-				APPCOMMAND_LAUNCH_APP1 = 17,//Start App1.
-				APPCOMMAND_LAUNCH_APP2 = 18,//Start App2.
-
-
-				APPCOMMAND_BASS_DOWN = 19,  //Decrease the bass.
-				APPCOMMAND_BASS_BOOST = 20, //Toggle the bass boost on and off.
-				APPCOMMAND_BASS_UP = 21,    //Increase the bass.
-				APPCOMMAND_TREBLE_DOWN = 22,//Decrease the treble.
-				APPCOMMAND_TREBLE_UP = 23,//Increase the treble.
-
-				APPCOMMAND_MICROPHONE_VOLUME_MUTE = 24,//Mute the microphone.
-				APPCOMMAND_MICROPHONE_VOLUME_DOWN = 25,//Decrease microphone volume.
-				APPCOMMAND_MICROPHONE_VOLUME_UP = 26,//Increase microphone volume.
-
-				APPCOMMAND_HELP = 27,//Open the Help dialog.
-				APPCOMMAND_FIND = 28,//Open the Find dialog.
-				APPCOMMAND_NEW = 29,//Create a new window.
-				APPCOMMAND_OPEN = 30,//Open a window.
-				APPCOMMAND_CLOSE = 31,//Close the window (not the application).
-
-				APPCOMMAND_SAVE = 32,//Save current document.
-				APPCOMMAND_PRINT = 33,//Print current document.
-
-				APPCOMMAND_UNDO = 34,//Undo last action.
-				APPCOMMAND_REDO = 35,//Redo last action.
-				APPCOMMAND_COPY = 36,//Copy the selection.
-				APPCOMMAND_CUT = 37,//Cut the selection.
-				APPCOMMAND_PASTE = 38,//Paste
-
-				APPCOMMAND_REPLY_TO_MAIL = 39,//Reply to a mail message.
-				APPCOMMAND_FORWARD_MAIL = 40,//Forward a mail message.
-				APPCOMMAND_SEND_MAIL = 41,//Send a mail message.
-				APPCOMMAND_SPELL_CHECK = 42,//Initiate a spell check.
-				APPCOMMAND_DICTATE_OR_COMMAND_CONTROL_TOGGLE = 43,//Toggles between two modes of speech input: dictation and command/control(giving commands to an application or accessing menus).
-				APPCOMMAND_MIC_ON_OFF_TOGGLE = 44,//Toggle the microphone.
-				APPCOMMAND_CORRECTION_LIST = 45,//Brings up the correction list when a word is incorrectly identified during speech input.
-
-				APPCOMMAND_MEDIA_PLAY = 46,//Begin playing at the current position.If already paused, it will resume.This is a direct PLAY command that has no state.If there are discrete Play and Pause buttons, applications should take action on this command as well as APPCOMMAND_MEDIA_PLAY_PAUSE.
-				APPCOMMAND_MEDIA_PAUSE = 47,//Pause.If already paused, take no further action.This is a direct PAUSE command that has no state.If there are discrete Play and Pause buttons, applications should take action on this command as well as APPCOMMAND_MEDIA_PLAY_PAUSE.
-				APPCOMMAND_MEDIA_RECORD = 48,//Begin recording the current stream.
-				APPCOMMAND_MEDIA_FAST_FORWARD = 49,//Increase the speed of stream playback. This can be implemented in many ways, for example, using a fixed speed or toggling through a series of increasing speeds.
-				APPCOMMAND_MEDIA_REWIND = 50,//Go backward in a stream at a higher rate of speed.This can be implemented in many ways, for example, using a fixed speed or toggling through a series of increasing speeds.
-				APPCOMMAND_MEDIA_CHANNEL_UP = 51,//Increment the channel value, for example, for a TV or radio tuner.
-				APPCOMMAND_MEDIA_CHANNEL_DOWN = 52,//Decrement the channel value, for example, for a TV or radio tuner.
-
-			}
-
-			//The uDevice component indicates the input device that generated the input event, and can be one of the following values.
-			public enum FAPPCOMMAND_SRC : int
-			{
-				/// <summary>User pressed a key.</summary>
-				FAPPCOMMAND_KEY = 0,
-				/// <summary>User clicked a mouse button.</summary>
-				FAPPCOMMAND_MOUSE = 0x8000,
-				/// <summary>An unidentified hardware source generated the event. It could be a mouse or a keyboard event.</summary>
-				FAPPCOMMAND_OEM = 0x1000,
-			}
-
-			//The dwKeys component indicates whether various virtual keys are down, and can be one or more of the following values.
-			public enum FAPPCOMMAND_VKEY : int
-			{
-				MK_NONE = 0,
-
-				/// <summary>The CTRL key is down.</summary>
-				MK_CONTROL = 0x0008,
-				/// <summary>The left mouse button is down.</summary>
-				MK_LBUTTON = 0x0001,
-				/// <summary>The middle mouse button is down.</summary>
-				MK_MBUTTON = 0x0010,
-				/// <summary>The right mouse button is down.</summary>
-				MK_RBUTTON = 0x0002,
-				/// <summary>The SHIFT key is down.</summary>
-				MK_SHIFT = 0x0004,
-				/// <summary>The first X button is down.</summary>
-				MK_XBUTTON1 = 0x0020,
-				/// <summary>The second X button is down.</summary>
-				MK_XBUTTON2 = 0x0040,
-			}
-
-
-			/// <summary>Send to the system an "app command", it is like pressing volume up / down / mute button or other like this.</summary>
-			public static void SendAppCommand(
-				IntPtr hwnd,
-				FAPPCOMMAND_CMD cmd,
-				FAPPCOMMAND_SRC source = FAPPCOMMAND_SRC.FAPPCOMMAND_KEY,
-				FAPPCOMMAND_VKEY vkey = FAPPCOMMAND_VKEY.MK_NONE)
-			{
-				int fullCode = (int)cmd << 16 | (int)source | (int)vkey;
-				SendMessage(hwnd, WindowMessages.WM_APPCOMMAND, hwnd, new IntPtr(fullCode));
-				//SendMessage(Handle, WM_APPCOMMAND, Handle, new IntPtr(APPCOMMAND_VOLUME_UP));
-				//SendMessage(Handle, WM_APPCOMMAND, Handle, new IntPtr(APPCOMMAND_VOLUME_MUTE));
-			}
-
-
-			#endregion
-
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			public static extern IntPtr GetDesktopWindow();
-
-
-			[DllImport(WinAPI.core.WINDLL_USER, CharSet = CharSet.Auto, SetLastError = true, ExactSpelling = true)]
-			public static extern int GetDpiForWindow(
-				[In] IntPtr hWnd);
-
-
-			/// <summary>
-			/// Used when system uses High DPI modes since Windows 8.1 <see href="https://learn.microsoft.com/en-us/windows/win32/hidpi/high-dpi-desktop-application-development-on-windows"/>
-			/// <br/>
-			/// For this to work correctly on Windows 10 anniversary, you need to add dpiAwareness to app.manifest of your project:
-			/// </summary>
-			/// <returns>
-			/// 1.25 = 125%<br/>
-			/// 1.5 = 150%
-			/// </returns>
-			public static float GetHighDPIScaleFactor(IntPtr windowHandle)
-			{
-				try
-				{
-					return GetDpiForWindow(windowHandle) / (float)uom.OS.DEFAULT_SCREEN_DPI;
-				}
-				catch { return 1f; }// Or fallback to GDI solutions above
-			}
-
-
-			internal enum WindowStyles : int
-			{
-				WS_VISIBLE = 0x10000000,
-				WS_CHILD = 0x40000000,
-				WS_TABSTOP = 0x00010000,
-
-				BS_AUTOCHECKBOX = 0x00000003
-			}
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern IntPtr CreateWindowEx(
-					[In] int dwExStyle,          // extended window style
-					[In, MarshalAs(UnmanagedType.LPTStr)] string lpClassName,     // registered class name
-					[In, MarshalAs(UnmanagedType.LPTStr)] string lpWindowName,    // window name
-					[In] WindowStyles dwStyle,            // window style
-					[In] int x,                  // horizontal position of window
-					[In] int y,                  // vertical position of window
-					[In] int nWidth,             // window width
-					[In] int nHeight,            // window height
-					[In] IntPtr hWndParent,      // handle to parent or owner window
-					[In] IntPtr hMenu,           // menu handle or child identifier
-					[In] IntPtr hInstance,       // handle to application instance
-					[In] IntPtr lpParam          // window-creation data
-					);
-
-
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern IntPtr GetForegroundWindow();
-
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool SetForegroundWindow(
-				[In] IntPtr hWnd);
-
-
-			internal enum LockCodes : uint
-			{
-				/// <summary>Disables calls to SetForegroundWindow.</summary>
-				LSFW_LOCK = 1,
-
-				/// <summary>Enables calls to SetForegroundWindow.</summary>
-				LSFW_UNLOCK = 2
-			}
-			/// <summary>The foreground process can call the LockSetForegroundWindow function to disable calls to the SetForegroundWindow function.</summary>
-			/// <param name="uLockCode"></param>
-			/// <returns>
-			/// If the function succeeds, the return value is nonzero.
-			/// If the function fails, the return value is zero.To get extended error information, call GetLastError.
-			/// </returns>
-			/// <remarks>
-			/// The system automatically enables calls to SetForegroundWindow if the user presses the ALT key or takes some action that causes the system itself to change the foreground window (for example, clicking a background window).
-			/// This function is provided so applications can prevent other applications from making a foreground change that can interrupt its interaction with the user.			
-			/// </remarks>
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool LockSetForegroundWindow(
-				[In] LockCodes uLockCode);
-
-
-			/// <summary>Enables the specified process to set the foreground window using the SetForegroundWindow function. The calling process must already be able to set the foreground window. For more information, see Remarks later in this topic.</summary>
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool AllowSetForegroundWindow(
-				[In] int dwProcessId);
-
-
-
-
-			internal enum ShowWindowCommands : int
-			{
-				SW_HIDE = 0,//	Скрывает окно и активирует другое окно.
-				SW_SHOWNORMAL = 1,
-				SW_NORMAL = 1,//	Активирует и отображает окно. Если окно свернуто, развернуто или упорядочено, система восстанавливает его исходный размер и положение. Приложение должно указать этот флаг при первом отображении окна.
-				SW_SHOWMINIMIZED = 2,   //Активирует окно и отображает его как свернутое окно.
-				SW_SHOWMAXIMIZED = 3,
-				SW_MAXIMIZE = 3,//	Активирует окно и отображает его в виде развернутого окна.
-				SW_SHOWNOACTIVATE = 4, //Отображает окно с последним размером и положением. Это значение похоже на SW_SHOWNORMAL, за исключением того, что окно не активировано.
-				SW_SHOW = 5,//Активирует окно и отображает его в текущем размере и положении.
-				SW_MINIMIZE = 6,//Свертывание указанного окна и активация следующего окна верхнего уровня в порядке Z.
-				SW_SHOWMINNOACTIVE = 7,//Отображает окно в виде свернутого окна. Это значение похоже на SW_SHOWMINIMIZED, за исключением того, что окно не активировано.
-				SW_SHOWNA = 8,//Отображает окно в его текущем размере и положении. Это значение похоже на SW_SHOW, за исключением того, что окно не активировано.
-				SW_RESTORE = 9,//Активирует и отображает окно. Если окно свернуто, развернуто или упорядочено, система восстанавливает его исходный размер и положение. Приложение должно указать этот флаг при восстановлении свернутого окна.
-				SW_SHOWDEFAULT = 10,//Задает состояние отображения на основе значения SW_, указанного в структуре STARTUPINFO, переданной в функцию CreateProcess программой, которая запустила приложение.
-				SW_FORCEMINIMIZE = 11//Свертывание окна, даже если поток, которому принадлежит окно, не отвечает. Этот флаг следует использовать только при минимизации окон из другого потока.
-			}
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool ShowWindow(
-				[In] IntPtr handle,
-				[In] ShowWindowCommands nCmdShow);
-
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern IntPtr FindWindow(
-				[In, MarshalAs(UnmanagedType.LPTStr)] string lpClassName,
-				[In, MarshalAs(UnmanagedType.LPTStr)] string lpWindowName);
-
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern IntPtr GetDlgItem(
-				[In] IntPtr hwnd,
-				[In] int id);
-
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern int ScreenToClient(
-				[In] IntPtr hwnd,
-				[In, Out] ref System.Drawing.Point pt);
-
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			private static extern bool GetClientRect(
-				[In] IntPtr hwnd,
-				[Out] out System.Drawing.Rectangle rc);
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static Rectangle GetClientRect(IntPtr hwnd)
-			{
-				if (!GetClientRect(hwnd, out Rectangle rcClient))
-				{
-					throw new Win32Exception();
-				}
-
-				return rcClient;
-			}
-
-			[Flags]
-			internal enum SetWindowPosFlags : uint
-			{
-				/// <summary>If the calling thread and the thread that owns the window are attached to different input queues, the system posts the request to the thread that owns the window. This prevents the calling thread from blocking its execution while other threads process the request.</summary>
-				SWP_ASYNCWINDOWPOS = 0x4000,
-
-				/// <summary>Prevents generation of the WM_SYNCPAINT message.</summary>
-				SWP_DEFERERASE = 0x2000,
-
-				/// <summary>Draws a frame (defined in the window's class description) around the window.</summary>
-				SWP_DRAWFRAME = 0x0020,
-
-				/// <summary>Applies new frame styles set using the SetWindowLong function.Sends a WM_NCCALCSIZE message to the window, even if the window's size is not being changed. If this flag is not specified, WM_NCCALCSIZE is sent only when the window's size is being changed.</summary>
-				SWP_FRAMECHANGED = 0x0020,
-
-				/// <summary>Hides the window.</summary>
-				SWP_HIDEWINDOW = 0x0080,
-
-				/// <summary>Does not activate the window.If this flag is not set, the window is activated and moved to the top of either the topmost or non-topmost group (depending on the setting of the hWndInsertAfter parameter).</summary>
-				SWP_NOACTIVATE = 0x0010,
-
-				/// <summary>Discards the entire contents of the client area.If this flag is not specified, the valid contents of the client area are saved and copied back into the client area after the window is sized or repositioned.</summary>
-				SWP_NOCOPYBITS = 0x0100,
-
-				/// <summary>Retains the current position (ignores X and Y parameters).</summary>
-				SWP_NOMOVE = 0x0002,
-
-				/// <summary>Does not change the owner window's position in the Z order.</summary>
-				SWP_NOOWNERZORDER = 0x0200,
-
-				/// <summary>Does not redraw changes.If this flag is set, no repainting of any kind occurs. This applies to the client area, the nonclient area (including the title bar and scroll bars), and any part of the parent window uncovered as a result of the window being moved.When this flag is set, the application must explicitly invalidate or redraw any parts of the window and parent window that need redrawing.</summary>
-				SWP_NOREDRAW = 0x0008,
-
-				/// <summary>Same as the SWP_NOOWNERZORDER flag.</summary>
-				SWP_NOREPOSITION = 0x0200,
-
-				/// <summary>Prevents the window from receiving the WM_WINDOWPOSCHANGING message.</summary>
-				SWP_NOSENDCHANGING = 0x0400,
-
-				/// <summary>Retains the current size (ignores the cx and cy parameters).</summary>
-				SWP_NOSIZE = 0x0001,
-
-				/// <summary>Retains the current Z order (ignores the hWndInsertAfter parameter).</summary>
-				SWP_NOZORDER = 0x0004,
-
-				/// <summary>Displays the window.</summary>
-				SWP_SHOWWINDOW = 0x0040,
-			}
-
-			/// <summary></summary>
-			/// <param name="hWndInsertAfter">
-			/// HWND_BOTTOM	(HWND)1		Places the window at the bottom of the Z order.If the hWnd parameter identifies a topmost window, the window loses its topmost status and is placed at the bottom of all other windows.
-			/// HWND_NOTOPMOST(HWND)-2	Places the window above all non-topmost windows (that is, behind all topmost windows). This flag has no effect if the window is already a non-topmost window.
-			/// HWND_TOP(HWND)0			Places the window at the top of the Z order.
-			/// HWND_TOPMOST(HWND)-1	Places the window above all non-topmost windows.The window maintains its topmost position even when it is deactivated.
-			/// </param>
-			/// <param name="X"></param>
-			/// <param name="Y"></param>
-			/// <param name="cx"></param>
-			/// <param name="cy"></param>
-			/// <param name="uFlags"></param>
-			/// <returns></returns>
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool SetWindowPos(
-				[In] IntPtr hwnd,
-				[In, Optional] IntPtr hWndInsertAfter,
-				[In] int X,
-				[In] int Y,
-				[In] int cx,
-				[In] int cy,
-				[In] SetWindowPosFlags uFlags
-				);
-
-
-
-			/// <summary>
-			/// In conformance with conventions for the RECT structure, the bottom-right coordinates of the returned rectangle are exclusive. In other words, the pixel at (right, bottom) lies immediately outside the rectangle.
-			/// GetWindowRect is virtualized for DPI.
-			/// In Windows Vista and later, the Window Rect now includes the area occupied by the drop shadow.
-			/// Calling GetWindowRect will have different behavior depending on whether the window has ever been shown or not. If the window has not been shown before, GetWindowRect will not include the area of the drop shadow.
-			/// To get the window bounds excluding the drop shadow, use DwmGetWindowAttribute, specifying DWMWA_EXTENDED_FRAME_BOUNDS. Note that unlike the Window Rect, the DWM Extended Frame Bounds are not adjusted for DPI.Getting the extended frame bounds can only be done after the window has been shown at least once.
-			/// </summary>
-			/// <returns></returns>
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			private static extern bool GetWindowRect(
-				[In] IntPtr hwnd,
-				[Out] out RECT rc);
-
-
-
-
-			#region GetWindowPlacement / SetWindowPlacement
-
-			[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-			internal struct WINDOWPLACEMENT
-			{
-
-				//Флаги, управляющие положением свернутого окна и методом восстановления окна.Этот элемент может быть одним или несколькими из следующих значений.
-				[Flags]
-				public enum FLAGS : uint
-				{
-					//Если вызывающий поток и поток, которому принадлежит окно, присоединены к разным входным очередям, система отправляет запрос потоку, которому принадлежит окно.Это предотвращает блокировку выполнения вызывающего потока, пока другие потоки обрабатывают запрос.
-					WPF_ASYNCWINDOWPLACEMENT = 0x0004,
-
-					//Восстановленное окно будет развернуто независимо от того, было ли развернуто до его свертывание. Этот параметр действителен только при следующем восстановлении окна. Он не изменяет поведение восстановления по умолчанию.
-					WPF_RESTORETOMAXIMIZED = 0x0002,
-
-					//Этот флаг действителен, только если для элемента showCmd указано значение SW_SHOWMINIMIZED.
-					WPF_SETMINPOSITION = 0x0001
-				}
-
-				public uint length;
-				public FLAGS flags = 0;
-				public ShowWindowCommands showCmd = 0;
-				public System.Drawing.Point ptMinPosition = new();
-				public System.Drawing.Point ptMaxPosition = new();
-				public uom.WinAPI.RECT rcNormalPosition = new();
-				public uom.WinAPI.RECT rcDevice = new();
-
-				public WINDOWPLACEMENT()
-				{
-					length = (uint)Marshal.SizeOf(typeof(WINDOWPLACEMENT));
-				}
-			}
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool GetWindowPlacement(
-				[In] IntPtr hWnd,
-				[Out] out WINDOWPLACEMENT lpwndpl);
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static WINDOWPLACEMENT GetWindowPlacement([In] IntPtr hWnd)
-			{
-				bool r = GetWindowPlacement(hWnd, out WINDOWPLACEMENT wp);
-				if (!r)
-				{
-					throw new Win32Exception();
-				}
-
-				return wp;
-			}
-
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool SetWindowPlacement(
-				[In] IntPtr hWnd,
-				[In] ref WINDOWPLACEMENT lpwndpl);
-
-
-			#endregion
-
-
-
-
-
-
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern void MoveWindow(
-				[In] IntPtr hwnd,
-				[In] int x, [In] int y, [In] int nWidth, [In] int nHeight,
-				[In] bool bRepaint);
-
-
-			#region WindowText Get/Set, GetClassName 
-
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			private static extern int GetWindowTextLength([In] IntPtr hwnd);
-
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			private static extern int GetWindowText(
-				[In] IntPtr hwnd,
-				[In, Out, MarshalAs(UnmanagedType.LPTStr)] StringBuilder lpString,
-				[In, Out] int nMaxCount);
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string GetWindowText(IntPtr hwnd)
-			{
-				int lenght = GetWindowTextLength(hwnd);
-				if (lenght < 1)
-				{
-					return string.Empty;
-				}
-
-				StringBuilder sb = new(lenght + 2);
-				lenght = GetWindowText(hwnd, sb, sb.Capacity);
-				return (lenght > 0)
-					? sb.ToString()
-					: string.Empty;
-			}
-
-
-
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			public static extern int SetWindowText(
-				[In] IntPtr hwnd,
-				[In, MarshalAs(UnmanagedType.LPTStr)] string lpString);
-
-
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			private static extern int GetClassName(
-				[In] IntPtr hwnd,
-				[In, Out, MarshalAs(UnmanagedType.LPTStr)] StringBuilder lpString,
-				[In, Out] int nMaxCount);
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string GetClassName(IntPtr hwnd)
-			{
-				StringBuilder sb = new(1024);
-				int len = GetClassName(hwnd, sb, sb.Capacity);
-				return (len > 0)
-					? sb.ToString()
-					: string.Empty;
-			}
-
-
-			#endregion
-
-
-
-			public enum TextBoxMessages : int
-			{
-				//WM_PAINT = 0xF,
-				EM_SETCUEBANNER = 0x1501
-			}
-
-		}
-
-
-
-		/// <summary>Win32 Strings API</summary>
-		internal static partial class strings
-		{
-
-
-			/// <summary>The lstrlen function returns the length in bytes (ANSI version) or WCHAR values (Unicode version) of the specified string (not including the terminating null character). 
-			/// ms-help://MS.MSDNQTR.2003APR.1033/winui/winui/windowsuserinterface/resources/strings/stringreference/stringfunctions/lstrlen.htm
-			/// WARN: Security Alert  Using this function incorrectly can compromise the security of your System.Windows.Forms.Application. 
-			/// lstrlen assumes that lpString is a NULL-terminated string. If it is not, this could lead to a buffer overrun or a denial of service attack against your System.Windows.Forms.Application. Consider using one of the following alternatives: StringCbLength or StringCchLength. You should review Security Considerations: Windows User Interface before continuing.
-			/// </summary>
-			/// <returns></returns>
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern int lstrlen([MarshalAs(UnmanagedType.LPTStr)] IntPtr lpString);
-
-		}
-
-
-		/// <summary>Win32 Math</summary>
-		internal static partial class math
-		{
-
-
-			/// <summary>The MulDiv function multiplies two 32-bit values and then divides the 64-bit result by a third 32-bit value. The return value is rounded up or down to the nearest integer.</summary>
-			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern int MulDiv(int nNumber, int nNumerator, int nDenominator);
-
-
-
-
-
-		}
-
-
-		/// <summary>Win32 Shell API</summary>
-		internal static partial class shell
-		{
-
-
-
-
-
-
-
-
-			#region StrFormatByteSize
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			[DllImport(WinAPI.core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Ansi, EntryPoint = "StrFormatByteSize64A", ExactSpelling = true, CallingConvention = CallingConvention.Winapi)]
-			internal static extern IntPtr StrFormatByteSize64(
-				[In] UInt64 FileSize,
-				[In, Out, MarshalAs(UnmanagedType.LPStr)] StringBuilder Buffer,
-				[In] uint BufferSize);
-
-			public enum SFBS_FLAGS : int
-			{
-				SFBS_FLAGS_ROUND_TO_NEAREST_DISPLAYED_DIGIT = 0x0001,
-				SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS = 0x0002
-			}
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			[DllImport(WinAPI.core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern IntPtr StrFormatByteSizeEx(
-				[In] UInt64 FileSize,
-				[In] SFBS_FLAGS flags,
-				[In, Out, MarshalAs(UnmanagedType.LPTStr)] StringBuilder Buffer,
-				[In] uint BufferSize);
-
-
-
-
-			// <DllImport(UOM.Win32.WINDLL_SHLWAPI, _
-			// SetLastError:=True, _
-			// CharSet:=CharSet.Auto, _
-			// ExactSpelling:=False, _
-			// CallingConvention:=CallingConvention.Winapi)> _
-			// Private Overloads Shared Function StrFormatKBSize( _
-			// ByVal SizeInBytes As Long, _
-			// <MarshalAs(UnmanagedType.LPTStr)> ByVal Buffer As System.Text.StringBuilder, _
-			// ByVal BufferSize As Integer) As IntPtr
-			// 
-			// End Function 
-
-			#endregion
-
-
-			#region SHMessageBoxCheck
-
-			//// Public Enum MessageBoxCheckFlags As UInteger
-			//// MB_OK = 0x0
-			//// MB_OKCANCEL = 0x1
-			//// MB_YESNO = 0x4
-			//// MB_ICONHAND = 0x10
-			//// MB_ICONQUESTION = 0x20
-			//// MB_ICONEXCLAMATION = 0x30
-			//// MB_ICONINFORMATION = 0x40
-			//// End Enum
-
-			//[DllImport("shlwapi.dll", CharSet = CharSet.Auto)]
-			//// The SHMessageBoxCheck Is exported by ordinal in shlwapi.dll
-			//// SHMessageBoxCheckA: 185 
-			//// SHMessageBoxCheckW: 191
-
-			//// The Windows Shell (Explorer) stores your preference in the following registry key:
-			//// HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\DontShowMeThisDialogAgain
-			//private static extern MsgBoxResult SHMessageBoxCheck(
-			//    [In] IntPtr hwnd,
-			//    [In,MarshalAs(UnmanagedType.LPTStr)] string pszText,
-			//    [In,MarshalAs(UnmanagedType.LPTStr)] string pszTitle,
-			//    [In] MsgBoxStyle uType,
-			//    [In] MsgBoxResult iDefault,
-			//    [In,MarshalAs(UnmanagedType.LPTStr)] string pszRegVal);
-
-			//private static string BuildMessageID(string MessageID)
-			//{
-			//    if (string.IsNullOrWhiteSpace(MessageID)) throw new ArgumentNullException(nameof(MessageID));
-			//    return Application.ProductName + "_" + MessageID; // This Is the value Of the registry key
-			//}
-
-			/////// <summary>Displays a message box that gives the user the option of suppressing further occurrences. If the user has already opted to suppress the message box, the function does not display a dialog box and instead simply returns the default value.</summary>
-			/////// <param name="MessageID">ID под которым в реестре храниться результат установки галочки "не показывать более"</param>
-			/////// <param name="iDefault">Это значение возвращается в конце функции, если в предыдущем вызове, была установлена галочка.</param>
-			/////// <returns>В текущем вызове ВСЕГДА вернётся код нажатой кнопки (независимо от состояния галочки).
-			/////// Если галочку установили сейчас, то в этом вызове вернётся код нажатой кнопки, а во всех последющих будет возвращаться iDefault и диалог не будет показываться.</returns>
-			////internal static MsgBoxResult SHMessageBoxCheck(
-			//// IWin32Window WND,
-			//// string pszText,
-			//// string MessageID,
-			//// string pszTitle = null,
-			//// MsgBoxStyle.vbYesNo | MsgBoxStyle.Information, MsgBoxResult iDefault = MsgBoxResult.Abort)
-			////{
-			//// IntPtr hwnd = WND.Handle;
-			//// if (string.IsNullOrWhiteSpace(pszTitle)) pszTitle = Application.ProductName;
-			//// string sID = BuildMessageID(MessageID); // This Is the value Of the registry key
-			//// return SHMessageBoxCheck(hwnd, pszText, pszTitle, uType, iDefault, sID);
-			////}
-
-			///// <summary>SHMessageBoxCheckCleanup will reset the state of the message box (i.e. the users choice wether or not to see the message box again will be reset).</summary>
-			///// <param name="MessageID">ID под которым в реестре храниться результат установки галочки "не показывать более"</param>
-			//internal static void SHMessageBoxCheckCleanup(string MessageID)
-			//{
-			//    // # delete the registry key that Is used To store the checkbox status so we can start fresh Next time
-			//    // DeleteRegValue HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\DontShowMeThisDialogAgain" "${_PSZ_REG_VAL}"
-			//    const string C_KEY_PATH = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\DontShowMeThisDialogAgain";
-			//    string sID = BuildMessageID(MessageID); // This Is the value Of the registry key
-			//    try
-			//    {
-			//        using (var hKey = Registry.CurrentUser.OpenSubKey(C_KEY_PATH, true))
-			//        {
-			//            if (hKey?.GetValue(sID) != null)
-			//            {
-			//                hKey?.DeleteValue(sID);
-			//                hKey?.Flush();
-			//            }
-			//        }
-			//    }
-			//    catch (Exception ex) { }                    // Ignore Any Errors
-			//}
-
-			#endregion
-
-
-			#region SHFileOperation
-
-
-			public enum FO_Func : int
-			{
-				FO_MOVE = 1,
-				FO_COPY = 2,
-				FO_DELETE = 3,
-				FO_RENAME = 4
-			}
-
-			[Flags()]
-			public enum FILEOP_FLAGS : int
-			{
-				/// <summary>The pTo member specifies multiple destination files (one for each source file in pFrom) rather than one directory where all source files are to be deposited. </summary>
-				FOF_MULTIDESTFILES = 0x1,
-
-				/// <summary>Not used.</summary>
-				FOF_CONFIRMMOUSE = 0x2,
-
-				/// <summary>Don't create progress/report</summary>
-				FOF_SILENT = 0x4,
-
-				/// <summary></summary>
-				FOF_RENAMEONCOLLISION = 0x8,
-
-				/// <summary>Respond with Yes to All for any dialog box that is displayed. </summary>
-				FOF_NOCONFIRMATION = 0x10,
-
-				/// <summary>Fill in SHFILEOPSTRUCT.hNameMappings Must be freed using SHFreeNameMappings</summary>
-				FOF_WANTMAPPINGHANDLE = 0x20,
-
-				/// <summary>Preserve undo information, if possible. Prior to Windows Vista, operations could be undone only from the same process that performed the original operation.In Windows Vista and later systems, the scope of the undo is a user session. Any process running in the user session can undo another operation. The undo state is held in the Explorer.exe process, and as long as that process is running, it can coordinate the undo functions.If the source file parameter does not contain fully qualified path and file names, this flag is ignored.</summary>
-				FOF_ALLOWUNDO = 0x40,
-
-				/// <summary>Perform the operation only on files (not on folders) if a wildcard file name (*.*) is specified.</summary>
-				FOF_FILESONLY = 0x80,
-
-				/// <summary>Means don't show names of files</summary>
-				FOF_SIMPLEPROGRESS = 0x100,
-
-				/// <summary>Do not ask the user to confirm the creation of a new directory if the operation requires one to be created.</summary>
-				FOF_NOCONFIRMMKDIR = 0x200,
-
-				/// <summary>Do not display a dialog to the user if an error occurs.</summary>
-				FOF_NOERRORUI = 0x400,
-
-				/// <summary>Version 4.71. Do not copy the security attributes of the file. The destination file receives the security attributes of its new folder. </summary>
-				FOF_NOCOPYSECURITYATTRIBS = 0x800
-
-				// FOF_NO_CONNECTED_ELEMENTS'Version 5.0. Do not move connected files as a group. Only move the specified files.
-				// FOF_NORECURSEREPARSE'    Not used.
-				// FOF_NORECURSION'Only perform the operation in the local directory. Don't operate recursively into subdirectories, which is the default behavior.
-			}
-
-			/*			 			 
-
-			[StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = CharSet.Auto)]
-			public partial struct SHFILEOPSTRUCT_x32
-			{
-				public IntPtr hwnd;
-				public FO_Func wFunc;
-				[MarshalAs(UnmanagedType.LPTStr)]
-				public string pFrom;
-				[MarshalAs(UnmanagedType.LPTStr)]
-				public string pTo;
-				public FILEOP_FLAGS fFlags;
-				public bool fAnyOperationsAborted;
-				public IntPtr hNameMappings;
-				[MarshalAs(UnmanagedType.LPTStr)]
-				public string? lpszProgressTitle; // only used if FOF_SIMPLEPROGRESS      
-			}
-
-			[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-			public partial struct SHFILEOPSTRUCT_x64
-			{
-				public IntPtr hwnd;
-				public FO_Func wFunc;
-				[MarshalAs(UnmanagedType.LPTStr)]
-				public string pFrom;
-				[MarshalAs(UnmanagedType.LPTStr)]
-				public string pTo;
-				public FILEOP_FLAGS fFlags;
-				public bool fAnyOperationsAborted;
-				public IntPtr hNameMappings;
-				[MarshalAs(UnmanagedType.LPTStr)]
-				public string? lpszProgressTitle; // only used if FOF_SIMPLEPROGRESS      
-			}
-
-			[DllImport(core.WINDLL_SHELL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, EntryPoint = "SHFileOperation", CallingConvention = CallingConvention.Winapi)]
-			private static extern int SHFileOperation_x64([In] ref SHFILEOPSTRUCT_x64 lpFileOp);
-
-			[DllImport(core.WINDLL_SHELL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, EntryPoint = "SHFileOperation", CallingConvention = CallingConvention.Winapi)]
-			private static extern int SHFileOperation_x32([In] ref SHFILEOPSTRUCT_x32 lpFileOp);
-			 */
-
-			[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-			private struct SHFILEOPSTRUCT
-			{
-				public IntPtr hwnd;
-				public FO_Func wFunc;
-				[MarshalAs(UnmanagedType.LPTStr)] public string pFrom;
-				[MarshalAs(UnmanagedType.LPTStr)] public string pTo;
-				public FILEOP_FLAGS fFlags;
-				public bool fAnyOperationsAborted;
-				public IntPtr hNameMappings;
-				[MarshalAs(UnmanagedType.LPTStr)] public string? lpszProgressTitle; // only used if FOF_SIMPLEPROGRESS      
-			}
-
-
-			[DllImport(core.WINDLL_SHELL, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			private static extern int SHFileOperation([In] ref SHFILEOPSTRUCT lpFileOp);
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool SHFO_Delete(IntPtr hWndOwner, IEnumerable<string> ItemsToDelete, FILEOP_FLAGS Options = FILEOP_FLAGS.FOF_ALLOWUNDO, string? title = null)
-			{
-				string sFilesToDelete = ItemsToDelete.eToAPIMultiStringZ();
-				SHFILEOPSTRUCT fo = new()
-				{
-					hwnd = hWndOwner,
-					lpszProgressTitle = title,
-					wFunc = FO_Func.FO_DELETE,
-					pFrom = sFilesToDelete,
-					fFlags = Options
-				};
-				return (SHFileOperation(ref fo) == 0) && !fo.fAnyOperationsAborted;
-
-				//if (!Environment.Is64BitOperatingSystem)
-				/*
-				SHFILEOPSTRUCT_x32 FO = new()
-				{
-					hwnd = hWndOwner,
-					lpszProgressTitle = title,
-					wFunc = FO_Func.FO_DELETE,
-					pFrom = sFilesToDelete,
-					fFlags = Options
-				};
-				return SHFileOperation_x32(ref FO) == 0;
-				 */
-			}
-
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool SHFO_Move(IntPtr hWndOwner, IEnumerable<string> sources, IEnumerable<string> targets, FILEOP_FLAGS opt = FILEOP_FLAGS.FOF_ALLOWUNDO, string? title = null)
-			{
-				var sFrom = sources.eToAPIMultiStringZ();
-				var sTo = targets.eToAPIMultiStringZ();
-
-				SHFILEOPSTRUCT fo = new()
-				{
-					wFunc = FO_Func.FO_MOVE,
-					hwnd = hWndOwner,
-					lpszProgressTitle = title,
-					pFrom = sFrom,
-					pTo = sTo,
-					fFlags = opt
-				};
-				return (SHFileOperation(ref fo) == 0) && !fo.fAnyOperationsAborted;
-			}
-
-
-			/// <summary>Копирование в заданную ОДНУ папку, без перенименования!</summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool SHFO_Copy(IntPtr hWndOwner, string[] sources, string targetFolder, string? title = null)
-			{
-				string sFrom = sources.eToAPIMultiStringZ();
-				var opt = FILEOP_FLAGS.FOF_ALLOWUNDO;
-				SHFILEOPSTRUCT fo = new()
-				{
-					hwnd = hWndOwner,
-					lpszProgressTitle = title,
-					wFunc = FO_Func.FO_COPY,
-					pFrom = sFrom,
-					pTo = targetFolder,
-					fFlags = opt
-				};
-				return (SHFileOperation(ref fo) == 0) && !fo.fAnyOperationsAborted;
-			}
-
-
-			/// <summary>Копирование массива исходных файлов с переименованием</summary>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static bool SHFO_Copy(IntPtr HwndOwner, string[] sources, string[] targets, string? title = null)
-			{
-				string sFrom = sources.eToAPIMultiStringZ();
-				string sTo = targets.eToAPIMultiStringZ();
-				var opt = FILEOP_FLAGS.FOF_ALLOWUNDO | FILEOP_FLAGS.FOF_MULTIDESTFILES;
-
-				SHFILEOPSTRUCT fo = new()
-				{
-					wFunc = FO_Func.FO_COPY,
-					hwnd = HwndOwner,
-					lpszProgressTitle = title,
-					pFrom = sFrom,
-					pTo = sTo,
-					fFlags = opt
-				};
-				return (SHFileOperation(ref fo) == 0) && !fo.fAnyOperationsAborted;
-			}
-
-
-			#endregion
-
-			#region SHGetItemInfo
-
-			// 	Function SHGetItemInfo2(ByVal PPIDL As Integer, ByVal Flags As E_SHGFI_Flags, Optional ByVal ret_FileAttributes As Integer = 0, Optional ByRef ret_hIcon As Integer = 0, Optional ByRef ret_iIcon As Integer = 0, Optional ByRef ret_DisplayName As String = "", Optional ByRef ret_szTypeName As String = "") As Integer
-			// 		'UPGRADE_WARNING: Arrays in structure FI may need to be initialized before they can be used. Click for more: 'ms-help://MS.VSCC/commoner/redir/redirect.htm?keyword="vbup1063"'
-			// 		Dim FI As Win.SHFILEINFO
-			// 		Dim L As Integer
-			// 		Dim B As Boolean
-			// 		'UPGRADE_ISSUE: COM expression not supported: Module methods of COM objects. Click for more: 'ms-help://MS.VSCC/commoner/redir/redirect.htm?keyword="vbup1060"'
-			// 		L = Win.SHGetItemInfo(PPIDL, ret_FileAttributes, FI, Len(FI), Flags)
-			// 		B = CBool(L) : SHGetItemInfo2 = B
-			// 		If Not B Then Exit Function
-			// 		SHGetItemInfo2 = L
-			// 		With FI
-			// 			ret_FileAttributes = FI.dwAttributes
-			// 			ret_hIcon = .hIcon
-			// 			ret_iIcon = .iIcon
-			// 			ret_DisplayName = MMem.StrFromBArray(.szDisplayName)
-			// 			ret_szTypeName = MMem.StrFromBArray(.szTypeName)
-			// 		End With
-			// 	End Function
-			// 	Function SHGetSpecialFolderInfo2(ByVal CLSID As Win.ECSIDL, ByVal Flags As E_SHGFI_Flags, Optional ByVal ret_FileAttributes As Integer = 0, Optional ByRef ret_hIcon As Integer = 0, Optional ByRef ret_iIcon As Integer = 0, Optional ByRef ret_DisplayName As String = "", Optional ByRef ret_szTypeName As String = "") As Integer
-			// 		'UPGRADE_WARNING: Arrays in structure FI may need to be initialized before they can be used. Click for more: 'ms-help://MS.VSCC/commoner/redir/redirect.htm?keyword="vbup1063"'
-			// 		Dim FI As Win.SHFILEINFO
-			// 		Dim L As Integer
-			// 		Dim B As Boolean
-			// 		Dim PPIDL As Integer
-			// 		'UPGRADE_ISSUE: COM expression not supported: Module methods of COM objects. Click for more: 'ms-help://MS.VSCC/commoner/redir/redirect.htm?keyword="vbup1060"'
-			// 		Call Win.SHGetSpecialFolderLocation(0, CLSID, PPIDL)
-			// 		'UPGRADE_ISSUE: COM expression not supported: Module methods of COM objects. Click for more: 'ms-help://MS.VSCC/commoner/redir/redirect.htm?keyword="vbup1060"'
-			// 		L = Win.SHGetItemInfo(PPIDL, ret_FileAttributes, FI, Len(FI), Flags Or E_SHGFI_Flags.SHGFI_PIDL)
-			// 		B = CBool(L) : SHGetSpecialFolderInfo2 = B
-			// 		If Not B Then Exit Function
-			// 		SHGetSpecialFolderInfo2 = L
-			// 		With FI
-			// 			ret_FileAttributes = FI.dwAttributes
-			// 			ret_hIcon = .hIcon
-			// 			ret_iIcon = .iIcon
-			// 			ret_DisplayName = MMem.StrFromBArray(.szDisplayName)
-			// 			ret_szTypeName = MMem.StrFromBArray(.szTypeName)
-			// 		End With
-			// 	End Function
-			// #endregion
-
-			#endregion
-
-
-			#region SHGetFileInfo
-			//  * The SHGetFileInfo API provides an easy way to get attributes
-			//  * for a file given a pathname.
-			//  *
-			//  *   PARAMETERS
-			//  *
-			//  *     pszPath              file name to get info about
-			//  *     dwFileAttributes     file attribs, only used with SHGFI_USEFILEATTRIBUTES
-			//  *     psfi                 place to return file info
-			//  *     cbFileInfo           size of structure
-			//  *     uFlags               flags
-			//  *
-			//  *   RETURN
-			//  *     TRUE if things worked
-			//  */
-			// 
-			[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-			public partial struct SHFILEINFO
-			{
-				public IntPtr hIcon;
-				public int iIcon;
-				public int dwAttributes;
-				// <MarshalAs(UnmanagedType.ByValTStr, SizeConst:=260)> Public szDisplayName As String
-				[MarshalAs(UnmanagedType.ByValTStr, SizeConst = WinAPI.io.MAX_PATH)]
-				public string szDisplayName;
-				[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)]
-				public string szTypeName;
-
-				// typedef struct _SHFILEINFOA
-				// {
-				//         HICON       hIcon                       'out: icon
-				//         int         iIcon                       'out: icon index
-				//         DWORD       dwAttributes                'out: SFGAO_ flags
-				//         CHAR        szDisplayName[MAX_PATH]     'out: display name (or path)
-				//         CHAR        szTypeName[80]              'out: type name
-				// } SHFILEINFOA
-				// typedef struct _SHFILEINFOW
-				// {
-				//         HICON       hIcon                       'out: icon
-				//         int         iIcon                       'out: icon index
-				//         DWORD       dwAttributes                'out: SFGAO_ flags
-				//         WCHAR       szDisplayName[MAX_PATH]     'out: display name (or path)
-				//         WCHAR       szTypeName[80]              'out: type name
-				// } SHFILEINFOW
-			}
-
-			public enum SHGFI_FLAGS : int
-			{
-				/// <summary>get icon</summary>
-				SHGFI_ICON = 0x100,
-
-				/// <summary>get display name</summary>
-				SHGFI_DISPLAYNAME = 0x200,
-
-				/// <summary>get type name</summary>
-				SHGFI_TYPENAME = 0x400,
-
-				/// <summary>get attributes</summary>
-				SHGFI_ATTRIBUTES = 0x800,
-
-				/// <summary>get icon location</summary>
-				SHGFI_ICONLOCATION = 0x1000,
-
-				/// <summary>return exe type</summary>
-				SHGFI_EXETYPE = 0x2000,
-
-				/// <summary>get system icon index</summary>
-				SHGFI_SYSICONINDEX = 0x4000,
-
-				/// <summary>put a link overlay on icon</summary>
-				SHGFI_LINKOVERLAY = 0x8000,
-
-				/// <summary>show icon in selected state</summary>
-				SHGFI_SELECTED = 0x10000,
-
-				/// <summary>get only specified attributes</summary>
-				SHGFI_ATTR_SPECIFIED = 0x20000,
-
-				/// <summary>get large icon</summary>
-				SHGFI_LARGEICON = 0x0,
-
-				/// <summary>get small icon</summary>
-				SHGFI_SMALLICON = 0x1,
-
-				/// <summary>get open icon</summary>
-				SHGFI_OPENICON = 0x2,
-
-				/// <summary>get shell size icon</summary>
-				SHGFI_SHELLICONSIZE = 0x4,
-
-				/// <summary>pszPath is a pidl</summary>
-				SHGFI_PIDL = 0x8,
-
-				/// <summary>use passed dwFileAttribute </summary>
-				SHGFI_USEFILEATTRIBUTES = 0x10,
-
-				/// <summary>apply the appropriate overlays</summary>
-				SHGFI_ADDOVERLAYS = 0x20,
-
-				/// <summary>Get the index of the overlay in the upper 8 bits of the iIcon</summary>
-				SHGFI_OVERLAYINDEX = 0x40
-			}
-
-
-			/// <summary>
-			/// 
-			/// </summary>
-			/// <param name="pszPath">A pointer to a null-terminated string of maximum length MAX_PATH that contains the path and file name. Both absolute and relative paths are valid.
-			/// If the uFlags parameter includes the SHGFI_PIDL flag, this parameter must be the address Of an ITEMIDLIST (PIDL) Structure that contains the list Of item identifiers that uniquely identifies the file within the Shell's namespace. The PIDL must be a fully qualified PIDL. Relative PIDLs are not allowed.
-			/// If the uFlags parameter includes the SHGFI_USEFILEATTRIBUTES flag, this parameter does Not have To be a valid file name. The Function will proceed As If the file exists With the specified name And With the file attributes passed In the dwFileAttributes parameter. This allows you To obtain information about a file type by passing just the extension For pszPath And passing FILE_ATTRIBUTE_NORMAL In dwFileAttributes.
-			/// This string can use either short (the 8.3 form) Or long file names.</param>
-			/// <param name="dwFileAttributes">A combination of one or more file attribute flags (FILE_ATTRIBUTE_ values as defined in Winnt.h). If uFlags does not include the SHGFI_USEFILEATTRIBUTES flag, this parameter is ignored.</param>
-			/// <param name="psfi">Pointer to a SHFILEINFO structure to receive the file information.</param>
-			/// <param name="cbFileInfo">The size, in bytes, of the SHFILEINFO structure pointed to by the psfi parameter.</param>
-			/// <param name="uFlags">The flags that specify the file information to retrieve. This parameter can be a combination of the following values.</param>
-			/// <returns></returns>
-			[DllImport(core.WINDLL_SHELL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			public static extern IntPtr SHGetFileInfo([In, MarshalAs(UnmanagedType.LPStr)] string pszPath, [In] int dwFileAttributes, [In] ref SHFILEINFO psfi, [In] int cbFileInfo, [In] SHGFI_FLAGS uFlags);
-
-			// 
-			// #define SHGetDiskFreeSpace SHGetDiskFreeSpaceEx
-			// 
-			// SHSTDAPI_(BOOL) SHGetDiskFreeSpaceExA(LPCSTR pszDirectoryName, ULARGE_INTEGER* pulFreeBytesAvailableToCaller, ULARGE_INTEGER* pulTotalNumberOfBytes, ULARGE_INTEGER* pulTotalNumberOfFreeBytes)
-			// SHSTDAPI_(BOOL) SHGetDiskFreeSpaceExW(LPCWSTR pszDirectoryName, ULARGE_INTEGER* pulFreeBytesAvailableToCaller, ULARGE_INTEGER* pulTotalNumberOfBytes, ULARGE_INTEGER* pulTotalNumberOfFreeBytes)
-			// #ifdef UNICODE
-			// #define SHGetDiskFreeSpaceEx  SHGetDiskFreeSpaceExW
-			// #Else
-			// #define SHGetDiskFreeSpaceEx  SHGetDiskFreeSpaceExA
-			// #endif '!UNICODE
-			// SHSTDAPI_(BOOL) SHGetNewLinkInfoA(LPCSTR pszLinkTo, LPCSTR pszDir, LPSTR pszName, BOOL *pfMustCopy, UINT uFlags)
-			// SHSTDAPI_(BOOL) SHGetNewLinkInfoW(LPCWSTR pszLinkTo, LPCWSTR pszDir, LPWSTR pszName, BOOL *pfMustCopy, UINT uFlags)
-			// #ifdef UNICODE
-			// #define SHGetNewLinkInfo  SHGetNewLinkInfoW
-			// #Else
-			// #define SHGetNewLinkInfo  SHGetNewLinkInfoA
-			// #endif '!UNICODE
-			// 
-			// #define SHGNLI_PIDL             0x000000001     'pszLinkTo is a pidl
-			// #define SHGNLI_PREFIXNAME       0x000000002     'Make name "Shortcut to xxx"
-			// #define SHGNLI_NOUNIQUE         0x000000004     'don't do the unique name generation
-			// #if (_WIN32_IE >= 0x0501)
-			// #define SHGNLI_NOLNK            0x000000008     'don't add ".lnk" extension
-			// #endif '_WIN2_IE >= 0x0501
-			// 
-			// 
-			// ''
-			#endregion
-
-			// Function GetSysImageList(ByVal Flags As E_SHGFI_Flags, Optional ByVal Refresh As bool  = False) As Integer
-			// UPGRADE_WARNING: Couldn't resolve default property of object lHSysImL. Click for more: 'ms-help://MS.VSCC/commoner/redir/redirect.htm?keyword="vbup1037"'
-			// UPGRADE_WARNING: Arrays in structure FI may need to be initialized before they can be used. Click for more: 'ms-help://MS.VSCC/commoner/redir/redirect.htm?keyword="vbup1063"'
-			// Dim FI As Win.SHFILEINFO
-			// If Refresh Or lHSysImL = 0 Then
-			// UPGRADE_ISSUE: COM expression not supported: Module methods of COM objects. Click for more: 'ms-help://MS.VSCC/commoner/redir/redirect.htm?keyword="vbup1060"'
-			// UPGRADE_WARNING: Couldn't resolve default property of object lHSysImL. Click for more: 'ms-help://MS.VSCC/commoner/redir/redirect.htm?keyword="vbup1037"'
-			// lHSysImL = Win.SHGetFileInfo("", 0, FI, Len(FI), E_SHGFI_Flags.SHGFI_SYSICONINDEX Or Flags)
-			// End If
-			// UPGRADE_WARNING: Couldn't resolve default property of object lHSysImL. Click for more: 'ms-help://MS.VSCC/commoner/redir/redirect.htm?keyword="vbup1037"'
-			// GetSysImageList = lHSysImL
-			// End Function
-
-
-			#region InetIsOffline
-
-
-			[DllImport(core.WINDLL_URL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			// ms-help://MS.MSDNQTR.2003APR.1033/shellcc/platform/shell/reference/shlwapi/path/pathfileexists.htm
-			private static extern bool InetIsOffline(int dwFlags);
-
-			internal static bool InetIsOffline() => InetIsOffline(0);
-
-
-
-			#endregion
-
-
-			#region Path APIs...
-
-
-
-			#region PathCompactPath
-
-
-
-			[DllImport(core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			private static extern bool PathCompactPath(
-				[In] IntPtr hdc,
-				[In, Out, MarshalAs(UnmanagedType.LPTStr)] StringBuilder Path,
-				[In] int PixelWidth);
-
-			/// <summary>Truncates a file path to fit within a given pixel width by replacing path components with ellipses like: "c:\system...."</summary>
-			internal static string PathCompactPath(string Path, IntPtr HDC, int PixelWidth)
-			{
-				var SB = new StringBuilder(Path, Path.Length + uom.WinAPI.io.MAX_PATH);
-				PathCompactPath(HDC, SB, PixelWidth);
-				return SB.ToString();
-			}
-
-			/// <summary>Truncates a path to fit within a certain number of characters by replacing path components with ellipses.</summary>
-			[DllImport(core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			private static extern bool PathCompactPathEx(
-				[In, Out, MarshalAs(UnmanagedType.LPTStr)] StringBuilder PathOut,
-				[In, MarshalAs(UnmanagedType.LPTStr)] string PathIn,
-				uint NeedCahrCount,
-				int Flags);
-
-
-			/// <summary>Truncates a path to fit within a certain number of characters by replacing path components with ellipses.</summary>
-			/// <param name="PathIn">the path to be altered.</param>
-			/// <param name="NeedCahrCount">The maximum number of characters to be contained in the new string, including the terminating null character. 
-			/// For example, if cchMax = 8, the resulting string can contain a maximum of 7 characters plus the terminating null character.</param>
-			internal static String PathCompactPathEx(string PathIn, uint NeedCahrCount)
-			{
-				var SB = new StringBuilder((int)NeedCahrCount * 2);
-				PathCompactPathEx(SB, PathIn, NeedCahrCount, 0).eThrowLastWin32Exception_AssertFalse();
-				return SB.ToString();
-			}
-			#endregion
-
-
-			/// <summary>Parses a path and returns the portion of that path that follows the first backslash.
-			///      // OUTPUT:
-			// ===========
-			// The path c:\path1\path2\file.txt returns path1\path2\file.txt
-			// The path path1\path2\file.txt returns path2\file.txt
-			// The path path2\file.txt returns file.txt
-			// The path file.txt returns a pointer to the terminating null character
-			// The terminating null character returns NULL
-			// The path \path1 returns path1
-			// The path \path1\path2 returns path1\path2
-			// The path path1\path2 returns path2
-			// The path c:\file.txt returns file.txt
-			/// </summary>
-			[DllImport(core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			private static extern IntPtr PathFindNextComponent([MarshalAs(UnmanagedType.LPTStr)] string lpszPath);
-			internal static String? PathFindNextComponent_(string lpszPath)
-			{
-				IntPtr ptrStr = PathFindNextComponent(lpszPath);
-				return ptrStr.eIsValid()
-					? Marshal.PtrToStringUni(ptrStr)
-					: string.Empty;
-			}
-
-			/// <summary>Finds the command line arguments within a given path.
-			///      // OUTPUT:
-			// ===========
-			// The path passed to the function was : test.exe temp.txt sample.doc
-			// The arg(s)found in path 1 were      : temp.txt sample.doc
-
-			// The path passed to the function was : test.exe 1 2 3
-			// The arg(s)found in path 2 were      : 1 2 3
-
-			// The path passed to the function was : test.exe sample All 15
-			// The arg(s)found in path 3 were      : sample All 15
-
-			// The path passed to the function was : test.exe
-			// The arg(s)found in path 4 were      :
-
-			/// </summary>
-			[DllImport(core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			private static extern IntPtr PathGetArgs([In, MarshalAs(UnmanagedType.LPTStr)] string lpszPath);
-
-			internal static String? PathGetArgs_(string lpszPath)
-			{
-				IntPtr ptrStr = PathGetArgs(lpszPath);
-				return ptrStr.eIsValid()
-				   ? Marshal.PtrToStringUni(ptrStr)
-				   : string.Empty;
-			}
-
-
-
-			/// <summary>Determines whether a path to a file system object such as a file or folder is valid</summary>
-			[DllImport(core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool PathFileExists([In, MarshalAs(UnmanagedType.LPTStr)] string lpszPath);
-
-			/// <summary>Searches a path and determines if it is relative.</summary>
-			[DllImport(core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool PathIsRelative([In, MarshalAs(UnmanagedType.LPTStr)] string lpszPath);
-
-
-			[DllImport(core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool PathCanonicalize(
-				[In, Out, MarshalAs(UnmanagedType.LPTStr)] StringBuilder PathDst,
-				[In, MarshalAs(UnmanagedType.LPTStr)] string PathSrc);
-
-
-			[DllImport(core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern int PathCommonPrefix(
-				[In, MarshalAs(UnmanagedType.LPTStr)] string Path1,
-				[In, MarshalAs(UnmanagedType.LPTStr)] string Path2,
-				[In, Out, MarshalAs(UnmanagedType.LPTStr)] StringBuilder CommonPath);
-
-
-			[DllImport(core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool PathIsFileSpec([In, MarshalAs(UnmanagedType.LPTStr)] string Path);
-
-			/// <summary> Removes the trailing file name and backslash from a path, if they are present.
-			/// This function is deprecated. We recommend the use of the PathCchRemoveFileSpec function in its place.</summary>
-			/// <param name="Path">A pointer to a null-terminated string of length MAX_PATH that contains the path from which to remove the file name.</param>
-			/// <returns>Returns nonzero if something was removed, or zero otherwise.</returns>
-			[Obsolete("This function is deprecated. We recommend the use of the PathCchRemoveFileSpec function in its place.")]
-			[DllImport(core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			private static extern bool PathRemoveFileSpec([In, Out, MarshalAs(UnmanagedType.LPTStr)] StringBuilder Path);
-			/// <summary> Removes the trailing file name and backslash from a path, if they are present.
-			/// This function is deprecated. We recommend the use of the PathCchRemoveFileSpec function in its place.</summary>
-			[Obsolete("This function is deprecated. We recommend the use of the PathCchRemoveFileSpec function in its place.")]
-			internal static string PathRemoveFile(string Path)
-			{
-				var SB = Path.eToStringBuilder();
-				PathRemoveFileSpec(SB).eThrowLastWin32Exception_AssertFalse();
-				return SB.ToString();
-			}
-
-			// <DllImport(UOM.Win32.WINDLL_SHLWAPI, SetLastError:=True, CharSet:=CharSet.Auto, ExactSpelling:=False, CallingConvention:=CallingConvention.Winapi)>
-			// Friend Function PathCchRemoveFileSpec(<MarshalAs(UnmanagedType.LPTStr)> ByVal pszPath As String,
-			// cchPath As Integer) As IntPtr
-			// End Function
-
-
-
-
-
-			[DllImport(core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool PathIsNetworkPath(
-				[In, MarshalAs(UnmanagedType.LPTStr)] string Path);
-
-			[DllImport(core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool PathIsHTMLFile(
-				[In, MarshalAs(UnmanagedType.LPTStr)] string Path);
-
-			/// <summary>The return from function is : 1
-			/// The contents of String 1:  C:\path1\one
-			/// The contents of String 2:  C:\path2\two
-			/// These both have the same root part
-			/// 
-			/// The return from function is : 0
-			/// The contents of String 1:  C:\path1\one
-			/// The contents of String 3:  E:\acme\three
-			/// These do not have the same root part</summary>
-			[DllImport(core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool PathIsSameRoot(
-				[In, MarshalAs(UnmanagedType.LPTStr)] string Path1,
-				[In, MarshalAs(UnmanagedType.LPTStr)] string Path2);
-
-			/// <summary>The contents of String 1: http:'www.microsoft.com/software/index.html
-			/// The return value from the function is 1 = TRUE
-			/// The contents of String 2: http:'www.microsoft.com
-			/// The return value from the function is 1 = TRUE
-			/// The contents of String 3: microsoft.com
-			/// The return value from the function is 0 = FALSE</summary>
-			/// <returns></returns>
-			[DllImport(core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool PathIsURL([MarshalAs(UnmanagedType.LPTStr)] string Path1);
-			[DllImport(core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool PathIsDirectory([MarshalAs(UnmanagedType.LPTStr)] string pszPath);
-
-			/// <summary>Creates a relative path from one file or folder to another.</summary>
-			/// <param name="pszPath">A pointer to a string that receives the relative path. This buffer is assumed to be at least MAX_PATH characters in size.</param>
-			/// <param name="pszFrom">A pointer to a null-terminated string of maximum length MAX_PATH that contains the path that defines the start of the relative path.</param>
-			/// <param name="dwAttrFrom">The file attributes of pszFrom. If this value contains FILE_ATTRIBUTE_DIRECTORY, pszFrom is assumed to be a directory; otherwise, pszFrom is assumed to be a file.</param>
-			/// <param name="pszTo">A pointer to a null-terminated string of maximum length MAX_PATH that contains the path that defines the endpoint of the relative path.</param>
-			/// <param name="dwAttrTo">The file attributes of pszTo. If this value contains FILE_ATTRIBUTE_DIRECTORY, pszTo is assumed to be directory; otherwise, pszTo is assumed to be a file.</param>
-			[DllImport(core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			private static extern bool PathRelativePathTo(
-				[In, Out, MarshalAs(UnmanagedType.LPTStr)] StringBuilder pszPath,
-				[In, MarshalAs(UnmanagedType.LPTStr)] string pszFrom,
-				[In] FileAttributes dwAttrFrom,
-				[In, MarshalAs(UnmanagedType.LPTStr)] string pszTo,
-				[In] FileAttributes dwAttrTo);
-
-
-			internal static string GetRelativePathTo(string PathFrom, FileAttributes dwAttrFrom, string PathTo, FileAttributes dwAttrTo)
-			{
-				StringBuilder SB = new(WinAPI.io.MAX_PATH + 100);
-				PathRelativePathTo(SB, PathFrom, dwAttrFrom, PathTo, dwAttrTo).eThrowLastWin32Exception_AssertFalse();
-				return SB.ToString();
-			}
-
-
-			#region PathIsSlow
-			[DllImport(core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern bool PathIsSlow([MarshalAs(UnmanagedType.LPTStr)] string pszFile, [MarshalAs(UnmanagedType.LPTStr)] string pszIconPath);
-
-			internal static bool PathIsSlow([MarshalAs(UnmanagedType.LPTStr)] string pszFile)
-			{
-				return PathIsSlow(pszFile, "-1");
-			}
-			#endregion
-
-
-			#region StrFromTimeInterval
-			/// <summary>Converts a time interval, specified in milliseconds, to a string.</summary>
-			/// <param name="pszOut">A pointer to a character buffer that receives the converted string.</param>
-			/// <param name="cchMax">The size of pszOut, in characters. If cchMax is set to zero, StrFromTimeInterval will return the minimum size of the character buffer needed to hold the converted string. In this case, pszOut will not contain the converted string.</param>
-			/// <param name="dwTimeMS">The time interval, in milliseconds.</param>
-			/// <param name="Digits">The maximum number of significant digits to be represented in pszOut.</param>
-			[DllImport(core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			private static extern int StrFromTimeInterval(
-				[In, Out, MarshalAs(UnmanagedType.LPTStr)] StringBuilder? pszOut,
-				[In] int cchMax,
-				[In] uint dwTimeMS,
-				[In] int Digits);
-
-			/// <summary>Converts a time interval, specified in milliseconds, to a string.</summary>
-			/// <param name="dwTimeMS">The time interval, in milliseconds.</param>
-			internal static string StrFromTimeInterval(uint dwTimeMS, int Digits = 3)
-			{
-				// dwTimeMS	digits	pszOut 
-				// 34000		3		34 sec 
-				// 34000		2		34 sec 
-				// 34000		1		30 sec 
-				// 74000		3		1 min 14 sec 
-				// 74000		2		1 min 10 sec 
-				// 74000		1		1 min 
-
-				int iBuffSize = StrFromTimeInterval(null, 0, dwTimeMS, Digits);
-				if (iBuffSize > 0)
-				{
-					var sbBuffer = new StringBuilder(iBuffSize + 1);
-					int iRet = StrFromTimeInterval(sbBuffer, sbBuffer.Capacity, dwTimeMS, Digits);
-					if (iRet > 0)
-					{
-						return sbBuffer.ToString().Trim();
-					}
-				}
-				return "";
-			}
-			#endregion
-
-
-			[DllImport(core.WINDLL_SHELL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			internal static extern int RestartDialog(IntPtr hParent, [MarshalAs(UnmanagedType.LPWStr)] string pszPromp, int dwFlags);
-
-			#endregion
-
-
-			// <DllImport(UOM.Win32.WINDLL_SHELL, _
-			// SetLastError:=True, _
-			// CharSet:=CharSet.Auto, _
-			// ExactSpelling:=False, _
-			// CallingConvention:=CallingConvention.Winapi)> _
-			// Friend Overloads shared Function SHGetDesktopFolder(ByRef ppshf As UOM.Shell.Interfaces.IShellFolder) As Integer
-			// End Function
-			// Friend Overloads shared Function SHGetDesktopFolder() As UOM.Shell.Interfaces.IShellFolder
-			// Dim SH As UOM.Shell.Interfaces.IShellFolder
-			// Call SHGetDesktopFolder(SH)
-			// Return SH
-			// End Function
-
-
-
-
-
-
-
-
-
-			/// <summary>https://learn.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-shloadindirectstring</summary>
-			/// <returns>
-			/// If this function succeeds, it returns S_OK. Otherwise, it returns an HRESULT error code.
-			/// If the string is not an indirect string, then the string is directly copied without change to pszOutBuf and the function returns S_OK.
-			/// </returns>
-			[DllImport(core.WINDLL_SHLWAPI, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			private static extern int SHLoadIndirectString(
-				[In, MarshalAs(UnmanagedType.LPWStr)] string pszSource,
-				[In, Out] StringBuilder pszOutBuf,
-				[In] int cchOutBuf,
-				IntPtr ppvReserved);
-
-			/// <summary>Expands a Microsoft indirect string, such as '@vmms.exe,-279', which can be mapped
-			/// to a normal human-readable string.  Also supports indirect strings similar to this:
-			/// '@{Microsoft.Cortana?ms-resource://Microsoft.Cortana/resources/ProductDescription}'.
-			/// Microsoft indirect strings begin with an "@" symbol and are common in the registry. See https://msdn.microsoft.com/en-us/library/windows/desktop/bb759919(v=vs.85).aspx
-			/// </summary>
-			/// <param name="indirectString">
-			/// Win32: '@{Filepath?resource}'
-			/// AppX: '@{PackageFullName?resource-id}'
-			/// SAMPLE:
-			/// @{C:\Program Files\WindowsApps\Microsoft.BingMaps_2.1.3230.2048_x64__8wekyb3d8bbwe\resources.pri?ms-resource://Microsoft.BingMaps/Resources/AppShortDisplayName};
-			/// </param>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string SHLoadIndirectString(string indirectString, int bufferSize = 1024)
-			{
-				//@{s}
-				if (indirectString.Length < 5 || indirectString[0] != '@')
-				{
-					throw new ArgumentException($"'{nameof(indirectString)}' should begin with the '@' symbol!");
-				}
-
-				StringBuilder sb = new(bufferSize);
-				int result = SHLoadIndirectString(indirectString, sb, sb.Capacity, IntPtr.Zero);
-				if (result == 0)
-				{
-					string s = sb.ToString();
-					if (s != indirectString)
-					{
-						return s;//Resource loaded OK
-					}
-
-					throw new ArgumentException($"'{nameof(indirectString)}' is not an indirect string!");
-				}
-				var Hr = new uom.WinAPI.errors.COMErrors._HRESULT(result);
-				Win32Exception wex = new((int)Hr.ToWin32());
-				throw wex;
-			}
-
-
-			public const string MS_RESX_PREFIX = @"ms-resource:";
-
-			/// <param name="ResID">ms-resource:AppxManifest_DisplayName</param>
-			/// <returns>@{C:\Program Files\WindowsApps\Microsoft.BingMaps_2.1.3230.2048_x64__8wekyb3d8bbwe\resources.pri?ms-resource://Microsoft.BingMaps/Resources/AppShortDisplayName};</returns>
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string SHLoadIndirectppPackageResourceString(string ResID, string PackageName, string PackageFullName, string InstallLocation)
-			{
-				if (!ResID.StartsWith(MS_RESX_PREFIX))
-				{
-					throw new ArgumentException(nameof(ResID));
-				}
-
-
-				//@{PackageFullName?resource-id}
-				//ms-resource://PackageName/Resources/Id
-
-				/*
-				 * https://stackoverflow.com/questions/18219915/get-localized-friendly-names-for-all-winrt-metro-apps-installed-from-wpf-applica
-				 Я обнаружил, что путь к PRI является лучшим решением, чем указание имени пакета. Много раз SHLoadIndirectString не разрешает ресурс, когда указано только имя пакета. Путь к PRI — это место установки пакета + resources.pri . Пример: C:\Program Files\WindowsApps\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\Resources.pri.
-				 */
-
-				string resID2 = ResID.Substring(MS_RESX_PREFIX.Length);
-
-				{
-					string pack = PackageFullName;
-
-					try
-					{
-						string input = @$"{pack}? {MS_RESX_PREFIX}//{PackageName}/Resources/{resID2}";
-						input = @"@{" + input + @"}";
-
-						string parsedString = SHLoadIndirectString(input);
-						if (!string.IsNullOrWhiteSpace(parsedString))
-						{
-							return parsedString;
-						}
-					}
-					catch (Exception ex) { var ttt = ex; }
-
-					try
-					{
-						string input = @$"{pack}? {MS_RESX_PREFIX}//{PackageName}/{resID2}";
-						input = @"@{" + input + @"}";
-
-						string parsedString = SHLoadIndirectString(input);
-						if (!string.IsNullOrWhiteSpace(parsedString))
-						{
-							return parsedString;
-						}
-					}
-					catch (Exception ex) { var ttt = ex; }
-				}
-
-				{
-					string pack = InstallLocation;
-					try
-					{
-						string input = @$"{pack}? {MS_RESX_PREFIX}//{PackageName}/Resources/{resID2}";
-						input = @"@{" + input + @"}";
-
-						string parsedString = SHLoadIndirectString(input);
-						if (!string.IsNullOrWhiteSpace(parsedString))
-						{
-							return parsedString;
-						}
-					}
-					catch (Exception ex) { var ttt = ex; }
-
-					try
-					{
-						string input = @$"{pack}? {MS_RESX_PREFIX}//{PackageName}/{resID2}";
-						input = @"@{" + input + @"}";
-
-						string parsedString = SHLoadIndirectString(input);
-						if (!string.IsNullOrWhiteSpace(parsedString))
-						{
-							return parsedString;
-						}
-					}
-					catch (Exception ex) { var ttt = ex; }
-				}
-
-				{
-					string pack = InstallLocation;
-					try
-					{
-						string input = @$"{pack}\resources.pri? {MS_RESX_PREFIX}//{PackageName}/Resources/{resID2}";
-						input = @"@{" + input + @"}";
-
-						string parsedString = SHLoadIndirectString(input);
-						if (!string.IsNullOrWhiteSpace(parsedString))
-						{
-							return parsedString;
-						}
-					}
-					catch (Exception ex) { var ttt = ex; }
-
-					try
-					{
-						string input = @$"{pack}\resources.pri? {MS_RESX_PREFIX}//{PackageName}/{resID2}";
-						input = @"@{" + input + @"}";
-
-						string parsedString = SHLoadIndirectString(input);
-						if (!string.IsNullOrWhiteSpace(parsedString))
-						{
-							return parsedString;
-						}
-					}
-					catch (Exception ex) { var ttt = ex; }
-
-					try
-					{
-						string input = @$"{pack}\resources.pri? {MS_RESX_PREFIX}//{resID2}";
-						input = @"@{" + input + @"}";
-
-						string parsedString = SHLoadIndirectString(input);
-						if (!string.IsNullOrWhiteSpace(parsedString))
-						{
-							return parsedString;
-						}
-					}
-					catch (Exception ex) { var ttt = ex; }
-				}
-
-				return string.Empty;
-			}
-
-
-		}
 
 
 	}

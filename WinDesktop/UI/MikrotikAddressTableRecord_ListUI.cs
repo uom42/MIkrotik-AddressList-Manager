@@ -12,33 +12,33 @@ public partial class MikrotikAddressTableRecord_ListUI : Form
 {
 
 
-	private void UpdateUIState()
+	private void UpdateUIState ()
 	{
 		var sel = lvwRows
-			.eSelectedItemsAs<AddressListItemRow>()
-			.ToArray();
+			.eSelectedItemsAs<AddressListItemRow> ()
+			.ToArray ();
 
 		//var enabledRows = sel.Where(li => li.MikrotikRow.Enabled);
 		var grp = sel
-			.GroupBy(
+			.GroupBy (
 			li => li.MikrotikRow.Enabled,
 			li => li.MikrotikRow,
-			(enabled, rows) => new { Enabled = enabled, Rows = rows });
+			( enabled, rows ) => new { Enabled = enabled, Rows = rows });
 
 		var enabledRows = grp
-			.FirstOrDefault(g => g.Enabled == true)?
+			.FirstOrDefault (g => g.Enabled == true)?
 			.Rows?
-			.ToArray()?
+			.ToArray ()?
 			.Length ?? 0;
 
 		var disabledRows = grp
-			.FirstOrDefault(g => g.Enabled == false)?
+			.FirstOrDefault (g => g.Enabled == false)?
 			.Rows?
-			.ToArray()?
+			.ToArray ()?
 			.Length ?? 0;
 
-		btnRows_Enable.Enabled = sel.Any();
-		if (sel.Any())
+		btnRows_Enable.Enabled = sel.Any ();
+		if (sel.Any ())
 		{
 			//Debug.WriteLine($"Enabled: {enabledRows} Disabled: {disabledRows}");
 			CheckState cs = CheckState.Indeterminate;
@@ -67,15 +67,15 @@ public partial class MikrotikAddressTableRecord_ListUI : Form
 
 
 	/// <summary>Return ID - used for save/restore ListView groups collapsed states</summary>
-	private string GetHostDataID()
+	private string GetHostDataID ()
 	{
-		var abHash = _connection.Host.ToLower().eComputeHashUni(Extensions_Security_Hash.HashNames.SHA1);
-		return Convert.ToHexString(abHash).ToLower();
+		var abHash = _connection.Host.ToLower ().eComputeHashUni (Extensions_Security_Hash.HashNames.SHA1);
+		return Convert.ToHexString (abHash).ToLower ();
 	}
 
 	private bool _dontChangerCheckedState = false;
 
-	private async Task SelectedRows_EnableDisable(bool enable)
+	private async Task SelectedRows_EnableDisable ( bool enable )
 	{
 		if (_dontChangerCheckedState) return;
 
@@ -84,34 +84,34 @@ public partial class MikrotikAddressTableRecord_ListUI : Form
 
 		try
 		{
-			var sel = lvwRows.eSelectedItemsAs<AddressListItemRow>();
-			if (sel == null || !sel.Any()) return;
+			var sel = lvwRows.eSelectedItemsAs<AddressListItemRow> ();
+			if (sel == null || !sel.Any ()) return;
 
-			async Task updateRows()
+			async Task updateRows ()
 			{
 
-				using var h = _connection!.Open();
+				using var h = _connection!.Open ();
 
 				foreach (AddressListItemRow li in sel)
 				{
 					var mkRow = li.MikrotikRow;
-					mkRow = await mkRow.ReQueryAsync(true);//Get current row info from kikrotik to avoid modifications of rows with wrong .id
-														   //if item with this id will be not found - error will bw thrown and no modification on item with wrong id will be made.
+					mkRow = await mkRow.ReQueryAsync (true);//Get current row info from kikrotik to avoid modifications of rows with wrong .id
+															//if item with this id will be not found - error will bw thrown and no modification on item with wrong id will be made.
 
-					await mkRow.EnableAsync(true, enable);//item with this id was found. Make modification
-					mkRow = await mkRow.ReQueryAsync(true);//Again requery item to get new properties
-					li.UpdateFromModel(mkRow, lvwRows);
+					await mkRow.EnableAsync (true, enable);//item with this id was found. Make modification
+					mkRow = await mkRow.ReQueryAsync (true);//Again requery item to get new properties
+					li.UpdateFromModel (mkRow, lvwRows);
 				}
 			}
 
-			await lvwRows.erunOnLockedUpdateAsync(updateRows, true, true);
+			await lvwRows.eRunOnLockedUpdateAsync (updateRows, true, true);
 
 		}
 		catch (Exception ex)
 		{
-			ex.eLogError(true, Localization.LStrings.E_TITLE_DEFAULT);
+			ex.eLogError (true, Localization.LStrings.E_TITLE_DEFAULT);
 
-			await QueryDataFromDevice();//On any error we refill list with actual data from mikrotik
+			await QueryDataFromDevice ();//On any error we refill list with actual data from mikrotik
 		}
 		finally
 		{
@@ -125,22 +125,22 @@ public partial class MikrotikAddressTableRecord_ListUI : Form
 
 
 
-	private async Task OnRows_Add()
+	private async Task OnRows_Add ()
 	{
 
 
-		string selectedRowGroupName = lvwRows.eSelectedItemsAs<AddressListItemRow>()
-			.FirstOrDefault()?
+		string selectedRowGroupName = lvwRows.eSelectedItemsAs<AddressListItemRow> ()
+			.FirstOrDefault ()?
 			.MikrotikRow?
 			.List
 				?? string.Empty;
 
-		if (selectedRowGroupName.IsNullOrWhiteSpace())
+		if (selectedRowGroupName.IsNullOrWhiteSpace ())
 		{
 			//No items is selected in list. Search opened groups
 			var gg = lvwRows
-				.eGroupsAsIEnumerable()
-				.FirstOrDefault(g => g.CollapsedState == ListViewGroupCollapsedState.Expanded && g.Items.Count > 0);
+				.eGroupsAsIEnumerable ()
+				.FirstOrDefault (g => g.CollapsedState == ListViewGroupCollapsedState.Expanded && g.Items.Count > 0);
 
 			selectedRowGroupName = gg?.Name ?? string.Empty;
 		}
@@ -152,13 +152,13 @@ public partial class MikrotikAddressTableRecord_ListUI : Form
 		{
 			//Collecting all addreses from other groups
 			var fog = _mikrotikRows
-				.Select(li => li.MikrotikRow)
-				.Where(mr => mr.List != selectedRowGroupName)
-				.OrderBy(mr => mr.List).ThenBy(mr => mr.Address)
-				.Select(mr => new FromFirewallAddressList(mr))
-				.ToArray();
+				.Select (li => li.MikrotikRow)
+				.Where (mr => mr.List != selectedRowGroupName)
+				.OrderBy (mr => mr.List).ThenBy (mr => mr.Address)
+				.Select (mr => new FromFirewallAddressList (mr))
+				.ToArray ();
 
-			addressSuggestionList.AddRange(fog);
+			addressSuggestionList.AddRange (fog);
 		}
 
 		#endregion
@@ -167,8 +167,8 @@ public partial class MikrotikAddressTableRecord_ListUI : Form
 
 		{
 			//Append suggestion list from DHCP leases
-			var dhcpLeaseList = await FromDHCPLease.GetRowsAsync(_connection);
-			addressSuggestionList.AddRange(dhcpLeaseList);
+			var dhcpLeaseList = await FromDHCPLease.GetRowsAsync (_connection);
+			addressSuggestionList.AddRange (dhcpLeaseList);
 		}
 
 		#endregion
@@ -184,26 +184,26 @@ public partial class MikrotikAddressTableRecord_ListUI : Form
 		try
 		{
 			var gg = lvwRows
-				.eGroupsAsIEnumerable()
-				.ToArray()
-				.ToDictionary(grp => grp.Name!, grp => grp.CollapsedState);
+				.eGroupsAsIEnumerable ()
+				.ToArray ()
+				.ToDictionary (grp => grp.Name!, grp => grp.CollapsedState);
 
-			using MikrotikAddressTableRecord_AddItemUI fe = new(_connection, [.. addressSuggestionList], gg, selectedRowGroupName);
-			if (fe.ShowDialog(this) != DialogResult.OK) return;
+			using MikrotikAddressTableRecord_AddItemUI fe = new (_connection, [ .. addressSuggestionList ], gg, selectedRowGroupName);
+			if (fe.ShowDialog (this) != DialogResult.OK) return;
 
 			AddressListItem addedMKRow = fe._dialogResult!;
-			AddressListItemRow li = new(addedMKRow, lvwRows);
-			var lmkRows = _mikrotikRows.ToList();
-			lmkRows.Add(li);
-			_mikrotikRows = [.. lmkRows];
+			AddressListItemRow li = new (addedMKRow, lvwRows);
+			var lmkRows = _mikrotikRows.ToList ();
+			lmkRows.Add (li);
+			_mikrotikRows = [ .. lmkRows ];
 
-			DisplayFilteredMKData();
-			li.eActivate();
+			DisplayFilteredMKData ();
+			li.eActivate ();
 		}
 		catch (Exception ex)
 		{
-			ex.eLogError(true, Localization.LStrings.E_TITLE_DEFAULT);
-			await QueryDataFromDevice();//On any error we refill list with actual data from mikrotik
+			ex.eLogError (true, Localization.LStrings.E_TITLE_DEFAULT);
+			await QueryDataFromDevice ();//On any error we refill list with actual data from mikrotik
 		}
 		finally
 		{
@@ -238,18 +238,18 @@ public partial class MikrotikAddressTableRecord_ListUI : Form
 
 	#endregion
 
-	private void OnFilterChanged(string filter)
+	private void OnFilterChanged ( string filter )
 	{
 		if (!_tableRowsReady) return;
 
-		DisplayFilteredMKData();
+		DisplayFilteredMKData ();
 	}
 
 
 
-	private void ShowLANDevices()
+	private void ShowLANDevices ()
 	{
-		using LocalSubnetBrowserUI f = new(_connection);
-		f.ShowDialog(this);
+		using LocalSubnetBrowserUI f = new (_connection);
+		f.ShowDialog (this);
 	}
 }

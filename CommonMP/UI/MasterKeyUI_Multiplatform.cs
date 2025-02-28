@@ -221,13 +221,13 @@ namespace MALM.UI
 #if !WINDOWS
 		private void OnEdited() => btnOk.IsEnabled = ValidateUserInput();
 #else
-		private void OnEdited() => btnOk.Enabled = (txtMasterKey2.Visible == false && txtMasterKey2.Text.eIsNotNullOrWhiteSpace()) || ValidateUserInput();
+		private void OnEdited() => btnOk.Enabled = (txtMasterKey2.Visible == false && txtMasterKey2.Text.IsNotNullOrWhiteSpace()) || ValidateUserInput();
 #endif
 
 
 		private bool ValidateUserInput()
 		{
-			if (txtMasterKey1.Text.eIsNullOrWhiteSpace()) return false;
+			if (txtMasterKey1.Text.IsNullOrWhiteSpace()) return false;
 
 			if (_mkm!.LoginMode == MasterKeyManager.LoginModes.Login) return true;
 			if (txtMasterKey1.Text != txtMasterKey2.Text) return false;

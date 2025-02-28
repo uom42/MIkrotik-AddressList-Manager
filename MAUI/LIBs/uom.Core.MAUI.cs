@@ -408,62 +408,6 @@ namespace uom.maui
 	}
 
 
-	public class InvertableBool(bool b) : ObservableObject
-	{
-		private bool _value = b;
-
-		public bool Value { get { return _value; } }
-		public bool Invert { get { return !_value; } }
-
-
-		public static implicit operator InvertableBool(bool b) => new(b);
-
-		public static implicit operator bool(InvertableBool b) => b._value;
-	}
-
-
-
-	internal static class ResourceHelper
-	{
-
-		/*
-		public static object FindResource2(this VisualElement o, string key)
-		{
-			while (o != null)
-			{
-				if (o.Resources.TryGetValue(key, out var r1)) return r1;
-				if (o is Page) break;
-				if (o is IElement e) o = e.Parent as VisualElement;
-			}
-			if (Application.Current!.Resources.TryGetValue(key, out var r2)) return r2;
-			return null;
-		}
-		 */
-
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T FindAppResource<T>(this string resourcekey, T defaultValue = default) where T : struct
-		{
-			try
-			{
-				var resFound = Application.Current!.Resources.TryGetValue(resourcekey, out var res);
-				if (!resFound) throw new ArgumentOutOfRangeException(nameof(resourcekey), $"FindAppResource FAILED for ");
-
-				return (T)res;
-			}
-			catch (Exception ex) { ex.eLogErrorNoUI(); }
-			return defaultValue;
-		}
-
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Int32 FindAppResource_Int32(this string key, Int32 def = 0) => FindAppResource(key, def);
-
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static UInt32 FindAppResource_UInt32(this string key, UInt32 def = 0u) => FindAppResource(key, def);
-
-	}
 
 
 

@@ -226,10 +226,10 @@ namespace MALM.UI
 
 			/*
 			string name = string.Empty;
-			if (abr.HostName.eIsNotNullOrWhiteSpace()) name = abr.HostName;
-			if (abr.Comment.eIsNotNullOrWhiteSpace())
+			if (abr.HostName.IsNotNullOrWhiteSpace()) name = abr.HostName;
+			if (abr.Comment.IsNotNullOrWhiteSpace())
 			{
-				if (name.eIsNotNullOrWhiteSpace())
+				if (name.IsNotNullOrWhiteSpace())
 					name += $" ({abr.Comment})";
 				else
 					name = abr.Comment;

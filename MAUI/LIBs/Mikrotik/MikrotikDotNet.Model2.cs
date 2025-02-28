@@ -87,7 +87,7 @@ namespace MikrotikDotNet.Model
 		{
 			try
 			{
-				if (ipm.eIsNotNullOrWhiteSpace())
+				if (ipm.IsNotNullOrWhiteSpace())
 					return uom.Network.IP4AddressWithMask.ParseIPs(ipm!).FirstOrDefault();
 			}
 			catch { }

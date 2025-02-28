@@ -98,6 +98,14 @@
 	<PropertyGroup Condition="$(TargetFramework.Contains('-maccatalyst'))">
 		<IPhoneResourcePrefix>Platforms/MacCatalyst/Resources</IPhoneResourcePrefix>
 	</PropertyGroup>
+	<ItemGroup>
+	  <AndroidResource Remove="_Localization OLD\**" />
+	  <Compile Remove="_Localization OLD\**" />
+	  <EmbeddedResource Remove="_Localization OLD\**" />
+	  <MauiCss Remove="_Localization OLD\**" />
+	  <MauiXaml Remove="_Localization OLD\**" />
+	  <None Remove="_Localization OLD\**" />
+	</ItemGroup>
 
 
 
@@ -133,7 +141,7 @@
 		<PackageReference Include="Refractored.MvvmHelpers" Version="1.6.2" />
 	</ItemGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\..\..\..\_LIB\CS_UOM\Network\Mikrotik\MikrotikDotNet\MDN_Git\Mikrotik.Net\Mikrotik.Net.csproj" />
+		<ProjectReference Include="..\..\..\_LIB\Mikrotik\MikrotikDotNet\Mikrotik.Net\Mikrotik.Net.csproj" />
 	</ItemGroup>
 
 

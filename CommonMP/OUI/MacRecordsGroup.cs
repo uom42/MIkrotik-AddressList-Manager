@@ -18,7 +18,7 @@ namespace MALM.OUI
 			InfoList.eForEach(il => il.Parent = this);
 		}
 
-		public string? MfgCountryID => InfoList.FirstOrDefault(r => r.Country2LetterUCode.eIsNotNullOrWhiteSpace())?.Country2LetterUCode;
+		public string? MfgCountryID => InfoList.FirstOrDefault(r => r.Country2LetterUCode.IsNotNullOrWhiteSpace())?.Country2LetterUCode;
 
 	}
 }
