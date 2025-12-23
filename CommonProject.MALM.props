@@ -1,0 +1,54 @@
+<Project>
+
+	<PropertyGroup>
+
+		<RootNamespace>MALM</RootNamespace>
+
+		<!-- Display name -->
+		<ApplicationTitle>Mikrotik AddressList Manager</ApplicationTitle>
+		<Title>Mikrotik AddressList Manager</Title>
+		<Product>Mikrotik AddressList Manager</Product>
+		<AssemblyProduct>$(Product)</AssemblyProduct>
+		
+		<Authors>UOM</Authors>
+		<AssemblyCompany>$(Authors)</AssemblyCompany>		
+		<Description>UOM Mikrotik AddressList Manager</Description>
+		<NeutralLanguage>en-US</NeutralLanguage>
+
+		<ApplicationId>com.uom.malm</ApplicationId>
+		<ApplicationIdGuid>2588a561-31cb-45a0-9100-5a7e1ccb7691</ApplicationIdGuid>
+		
+		<!-- Versions -->
+		<!--https://learn.microsoft.com/en-us/visualstudio/msbuild/property-functions?view=vs-2022-->
+		<Today>$([System.DateTime]::Now.ToString("yy.M.d"))</Today>
+		<Year>$([System.DateTime]::Now.ToString("yyyy"))</Year>
+
+		<AppVer>3</AppVer>
+
+		<Copyright>©UOM 2025-$(Year)</Copyright>
+		<AssemblyCopyright>$(Copyright)</AssemblyCopyright>
+		
+		<!-- Versions -->
+		<Version>$(Today).$(AppVer)</Version>
+		<AssemblyVersion>$(Version)</AssemblyVersion>
+		<FileVersion>$(Version)</FileVersion>
+		<ProductVersion>$(Version)</ProductVersion>
+		
+		<!-- Versions -->
+		<!--
+		<AssemblyVersion>3.0.0.1</AssemblyVersion>
+		<FileVersion>3.0.0.1</FileVersion>
+		<ProductVersion>3.0.0.1</ProductVersion>
+
+		<ApplicationDisplayVersion>3.0.0</ApplicationDisplayVersion>		
+		<ApplicationVersion>3</ApplicationVersion>
+		-->
+
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\..\_LIB\Mikrotik\MikrotikDotNet\Mikrotik.Net\Mikrotik.Net.csproj" />
+	</ItemGroup>
+
+
+</Project>

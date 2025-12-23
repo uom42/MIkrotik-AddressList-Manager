@@ -1,1 +1,1 @@
-P:/_Pro.2/Win/MIkrotik/MIkrotik AddressList Manager/CommonMP/UI/MikrotikAddressTableRecord_ListUI_Multiplatform.cs
+P:/_Pro.2/MIkrotik/MIkrotik AddressList Manager/CommonMP/UI/MikrotikAddressTableRecord_ListUI_Multiplatform.cs

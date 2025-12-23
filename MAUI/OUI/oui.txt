@@ -1,1 +1,1 @@
-P:/_Pro.2/Win/MIkrotik/MIkrotik AddressList Manager/CommonMP/OUI/oui.txt
+P:/_Pro.2/MIkrotik/MIkrotik AddressList Manager/CommonMP/OUI/oui.txt

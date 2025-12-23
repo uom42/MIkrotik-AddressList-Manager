@@ -20,1540 +20,1446 @@ using static Vanara.PInvoke.User32;
 namespace uom.controls
 {
 
-	public partial class ListViewEx : ListView
-	{
-		#region WinAPI for ListView
+
+    /// <summary>
+    /// ReflectNotifyManager обеспечивает надёжную "рефлектацию" WM_NOTIFY из родителя в дочерние контролы.
+    /// Когда родитель получает WM_NOTIFY от зарегистрованного child hwnd, менеджер форвардит OCM_NOTIFY (WM_NOTIFY + 0x2000) на hwnd child.
+    /// </summary>
+    /// <remarks>Created by ChatGPT 2025 12 03</remarks>
+    internal sealed class ReflectNotifyManager : NativeWindow, IDisposable
+    {
+
+        private class ControlNotifySettings ( Control control , int [] notifyMesageCodes )
+        {
+            public readonly Control Control = control;
+            public readonly int [] NotifyMesageCodes = notifyMesageCodes;
+        }
 
 
-		private const int L_MAX_URL_LENGTH = 2048 + 32 + 4;// '//#define L_MAX_URL_LENGTH    (2048 + 32 + sizeof("://"))
-														   //private const int L_MAX_URL_LENGTH = (2048 + 32 + sizeof("://"));
+        // used for store created instances of ReflectNotifyManager
+        private static readonly Dictionary<Control,ReflectNotifyManager> _instancesForParents = [];
+
+        // thread-safe map hwnd -> weak reference to Control
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<IntPtr, ControlNotifySettings> _registeredControls = new ();
+
+
+        private readonly IntPtr _parentHandle;
+        private bool _assigned;
+
+
+        private ReflectNotifyManager ( IntPtr parentControlHandle )
+        {
+            AssignHandle( parentControlHandle );
+            _parentHandle = parentControlHandle;
+            _assigned = true;
+        }
+
+
+        [MethodImpl( MethodImplOptions.Synchronized )]
+        public static void CreateForControl ( Control control , int [] notifyMesageCodes )
+        {
+            control.HandleCreated += ( _ , _ ) => Rattach_( control , notifyMesageCodes );
+            control.ParentChanged += ( _ , _ ) => Rattach_( control , notifyMesageCodes );
+            control.Disposed += ( _ , _ ) =>
+            {
+                try
+                {
+                    var prnt = control.Parent;
+                    if ( prnt != null && _instancesForParents.TryGetValue( prnt , out var rnm ) )
+                        rnm?.UnregisterControl( control );
+                }
+                catch { }
+            };
+        }
+
+
+        private static  Control? _alreadyAttachingCtl = null;
+
+        [MethodImpl( MethodImplOptions.Synchronized )]
+        private static void Rattach_ ( Control control , int [] notifyMesageCodes )
+        {
+            var prnt = control.Parent;
+            if ( prnt == null || _alreadyAttachingCtl == control ) return; // Ensure parent exists and manager is attached
+
+            // Create a manager attached to parent handle and register this control
+            // If parent already has a manager, reuse it via a ParentTag
+
+            _alreadyAttachingCtl = control;
+            try
+            {
+                if ( !_instancesForParents.TryGetValue( prnt , out var rnm ) )
+                {
+                    rnm = new( prnt.Handle );
+                    _instancesForParents.Add( prnt , rnm );
+                }
+                rnm.RegisterControl( control , notifyMesageCodes );
+            }
+            finally { _alreadyAttachingCtl = null; }
+        }
 
 
 
-		/// <summary>ListView messages</summary>
-		public enum ListViewMessageEx : int
-		{
-			LVM_FIRST = 0x1000,
+        [MethodImpl( MethodImplOptions.NoOptimization )] // Disable compiler optimization
+        private void RegisterControl ( Control control , int [] notifyMesageCodes )
+        {
+            if ( control == null ) throw new ArgumentNullException( nameof( control ) );
 
-			LVM_GETFOCUSEDCOLUMN = LVM_FIRST + 186,
-			LVM_RESETEMPTYTEXT = ( LVM_FIRST + 84 ),
-		}
+            // ensure handle exists
+            if ( !control.IsHandleCreated ) _ = control.Handle; // forces handle creation
+            _registeredControls [control.Handle] = new ControlNotifySettings( control , notifyMesageCodes );
+        }
 
-
-		#endregion
-
-
-		#region Constructors
-
-
-		/// <summary>Initializes a new instance of the <see cref="ListView"/> class.</summary>
-		public ListViewEx () : base ()
-		{
-
-			SetStyle (
-				ControlStyles.ResizeRedraw
-				| ControlStyles.OptimizedDoubleBuffer
-				| ControlStyles.AllPaintingInWmPaint
-				| ControlStyles.EnableNotifyMessage
-				, true);
-
-			AddKeyboardAndMousehandlers ();
-
-			this._dragDrop_InsertionIndex = -1;
-		}
+        private void UnregisterControl ( Control control )
+        {
+            if ( control == null ) return;
+            _registeredControls.TryRemove( control.Handle , out _ );
+        }
 
 
-		#endregion
 
 
-		public void SelectAllItems ()
-		{
-			try
-			{
-				BeginUpdate ();
-				{
-					foreach (ListViewItem li in Items)
-					{
-						li.Selected = true;
-					}
-				}
-			}
-			finally { EndUpdate (); }
-		}
+        protected override void WndProc ( ref Message m )
+        {
+            if ( m.Msg == ( int )User32.WindowMessage.WM_NOTIFY )
+            {
+                try
+                {
+                    User32.NMHDR hdr = Marshal.PtrToStructure<User32.NMHDR> (m.LParam);
+                    var nmhdr = (NMHDR) m.GetLParam (typeof (NMHDR))!;
+                    var ocmNotifyCode = nmhdr.code;
+
+                    if ( hdr.hwndFrom != IntPtr.Zero && _registeredControls.TryGetValue( ( IntPtr )hdr.hwndFrom , out var cns ) )
+                    {
+                        if ( !cns.Control.IsDisposed )
+                        {
+
+                            //Use notify message subscribtion to avoid double events fired in control when conflicts with NetCore controls message marshaling
+                            if ( cns.NotifyMesageCodes.Contains( ocmNotifyCode ) )
+                            {
+                                //Control subscribed for this message
 
 
-		public class QueryEmptyTextEventArgs : System.EventArgs
-		{
-			public string EmptyListViewText = string.Empty;
-			public bool CenterText = false;
-		}
+                                // Forward OCM_NOTIFY to the child control's window procedure.
+                                // We use SendMessage to deliver the reflected notification directly.
+                                User32.SendMessage( hdr.hwndFrom , User32.OCM_NOTIFY , m.WParam , m.LParam );
+                                // We do NOT mark the parent's WndProc as handled here; we allow default processing.
+                                // But if desired, you can set m.Result here. For compatibility we leave it intact.
+                            }
+                        }
+                        else
+                        {
+                            // Remove dead entry
+                            _registeredControls.TryRemove( ( IntPtr )hdr.hwndFrom , out _ );
+                        }
+                    }
+                }
+                catch
+                {
+                    // Swallow exceptions so message loop remains stable
+                }
+            }
+
+            base.WndProc( ref m );
+        }
 
 
-		public event EventHandler<QueryEmptyTextEventArgs> QueryEmptyText = delegate { };
+        [MethodImpl( MethodImplOptions.Synchronized )]
+        public void Dispose ()
+        {
+            if ( _assigned )
+            {
+                ReleaseHandle();
+                _assigned = false;
+            }
+            _registeredControls.Clear();
 
-#if !NET
-		public event EventHandler<string> GroupsCollapsedStateChangedByMouse = delegate { };
+            var key =_instancesForParents.FirstOrDefault(kvp=>kvp.Value==this).Key;
+            if ( key != null ) _instancesForParents.Remove( key );
+        }
+    }
+
+
+
+    public partial class ListViewEx : ListView
+    {
+        #region WinAPI
+
+        //private const int WM_NOTIFY = 0x004E;
+
+        //private const int LVM_FIRST = 0x1000;
+        //private const int LVM_RESETEMPTYTEXT = LVM_FIRST + 84;  // = 0x1054)
+
+        private const int LVN_FIRST = -100;
+        private const int LVN_GETEMPTYMARKUP = LVN_FIRST - 87; // = -187
+
+
+        //private const int L_MAX_URL_LENGTH = 2048 + 32 + 4; 
+        // #define L_MAX_URL_LENGTH    (2048 + 32 + sizeof("://"))                                                            
+        //private const int L_MAX_URL_LENGTH = (2048 + 32 + sizeof("://"));
+
+        #endregion
+
+
+        #region Constructors
+
+
+        /// <summary>Initializes a new instance of the <see cref="ListView"/> class.</summary>
+        public ListViewEx () : base()
+        {
+            SetStyle(
+                ControlStyles.ResizeRedraw
+                | ControlStyles.OptimizedDoubleBuffer
+                | ControlStyles.AllPaintingInWmPaint
+                , true );
+
+            AddKeyboardAndMousehandlers();
+            _dragDrop_InsertionIndex = -1;
+
+#if NET5_0_OR_GREATER
+            ReflectNotifyManager.CreateForControl( this , [LVN_GETEMPTYMARKUP] );
+#endif
+        }
+
+
+        #endregion
+
+
+        public class QueryEmptyTextEventArgs : System.EventArgs
+        {
+            public string EmptyListViewText = string.Empty;
+            public bool CenterText = false;
+        }
+
+        public event EventHandler<QueryEmptyTextEventArgs> QueryEmptyText = delegate { };
+
+#if !NET5_0_OR_GREATER
+		public event EventHandler<string> GroupCollapsedStateChanged = delegate { };
+
 #endif
 
-
-		#region item editing and Clipboard copy/pasting
-
-
-		#region Events for item editing and Clipboard copy/pasting
+        #region Items Editing and Clipboard copy/pasting
 
 
-		///<summary>When doubleclick on item 
-		///or on  return  key with some selected items
-		///if CheckBoxes - doubleclicks is not processing...</summary>
-		public event EventHandler<ListViewItem[]> Items_NeedEdit = delegate { };
-
-		///<summary>When DEL key pressed</summary>
-		public event EventHandler<ListViewItem[]> Items_NeedDelete = delegate { };
-
-		///<summary>When INS key pressed</summary>
-		public event EventHandler Items_NeedInsert = delegate { };
-
-		///<summary>When F5 key pressed</summary>
-		public event EventHandler Items_NeedRefreshList = delegate { };
-
-		///<summary>When Ctrl+C pressed</summary>
-		public event EventHandler<ListViewItem[]> ClipboardCopy = delegate { };
-
-		///<summary>When Ctrl+V pressed</summary>
-		public event EventHandler ClipboardPaste = delegate { };
+        #region Events for item editing and Clipboard copy/pasting
 
 
-		#endregion
+        ///<summary>When doubleclick on item 
+        ///or on  return  key with some selected items
+        ///if CheckBoxes - doubleclicks is not processing...</summary>
+        public event EventHandler<ListViewItem[]> Items_NeedEdit = delegate { };
+
+        ///<summary>When DEL key pressed</summary>
+        public event EventHandler<ListViewItem[]> Items_NeedDelete = delegate { };
+
+        ///<summary>When INS key pressed</summary>
+        public event EventHandler Items_NeedInsert = delegate { };
+
+        ///<summary>When F5 key pressed</summary>
+        public event EventHandler Items_NeedRefreshList = delegate { };
+
+        ///<summary>When Ctrl+C pressed</summary>
+        public event EventHandler<ListViewItem[]> ClipboardCopy = delegate { };
+
+        ///<summary>When Ctrl+V pressed</summary>
+        public event EventHandler ClipboardPaste = delegate { };
 
 
-		#region Processing UI keyboard and mouse events
+        #endregion
 
 
-		private void AddKeyboardAndMousehandlers ()
-		{
-			MouseDoubleClick += On_MouseDoubleClick!;
-			this.KeyDown += On_KeyDown!;
-			this.KeyPress += On_KeyPress!;
-			this.KeyUp += On_KeyUp!;
-		}
+        #region Processing UI keyboard and mouse events
 
 
-		private void On_MouseDoubleClick ( Object sender, MouseEventArgs e )
-		{
-			if (e.Button != MouseButtons.Left)
-			{
-				return;
-			}
-
-			if (this.CheckBoxes)
-			{
-				return;
-			}
-
-			var POS = e.Location;
-			var LI = this.GetItemAt (POS.X, POS.Y);
-			if (null == LI)
-			{
-				return;
-			}
-
-			this.On_Items_NeedEdit (LI.eToArrayOf ());
-		}
-
-		private void On_KeyDown ( Object sender, KeyEventArgs e )
-		{
-			switch (e.KeyCode)
-			{
-				case Keys.A when ( e.Modifiers == Keys.Control && MultiSelect ):
-					{
-						e.SuppressKeyPress = true;
-						SelectAllItems ();
-						break;
-					}
-
-				case Keys.Insert when ( e.Modifiers == Keys.None ):
-					{
-						e.SuppressKeyPress = this.On_Items_NeedInsert ();
-						break;
-					}
-
-				case Keys.Insert when ( e.Modifiers == Keys.Control ):
-				case Keys.C when ( e.Modifiers == Keys.Control ):
-					{
-						e.SuppressKeyPress = this.On_Clipboard_Copy ();
-						break;
-					}
-
-				case Keys.Insert when ( e.Modifiers == Keys.Shift ):
-				case Keys.V when ( e.Modifiers == Keys.Control ):
-					{
-						e.SuppressKeyPress = this.On_Clipboard_Paste ();
-						break;
-					}
-
-				default:
-					break;
-			}
-		}
-		private void On_KeyPress ( Object sender, KeyPressEventArgs e ) //,Handles this.KeyPress
-		{
-			if (e.KeyChar != 0xD)
-			{
-				return;
-			}
-
-			e.Handled = this.On_Items_NeedEdit ();
-		}
-		private void On_KeyUp ( Object sender, KeyEventArgs e )
-		{
-
-			switch (e.KeyCode)
-			{
-				case Keys.Delete when ( e.Modifiers == Keys.None ):
-					{
-						e.SuppressKeyPress = this.On_Items_NeedDelete ();
-						break;
-					}
-
-				case Keys.F5:
-					{
-						e.SuppressKeyPress = this.On_Items_NeedRefreshList ();
-						break;
-					}
+        private void AddKeyboardAndMousehandlers ()
+        {
+            MouseDoubleClick += On_MouseDoubleClick!;
+            KeyDown += On_KeyDown!;
+            KeyPress += On_KeyPress!;
+            KeyUp += On_KeyUp!;
+        }
 
 
-				default:
-					break;
-			}
-		}
+        private void On_MouseDoubleClick ( object sender , MouseEventArgs e )
+        {
+            if ( e.Button != MouseButtons.Left )
+            {
+                return;
+            }
+
+            if ( CheckBoxes )
+            {
+                return;
+            }
+
+            var POS = e.Location;
+            var LI = GetItemAt (POS.X, POS.Y);
+            if ( null == LI )
+            {
+                return;
+            }
+
+            On_Items_NeedEdit( LI.toArrayFromSingleElement() );
+        }
+
+        private void On_KeyDown ( object sender , KeyEventArgs e )
+        {
+            switch ( e.KeyCode )
+            {
+                case Keys.A when e.Modifiers == Keys.Control && MultiSelect:
+                    {
+                        e.SuppressKeyPress = true;
+                        this.selectAllItems();
+                        break;
+                    }
+
+                case Keys.Insert when e.Modifiers == Keys.None:
+                    {
+                        e.SuppressKeyPress = On_Items_NeedInsert();
+                        break;
+                    }
+
+                case Keys.Insert when e.Modifiers == Keys.Control:
+                case Keys.C when e.Modifiers == Keys.Control:
+                    {
+                        e.SuppressKeyPress = On_Clipboard_Copy();
+                        break;
+                    }
+
+                case Keys.Insert when e.Modifiers == Keys.Shift:
+                case Keys.V when e.Modifiers == Keys.Control:
+                    {
+                        e.SuppressKeyPress = On_Clipboard_Paste();
+                        break;
+                    }
+
+                default:
+                    break;
+            }
+        }
+        private void On_KeyPress ( object sender , KeyPressEventArgs e ) //,Handles this.KeyPress
+        {
+            if ( e.KeyChar != 0xD ) return;
+            e.Handled = On_Items_NeedEdit();
+        }
+        private void On_KeyUp ( object sender , KeyEventArgs e )
+        {
+
+            switch ( e.KeyCode )
+            {
+                case Keys.Delete when e.Modifiers == Keys.None:
+                    {
+                        e.SuppressKeyPress = On_Items_NeedDelete();
+                        break;
+                    }
+
+                case Keys.F5:
+                    {
+                        e.SuppressKeyPress = On_Items_NeedRefreshList();
+                        break;
+                    }
 
 
-
-		#endregion
-
-
-		protected virtual bool On_Items_NeedRefreshList ()
-		{
-			Items_NeedRefreshList?.Invoke (this, EventArgs.Empty);
-			return true;
-		}
-
-		protected virtual bool On_Items_NeedEdit ( ListViewItem[]? aSel = null )
-		{
-			if (null == aSel || !aSel.Any ())
-			{
-				aSel = this.eSelectedItemsAsIEnumerable ().ToArray ();
-			}
-
-			if (!aSel.Any ())
-			{
-				return false;
-			}
-
-			if (!this.MultiSelect)
-			{
-				aSel = aSel.First ().eToArrayOf ();
-			}
-
-			Items_NeedEdit?.Invoke (this, aSel);
-			return true;
-		}
-
-		protected virtual bool On_Items_NeedDelete ()
-		{
-			var aSel = this.eSelectedItemsAsIEnumerable ().ToArray ();
-			if (!aSel.Any ())
-			{
-				return false;
-			}
-
-			Items_NeedDelete?.Invoke (this, aSel);
-			return true;
-		}
-
-		private bool On_Items_NeedInsert ()
-		{
-			Items_NeedInsert?.Invoke (this, EventArgs.Empty);
-			return true;
-		}
-
-		private bool On_Clipboard_Copy ()
-		{
-			var aSel = this.eSelectedItemsAsIEnumerable ().ToArray ();
-			if (!aSel.Any ())
-			{
-				return false;
-			}
-
-			ClipboardCopy?.Invoke (this, aSel);
-			return true;
-		}
-
-		private bool On_Clipboard_Paste ()
-		{
-			ClipboardPaste?.Invoke (this, EventArgs.Empty);
-			return true;
-		}
+                default:
+                    break;
+            }
+        }
 
 
-		#endregion
+        #endregion
 
 
-		#region Avoid flickering
+        #region On_Items_Needxxxx
 
-		/*
+
+        protected virtual bool On_Items_NeedRefreshList ()
+        {
+            Items_NeedRefreshList?.Invoke( this , EventArgs.Empty );
+            return true;
+        }
+
+        protected virtual bool On_Items_NeedEdit ( ListViewItem []? aSel = null )
+        {
+            if ( null == aSel || aSel.Length == 0 ) aSel = [.. this.selectedItemsAsIEnumerable()];
+            if ( aSel.Length == 0 ) return false;
+            if ( !MultiSelect ) aSel = aSel.First().toArrayFromSingleElement();
+            Items_NeedEdit?.Invoke( this , aSel );
+            return true;
+        }
+
+        protected virtual bool On_Items_NeedDelete ()
+        {
+            var aSel = this.selectedItemsAsIEnumerable ().ToArray ();
+            if ( aSel.Length == 0 ) return false;
+            Items_NeedDelete?.Invoke( this , aSel );
+            return true;
+        }
+
+        private bool On_Items_NeedInsert ()
+        {
+            Items_NeedInsert?.Invoke( this , EventArgs.Empty );
+            return true;
+        }
+
+        private bool On_Clipboard_Copy ()
+        {
+            var aSel = this.selectedItemsAsIEnumerable ().ToArray ();
+            if ( aSel.Length == 0 ) return false;
+            ClipboardCopy?.Invoke( this , aSel );
+            return true;
+        }
+
+        private bool On_Clipboard_Paste ()
+        {
+            ClipboardPaste?.Invoke( this , EventArgs.Empty );
+            return true;
+        }
+
+
+        #endregion
+
+
+        #endregion
+
+
+        #region Avoid flickering
+
+        /*
 		protected override void OnPaint(PaintEventArgs e)
 		{
 			base.OnPaint(e);
 			//,e.Graphics.DrawString("FUCK!", Font, Brushes.Red, ClientRectangle);
 		}
 		 */
-		protected override void OnPaintBackground ( PaintEventArgs pevent )
-		{
-			//,base.OnPaintBackground(pevent);
-		}
+        protected override void OnPaintBackground ( PaintEventArgs pevent )
+        {
+            //,base.OnPaintBackground(pevent);
+        }
 
 
-		#endregion
+        #endregion
 
 
-		#region Item drag visual support
-		// Dragging items in a ListView control with visual insertion guides
-		// http://www.cyotek.com/blog/dragging-items-in-a-listview-control-with-visual-insertion-guides
+        #region Item drag visual support
+        // Dragging items in a ListView control with visual insertion guides
+        // http://www.cyotek.com/blog/dragging-items-in-a-listview-control-with-visual-insertion-guides
 
 
-
-		public abstract class DragDrop_ExternalFilesBaseEventArgs : EventArgs
-		{
-			public FileInfo[] Files { get; protected set; } = { };
-			public DragDrop_ExternalFilesBaseEventArgs ( FileInfo[] files ) : base () { Files = files; }
-		}
-
-		public sealed class DragDrop_DragEnterExternalFilesEventArgs : DragDrop_ExternalFilesBaseEventArgs
-		{
-			public bool Cancel = false;
-			public DragDrop_DragEnterExternalFilesEventArgs ( FileInfo[] files ) : base (files) { }
-
-			public void SetFiles ( FileInfo[] files )
-			{
-				Files = files;
-			}
-		}
-
-		public sealed class DragDrop_DropExternalFilesEventArgs : DragDrop_ExternalFilesBaseEventArgs
-		{
-			public readonly int InsertionIndex;
-			public DragDrop_DropExternalFilesEventArgs ( FileInfo[] files, int insertionIndex ) : base (files) { InsertionIndex = insertionIndex; }
-		}
+        public abstract class DragDrop_ExternalFilesBaseEventArgs ( FileInfo [] files ) : EventArgs()
+        {
+            public FileInfo [] Files { get; protected set; } = files;
+        }
 
 
-		public class DragDrop_ItemReorderEventArgs : CancelListViewItemDragEventArgs
-		{
-			public ListViewItem DropItem { get; protected set; }
+        public sealed class DragDrop_DragEnterExternalFilesEventArgs ( FileInfo [] files ) : DragDrop_ExternalFilesBaseEventArgs( files )
+        {
+            public bool Cancel = false;
 
-			/// <summary>Gets the insertion index of the drag operation.</summary>
-			public int InsertionIndex { get; protected set; }
+            public void SetFiles ( FileInfo [] files )
+            {
+                Files = files;
+            }
+        }
 
-			/// <summary>Gets the relation of the <see cref="InsertionIndex"/></summary>
-			public DragDropInsertionModes InsertionMode { get; protected set; }
-
-			/// <summary>Gets the coordinates of the mouse (in pixels) during the generating event.</summary>
-			public Point Mouse { get; protected set; }
-
-
-			//protected DragDrop_ItemReorderEventArgs() : base() { }
-
-			public DragDrop_ItemReorderEventArgs ( ListViewItem sourceItem, ListViewItem dropItem, int insertionIndex, DragDropInsertionModes insertionMode, Point mouse ) : base (sourceItem)
-			{
-				Item = sourceItem;
-				DropItem = dropItem;
-				Mouse = mouse;
-				InsertionIndex = insertionIndex;
-				InsertionMode = insertionMode;
-			}
-		}
+        public sealed class DragDrop_DropExternalFilesEventArgs ( FileInfo [] files , int insertionIndex ) : DragDrop_ExternalFilesBaseEventArgs( files )
+        {
+            public readonly int InsertionIndex = insertionIndex;
+        }
 
 
-		public class CancelListViewItemDragEventArgs : CancelEventArgs
-		{
-			//protected CancelListViewItemDragEventArgs() : base() { }
+        public class DragDrop_ItemReorderEventArgs : CancelListViewItemDragEventArgs
+        {
+            public ListViewItem DropItem { get; protected set; }
 
-			public CancelListViewItemDragEventArgs ( ListViewItem item ) : base () { this.Item = item; }
+            /// <summary>Gets the insertion index of the drag operation.</summary>
+            public int InsertionIndex { get; protected set; }
 
-			public ListViewItem Item { get; protected set; }
-		}
+            /// <summary>Gets the relation of the <see cref="InsertionIndex"/></summary>
+            public DragDropInsertionModes InsertionMode { get; protected set; }
 
-
-		/// <summary>Determines the insertion mode of a drag operation</summary>
-		public enum DragDropInsertionModes
-		{
-			/// <summary>The source item will be inserted before the destination item</summary>
-			Before,
-
-			/// <summary>The source item will be inserted after the destination item</summary>
-			After
-		}
-
-		[Flags]
-		public enum DragDropModes : int
-		{
-			None = 0,
-			ItemsReorder = 1,
-			DropFromExternal = 2,
-			DragToExternal = 4
-		}
+            /// <summary>Gets the coordinates of the mouse (in pixels) during the generating event.</summary>
+            public Point Mouse { get; protected set; }
 
 
-		private const string C_CATEGORY_DRAG_DROP = "Drag Drop";
-		private const string C_CATEGORY_PROPERTY_CHANGED = "Property Changed";
+            //protected DragDrop_ItemReorderEventArgs() : base() { }
 
-		#region Item Drag Events
+            public DragDrop_ItemReorderEventArgs ( ListViewItem sourceItem , ListViewItem dropItem , int insertionIndex , DragDropInsertionModes insertionMode , Point mouse ) : base( sourceItem )
+            {
+                Item = sourceItem;
+                DropItem = dropItem;
+                Mouse = mouse;
+                InsertionIndex = insertionIndex;
+                InsertionMode = insertionMode;
+            }
+        }
 
-		[Category (C_CATEGORY_PROPERTY_CHANGED)]
-		public event EventHandler DragDropModeChanged = delegate { };
 
-		/// <summary>Occurs when the InsertionLineColor property value changes.</summary>
-		[Category (C_CATEGORY_PROPERTY_CHANGED)]
-		public event EventHandler InsertionLineColorChanged = delegate { };
+        public class CancelListViewItemDragEventArgs ( ListViewItem item ) : CancelEventArgs()
+        {
+            //protected CancelListViewItemDragEventArgs() : base() { }
+            public ListViewItem Item { get; protected set; } = item;
+        }
+
+
+        /// <summary>Determines the insertion mode of a drag operation</summary>
+        public enum DragDropInsertionModes
+        {
+            /// <summary>The source item will be inserted before the destination item</summary>
+            Before,
+
+            /// <summary>The source item will be inserted after the destination item</summary>
+            After
+        }
+
+        [Flags]
+        public enum DragDropModes : int
+        {
+            None = 0,
+            ItemsReorder = 1,
+            DropFromExternal = 2,
+            DragToExternal = 4
+        }
+
+
+        private const string C_CATEGORY_DRAG_DROP = "Drag Drop";
+        private const string C_CATEGORY_PROPERTY_CHANGED = "Property Changed";
+
+        #region Item Drag Events
+
+        [Category (C_CATEGORY_PROPERTY_CHANGED)]
+        public event EventHandler DragDropModeChanged = delegate { };
+
+        /// <summary>Occurs when the InsertionLineColor property value changes.</summary>
+        [Category (C_CATEGORY_PROPERTY_CHANGED)]
+        public event EventHandler InsertionLineColorChanged = delegate { };
 
 
 
-		/// <summary>Occurs when a drag-and-drop operation for an item is completed.</summary>
-		[Category (C_CATEGORY_DRAG_DROP)]
-		public event EventHandler<DragDrop_ItemReorderEventArgs> DragDrop_ItemReorder = delegate { };
+        /// <summary>Occurs when a drag-and-drop operation for an item is completed.</summary>
+        [Category (C_CATEGORY_DRAG_DROP)]
+        public event EventHandler<DragDrop_ItemReorderEventArgs> DragDrop_ItemReorder = delegate { };
 
-		/// <summary>Occurs when the user begins dragging an item.</summary>
-		[Category (C_CATEGORY_DRAG_DROP)]
-		public event EventHandler<CancelListViewItemDragEventArgs> ItemDragStart = delegate { };
-
-
-		[Category (C_CATEGORY_DRAG_DROP)]
-		public event EventHandler<DragDrop_DragEnterExternalFilesEventArgs> DragDrop_DragEnterExternalFiles = delegate { };
-
-		[Category (C_CATEGORY_DRAG_DROP)]
-		public event EventHandler<DragDrop_DropExternalFilesEventArgs> DragDrop_DropExternalFiles = delegate { };
-
-		#endregion
+        /// <summary>Occurs when the user begins dragging an item.</summary>
+        [Category (C_CATEGORY_DRAG_DROP)]
+        public event EventHandler<CancelListViewItemDragEventArgs> ItemDragStart = delegate { };
 
 
+        [Category (C_CATEGORY_DRAG_DROP)]
+        public event EventHandler<DragDrop_DragEnterExternalFilesEventArgs> DragDrop_DragEnterExternalFiles = delegate { };
 
-		private int _dragDrop_InsertionIndex;
-		private bool _dragDrop_ItemDragInProgress;
-		private DragDropInsertionModes _dragDrop_InsertionMode;
-		private DragDropModes _dragDrop_Mode = DragDropModes.None;
-		private Color _dragDrop_InsertionLineColor;
-		private FileInfo[] _dragDrop_FilesFromExternalSource = { };
+        [Category (C_CATEGORY_DRAG_DROP)]
+        public event EventHandler<DragDrop_DropExternalFilesEventArgs> DragDrop_DropExternalFiles = delegate { };
 
-		private bool _dragDrop_DropFilesFromExternalSourceInProgress => _dragDrop_FilesFromExternalSource.Any ();
+        #endregion
 
 
-		#region public Properties
+
+        private int _dragDrop_InsertionIndex;
+        private bool _dragDrop_ItemDragInProgress;
+        private DragDropInsertionModes _dragDrop_InsertionMode;
+        private DragDropModes _dragDrop_Mode = DragDropModes.None;
+        private Color _dragDrop_InsertionLineColor;
+        private FileInfo[] _dragDrop_FilesFromExternalSource = { };
+
+        private bool _dragDrop_DropFilesFromExternalSourceInProgress => _dragDrop_FilesFromExternalSource.Length != 0;
 
 
-		/// <summary> Hiding parent AllowDrop property</summary>
+        #region public Properties
+
+
+        /// <summary> Hiding parent AllowDrop property</summary>
 #pragma warning disable CS0114 // Member hides inherited member; missing override keyword
-		protected bool AllowDrop => base.AllowDrop;
+        protected bool AllowDrop => base.AllowDrop;
 #pragma warning restore CS0114 // Member hides inherited member; missing override keyword
 
 
-		private bool DragDrop_AllowItemDrag => _dragDrop_Mode.HasFlag (DragDropModes.ItemsReorder) || _dragDrop_Mode.HasFlag (DragDropModes.DragToExternal);
+        private bool DragDrop_AllowItemDrag => _dragDrop_Mode.HasFlag( DragDropModes.ItemsReorder ) || _dragDrop_Mode.HasFlag( DragDropModes.DragToExternal );
 
 
-		[Category (C_CATEGORY_DRAG_DROP)]
-		[DefaultValue (DragDropModes.None)]
-		[RefreshProperties (RefreshProperties.All)]
-		public DragDropModes DragDropMode
-		{
-			get => _dragDrop_Mode;// AllowItemDrag && this.AllowDrop;
-			set
-			{
-				_dragDrop_Mode = value;
-				//bool itemDrag = false;
-				bool allowDrop = false;
+        [Category( C_CATEGORY_DRAG_DROP )]
+        [DefaultValue( DragDropModes.None )]
+        [RefreshProperties( RefreshProperties.All )]
+        public DragDropModes DragDropMode
+        {
+            get => _dragDrop_Mode;// AllowItemDrag && this.AllowDrop;
+            set
+            {
+                _dragDrop_Mode = value;
+                //bool itemDrag = false;
+                bool allowDrop = false;
 
-				try
-				{
+                try
+                {
 
-					if (_dragDrop_Mode == DragDropModes.None)
-					{
-						//itemDrag = false;
-						//itemDrag = false;
-						return;
-					}
+                    if ( _dragDrop_Mode == DragDropModes.None )
+                    {
+                        //itemDrag = false;
+                        //itemDrag = false;
+                        return;
+                    }
 
-					if (_dragDrop_Mode.HasFlag (DragDropModes.ItemsReorder))
-					{
-						//itemDrag = true;
-						allowDrop = true;
-						return;
-					}
+                    if ( _dragDrop_Mode.HasFlag( DragDropModes.ItemsReorder ) )
+                    {
+                        //itemDrag = true;
+                        allowDrop = true;
+                        return;
+                    }
 
-					if (_dragDrop_Mode.HasFlag (DragDropModes.DropFromExternal))
-					{
-						allowDrop = true;
-					}
-					if (_dragDrop_Mode.HasFlag (DragDropModes.DragToExternal))
-					{
-						//itemDrag = true;
-					}
-				}
-				finally
-				{
-					//AllowItemDrag = itemDrag;
-					base.AllowDrop = allowDrop;
+                    if ( _dragDrop_Mode.HasFlag( DragDropModes.DropFromExternal ) )
+                    {
+                        allowDrop = true;
+                    }
+                    if ( _dragDrop_Mode.HasFlag( DragDropModes.DragToExternal ) )
+                    {
+                        //itemDrag = true;
+                    }
+                }
+                finally
+                {
+                    //AllowItemDrag = itemDrag;
+                    base.AllowDrop = allowDrop;
 
-					OnDragDropModeChanged (EventArgs.Empty);
-				}
-			}
-		}
-
-
-
-		/// <summary>Gets or sets the color of the insertion line drawn when dragging items within the control.</summary>
-		[Category (C_CATEGORY_DRAG_DROP)]
-		[DefaultValue (typeof (Color), "Red")]
-		[RefreshProperties (RefreshProperties.All)]
-		public Color DragDrop_InsertionLineColor
-		{
-			get => _dragDrop_InsertionLineColor;
-			set => _dragDrop_InsertionLineColor.eUpdateIfNotEquals (value, () => OnInsertionLineColorChanged (EventArgs.Empty));
-		}
-
-
-		#endregion
+                    OnDragDropModeChanged( EventArgs.Empty );
+                }
+            }
+        }
 
 
 
-		#region private Members
-
-		private void DrawInsertionLine ()
-		{
-			const int InsertionMarkWidth = 3;
-			const int InsertionMarkArrowSize = 8;
-
-			if (_dragDrop_InsertionIndex < 0 || _dragDrop_InsertionIndex >= this.Items.Count)
-			{
-				return;
-			}
-
-			Rectangle rcItemToDrop = this.Items[ _dragDrop_InsertionIndex ].GetBounds (ItemBoundsPortion.Entire);
-			using Graphics g = CreateGraphics ();
-
-			Color clr = SystemColors.HotTrack;
-			using Pen pnArrowEdge = new (clr, InsertionMarkWidth);
-			using Brush brArrowFill = new SolidBrush (clr);
-
-			Point[] ptsStartArrow;
-			Point[] ptsEndArrow;
-			int ArrowSize2 = ( InsertionMarkArrowSize / 2 );
-
-			switch (View)
-			{
-				case View.Details:  //Vertical grid
-					{
-						int x1 = 0; // aways fit the line to the client area, regardless of how the user is scrolling
-						int y = this._dragDrop_InsertionMode == DragDropInsertionModes.Before
-							? rcItemToDrop.Top
-							: rcItemToDrop.Bottom;
-
-						// again, make sure the full width fits in the client area
-						int width = Math.Min (rcItemToDrop.Width - rcItemToDrop.Left, this.ClientSize.Width);
+        /// <summary>Gets or sets the color of the insertion line drawn when dragging items within the control.</summary>
+        [Category( C_CATEGORY_DRAG_DROP )]
+        [DefaultValue( typeof( Color ) , "Red" )]
+        [RefreshProperties( RefreshProperties.All )]
+        public Color DragDrop_InsertionLineColor
+        {
+            get => _dragDrop_InsertionLineColor;
+            set => _dragDrop_InsertionLineColor.updateIfNotEquals( value , () => OnInsertionLineColorChanged( EventArgs.Empty ) );
+        }
 
 
-						int x2 = x1 + width;
-						ptsStartArrow = new[]
-						{
-							new Point(x1, y - ArrowSize2),
-							new Point(x1 + InsertionMarkArrowSize, y),
-							new Point(x1, y + ArrowSize2)
-						};
+        #endregion
 
-						ptsEndArrow = new[]
-						{
-							new Point(x2, y - ArrowSize2),
-							new Point(x2 - InsertionMarkArrowSize, y),
-							new Point(x2, y + ArrowSize2)
-						};
 
-					}
-					break;
 
-				default:
-					{
+        #region private Members
 
-						int x = this._dragDrop_InsertionMode == DragDropInsertionModes.Before
-							? rcItemToDrop.Left
-							: rcItemToDrop.Right;
+        private void DrawInsertionLine ()
+        {
+            const int InsertionMarkWidth = 3;
+            const int InsertionMarkArrowSize = 8;
 
-						int y1 = rcItemToDrop.Top;
-						int y2 = rcItemToDrop.Bottom;
+            if ( _dragDrop_InsertionIndex < 0 || _dragDrop_InsertionIndex >= Items.Count )
+            {
+                return;
+            }
 
-						ptsStartArrow = new[]
-						{
-							new Point(x-ArrowSize2, y1),
-							new Point(x , y1+InsertionMarkArrowSize),
-							new Point(x+ArrowSize2, y1)
-						};
-						ptsEndArrow = new[]
-						{
-							new Point(x-ArrowSize2, y2),
-							new Point(x , y2-InsertionMarkArrowSize),
-							new Point(x+ArrowSize2, y2)
-						};
+            Rectangle rcItemToDrop = Items[ _dragDrop_InsertionIndex ].GetBounds (ItemBoundsPortion.Entire);
+            using Graphics g = CreateGraphics ();
 
-					}
-					break;
-			}
+            Color clr = SystemColors.HotTrack;
+            using Pen pnArrowEdge = new (clr, InsertionMarkWidth);
+            using Brush brArrowFill = new SolidBrush (clr);
 
-			//g.DrawRectangle(Pens.Green, rcItemToDrop);
-			/*
+            Point[] ptsStartArrow;
+            Point[] ptsEndArrow;
+            int ArrowSize2 =  InsertionMarkArrowSize / 2 ;
+
+            switch ( View )
+            {
+                case View.Details:  //Vertical grid
+                    {
+                        int x1 = 0; // aways fit the line to the client area, regardless of how the user is scrolling
+                        int y = _dragDrop_InsertionMode == DragDropInsertionModes.Before
+                            ? rcItemToDrop.Top
+                            : rcItemToDrop.Bottom;
+
+                        // again, make sure the full width fits in the client area
+                        int width = Math.Min (rcItemToDrop.Width - rcItemToDrop.Left, ClientSize.Width);
+
+
+                        int x2 = x1 + width;
+                        ptsStartArrow = new []
+                        {
+                            new Point(x1, y - ArrowSize2),
+                            new Point(x1 + InsertionMarkArrowSize, y),
+                            new Point(x1, y + ArrowSize2)
+                        };
+
+                        ptsEndArrow = new []
+                        {
+                            new Point(x2, y - ArrowSize2),
+                            new Point(x2 - InsertionMarkArrowSize, y),
+                            new Point(x2, y + ArrowSize2)
+                        };
+
+                    }
+                    break;
+
+                default:
+                    {
+
+                        int x = _dragDrop_InsertionMode == DragDropInsertionModes.Before
+                            ? rcItemToDrop.Left
+                            : rcItemToDrop.Right;
+
+                        int y1 = rcItemToDrop.Top;
+                        int y2 = rcItemToDrop.Bottom;
+
+                        ptsStartArrow = new []
+                        {
+                            new Point(x-ArrowSize2, y1),
+                            new Point(x , y1+InsertionMarkArrowSize),
+                            new Point(x+ArrowSize2, y1)
+                        };
+                        ptsEndArrow = new []
+                        {
+                            new Point(x-ArrowSize2, y2),
+                            new Point(x , y2-InsertionMarkArrowSize),
+                            new Point(x+ArrowSize2, y2)
+                        };
+
+                    }
+                    break;
+            }
+
+            //g.DrawRectangle(Pens.Green, rcItemToDrop);
+            /*
 			g.DrawLine(pnArrowEdge, x1, y, x2 - 1, y);
 			g.FillPolygon(brArrowFill, ptsStartArrow);
 			g.FillPolygon(brArrowFill, ptsEndArrow);
 			 */
 
-			g.FillPolygon (brArrowFill, ptsStartArrow);
-			g.FillPolygon (brArrowFill, ptsEndArrow);
-			g.DrawLine (pnArrowEdge, ptsStartArrow[ 1 ], ptsEndArrow[ 1 ]);
-
-		}
-
-		#endregion
-
-
-		#region OnDrag...
-
-
-		protected override void OnItemDrag ( ItemDragEventArgs e )
-		{
-			if (this.DragDrop_AllowItemDrag && this.Items.Count > 1 && e.Item != null)
-			{
-				CancelListViewItemDragEventArgs args = new ((ListViewItem) e.Item);
-				OnItemDragStart (args);
-
-				if (!args.Cancel)
-				{
-					this._dragDrop_ItemDragInProgress = true;
-					SelectedListViewItemCollection sel = SelectedItems;
-					if (sel.Count > 0)
-					{
-						DragDropEffects eff = DragDropEffects.None;
-
-						if (DragDropMode.HasFlag (DragDropModes.ItemsReorder))
-						{
-							eff = DragDropEffects.Move;
-						}
-						if (DragDropMode.HasFlag (DragDropModes.DragToExternal))
-						{
-							eff = DragDropEffects.Move | DragDropEffects.Copy;
-						}
-
-						this.DoDragDrop (sel, eff);
-						//this.DoDragDrop(sel, eff DragDropEffects.Move);
-					}
-					else
-					{
-						this.DoDragDrop (e.Item, DragDropEffects.Move);
-					}
-				}
-			}
-
-			base.OnItemDrag (e);
-		}
-
-
-		protected override void OnDragEnter ( DragEventArgs e )
-		{
-			base.OnDragEnter (e);
-			e.Effect = DragDropEffects.None;
-
-			if (!DragDropMode.HasFlag (DragDropModes.DropFromExternal))
-			{
-				return;
-			}
-
-			DataObject? shellData = e.Data as DataObject;
-			if (shellData == null)
-			{
-				return;
-			}
-
-			if (!shellData.ContainsFileDropList ())
-			{
-				return;
-			}
-
-			FileInfo[] files = shellData.GetFileDropList ()
-				.Cast<string> ()
-				.Select (s => new FileInfo (s))
-				.ToArray ();
-
-			DragDrop_DragEnterExternalFilesEventArgs ea = new (files);
-			DragDrop_DragEnterExternalFiles?.Invoke (this, ea);
-			if (ea.Cancel || !ea.Files.Any ())
-			{
-				return;
-			}
-
-			_dragDrop_FilesFromExternalSource = ea.Files;
-			e.Effect = DragDropEffects.Copy;
-		}
-
-
-		protected override void OnDragOver ( DragEventArgs e )
-		{
-
-			if (_dragDrop_ItemDragInProgress || ( _dragDrop_DropFilesFromExternalSourceInProgress ))
-			{
-
-				int newInsertionIndex;
-				DragDropInsertionModes newInsMode;
-
-				Point ptCursor = PointToClient (new Point (e.X, e.Y));
-				ListViewItem? dropToItem = null;
-				if (DragDropMode.HasFlag (DragDropModes.ItemsReorder))//Allow draw insertion mark only when DragDropModes.ItemsReorder is set!
-				{
-					var nearestToCursor = this.eGetNearestItem (ptCursor);
-					dropToItem = nearestToCursor.Item;
-				}
-
-				if (dropToItem != null)
-				{
-					newInsertionIndex = dropToItem.Index;
-
-					Rectangle dropToItemBounds = dropToItem.GetBounds (ItemBoundsPortion.Entire);
-					var ptDropToItemCenter = dropToItemBounds.eGetCenter ().eRoundToInt ();
-
-					switch (View)
-					{
-						case View.Details:
-							newInsMode = ptCursor.Y < ptDropToItemCenter.Y
-								? DragDropInsertionModes.Before
-								: DragDropInsertionModes.After;
-							break;
-
-						default:
-							newInsMode = ptCursor.X < ptDropToItemCenter.X
-								? DragDropInsertionModes.Before
-								: DragDropInsertionModes.After;
-							break;
-					}
-
-					e.Effect = DragDropEffects.Move;
-				}
-				else
-				{
-					newInsertionIndex = -1;
-					newInsMode = _dragDrop_InsertionMode;
-					e.Effect = DragDropEffects.Copy;
-				}
-
-				if (newInsertionIndex != _dragDrop_InsertionIndex || newInsMode != _dragDrop_InsertionMode)
-				{
-					this._dragDrop_InsertionMode = newInsMode;
-					this._dragDrop_InsertionIndex = newInsertionIndex;
-					this.Invalidate ();
-				}
-			}
-
-			base.OnDragOver (e);
-		}
-
-
-		protected override void OnDragLeave ( EventArgs e )
-		{
-			_dragDrop_FilesFromExternalSource = Array.Empty<FileInfo> ();
-			_dragDrop_InsertionIndex = -1;
-
-			Invalidate ();
-
-			base.OnDragLeave (e);
-		}
-
-
-		protected override void OnDragDrop ( DragEventArgs e )
-		{
-			try
-			{
-				if (_dragDrop_ItemDragInProgress)
-				{
-					OnDragDrop_ItemReorder (e);
-				}
-				else if (_dragDrop_DropFilesFromExternalSourceInProgress)
-				{
-					OnDragDrop_DropExternalFiles (e);
-				}
-			}
-			finally { this.Invalidate (); }
-
-			base.OnDragDrop (e);
-		}
-
-
-		protected void OnDragDrop_DropExternalFiles ( DragEventArgs e )
-		{
-			if (!this._dragDrop_FilesFromExternalSource.Any ())
-			{
-				return;
-			}
-
-			try
-			{
-				BeginUpdate ();
-				{
-
-					int dropIndex = _dragDrop_InsertionIndex;
-					if (_dragDrop_InsertionMode == DragDropInsertionModes.After)
-					{
-						dropIndex++;
-					}
-
-					dropIndex = ( dropIndex >= Items.Count )
-						? dropIndex = -1
-						: dropIndex;
-
-					DragDrop_DropExternalFilesEventArgs ea = new (_dragDrop_FilesFromExternalSource, dropIndex);
-					DragDrop_DropExternalFiles?.Invoke (this, ea);
-				}
-			}
-			finally
-			{
-				EndUpdate ();
-				Refresh ();
-				_dragDrop_InsertionIndex = -1;
-				_dragDrop_ItemDragInProgress = false;
-				_dragDrop_FilesFromExternalSource = Array.Empty<FileInfo> ();
-			}
-		}
-
-
-		protected void OnDragDrop_ItemReorder ( DragEventArgs e )
-		{
-			if (!this._dragDrop_ItemDragInProgress)
-			{
-				return;
-			}
-
-			try
-			{
-
-				ListViewItem? dropToItem = ( _dragDrop_InsertionIndex != -1 )
-					? this.Items[ this._dragDrop_InsertionIndex ]
-					: null;
-
-				if (dropToItem != null)
-				{
-					object? sel = e.Data?.GetData (typeof (SelectedListViewItemCollection));
-					if (sel != null)
-					{
-						var dragItems = ( (SelectedListViewItemCollection) sel )
-							.Cast<ListViewItem> ()
-							.ToArray ();
-
-						if (!dragItems.Any ())
-						{
-							return;
-						}
-
-						try
-						{
-							BeginUpdate ();
-							{
-								foreach (var dragItem in dragItems)
-								{
-									int dropIndex = dropToItem.Index;
-
-									if (dragItem.Index < dropIndex)
-									{
-										dropIndex--;
-									}
-
-									if (this._dragDrop_InsertionMode == DragDropInsertionModes.After && dragItem.Index < this.Items.Count - 1)
-									{
-										dropIndex++;
-									}
-
-									if (dropIndex == dragItem.Index)
-									{
-										return;//Drop on itself
-									}
-
-									Point clientPoint = PointToClient (new Point (e.X, e.Y));
-									DragDrop_ItemReorderEventArgs args = new (
-										dragItem,
-										dropToItem,
-										dropIndex,
-										this._dragDrop_InsertionMode,
-										clientPoint);
-
-									this.OnDragDrop_ItemReorder (args);
-									if (args.Cancel)
-									{
-										continue;
-									}
+            g.FillPolygon( brArrowFill , ptsStartArrow );
+            g.FillPolygon( brArrowFill , ptsEndArrow );
+            g.DrawLine( pnArrowEdge , ptsStartArrow [1] , ptsEndArrow [1] );
+
+        }
+
+        #endregion
+
+
+        #region OnDrag...
+
+
+        protected override void OnItemDrag ( ItemDragEventArgs e )
+        {
+            if ( DragDrop_AllowItemDrag && Items.Count > 1 && e.Item != null )
+            {
+                CancelListViewItemDragEventArgs args = new ((ListViewItem) e.Item);
+                OnItemDragStart( args );
+
+                if ( !args.Cancel )
+                {
+                    _dragDrop_ItemDragInProgress = true;
+                    SelectedListViewItemCollection sel = SelectedItems;
+                    if ( sel.Count > 0 )
+                    {
+                        DragDropEffects eff = DragDropEffects.None;
+
+                        if ( DragDropMode.HasFlag( DragDropModes.ItemsReorder ) )
+                        {
+                            eff = DragDropEffects.Move;
+                        }
+                        if ( DragDropMode.HasFlag( DragDropModes.DragToExternal ) )
+                        {
+                            eff = DragDropEffects.Move | DragDropEffects.Copy;
+                        }
+
+                        DoDragDrop( sel , eff );
+                        //this.DoDragDrop(sel, eff DragDropEffects.Move);
+                    }
+                    else
+                    {
+                        DoDragDrop( e.Item , DragDropEffects.Move );
+                    }
+                }
+            }
+
+            base.OnItemDrag( e );
+        }
+
+
+        protected override void OnDragEnter ( DragEventArgs e )
+        {
+            base.OnDragEnter( e );
+            e.Effect = DragDropEffects.None;
+
+            if ( !DragDropMode.HasFlag( DragDropModes.DropFromExternal ) )
+                return;
+
+            if ( e.Data is not DataObject shellData )
+                return;
+
+            if ( !shellData.ContainsFileDropList() )
+                return;
+
+            FileInfo[] files = shellData.GetFileDropList ()
+                .Cast<string> ()
+                .Select (s => new FileInfo (s))
+                .ToArray ();
+
+            DragDrop_DragEnterExternalFilesEventArgs ea = new (files);
+            DragDrop_DragEnterExternalFiles?.Invoke( this , ea );
+            if ( ea.Cancel || ea.Files.Length == 0 )
+            {
+                return;
+            }
+
+            _dragDrop_FilesFromExternalSource = ea.Files;
+            e.Effect = DragDropEffects.Copy;
+        }
+
+
+        protected override void OnDragOver ( DragEventArgs e )
+        {
+
+            if ( _dragDrop_ItemDragInProgress || _dragDrop_DropFilesFromExternalSourceInProgress )
+            {
+
+                int newInsertionIndex;
+                DragDropInsertionModes newInsMode;
+
+                Point ptCursor = PointToClient (new Point (e.X, e.Y));
+                ListViewItem? dropToItem = null;
+                if ( DragDropMode.HasFlag( DragDropModes.ItemsReorder ) )//Allow draw insertion mark only when DragDropModes.ItemsReorder is set!
+                {
+                    var nearestToCursor = this.getNearestItem (ptCursor);
+                    dropToItem = nearestToCursor.Item;
+                }
+
+                if ( dropToItem != null )
+                {
+                    newInsertionIndex = dropToItem.Index;
+
+                    Rectangle dropToItemBounds = dropToItem.GetBounds (ItemBoundsPortion.Entire);
+                    var ptDropToItemCenter = dropToItemBounds.eGetCenter ().eRoundToInt ();
+
+                    switch ( View )
+                    {
+                        case View.Details:
+                            newInsMode = ptCursor.Y < ptDropToItemCenter.Y
+                                ? DragDropInsertionModes.Before
+                                : DragDropInsertionModes.After;
+                            break;
+
+                        default:
+                            newInsMode = ptCursor.X < ptDropToItemCenter.X
+                                ? DragDropInsertionModes.Before
+                                : DragDropInsertionModes.After;
+                            break;
+                    }
+
+                    e.Effect = DragDropEffects.Move;
+                }
+                else
+                {
+                    newInsertionIndex = -1;
+                    newInsMode = _dragDrop_InsertionMode;
+                    e.Effect = DragDropEffects.Copy;
+                }
+
+                if ( newInsertionIndex != _dragDrop_InsertionIndex || newInsMode != _dragDrop_InsertionMode )
+                {
+                    _dragDrop_InsertionMode = newInsMode;
+                    _dragDrop_InsertionIndex = newInsertionIndex;
+                    Invalidate();
+                }
+            }
+
+            base.OnDragOver( e );
+        }
+
+
+        protected override void OnDragLeave ( EventArgs e )
+        {
+            _dragDrop_FilesFromExternalSource = Array.Empty<FileInfo>();
+            _dragDrop_InsertionIndex = -1;
+
+            Invalidate();
+
+            base.OnDragLeave( e );
+        }
+
+
+        protected override void OnDragDrop ( DragEventArgs e )
+        {
+            try
+            {
+                if ( _dragDrop_ItemDragInProgress )
+                {
+                    OnDragDrop_ItemReorder( e );
+                }
+                else if ( _dragDrop_DropFilesFromExternalSourceInProgress )
+                {
+                    OnDragDrop_DropExternalFiles( e );
+                }
+            }
+            finally { Invalidate(); }
+
+            base.OnDragDrop( e );
+        }
+
+
+        protected void OnDragDrop_DropExternalFiles ( DragEventArgs e )
+        {
+            if ( _dragDrop_FilesFromExternalSource.Length == 0 )
+            {
+                return;
+            }
+
+            try
+            {
+                BeginUpdate();
+                {
+
+                    int dropIndex = _dragDrop_InsertionIndex;
+                    if ( _dragDrop_InsertionMode == DragDropInsertionModes.After )
+                    {
+                        dropIndex++;
+                    }
+
+                    dropIndex = (dropIndex >= Items.Count)
+                        ? dropIndex = -1
+                        : dropIndex;
+
+                    DragDrop_DropExternalFilesEventArgs ea = new (_dragDrop_FilesFromExternalSource, dropIndex);
+                    DragDrop_DropExternalFiles?.Invoke( this , ea );
+                }
+            }
+            finally
+            {
+                EndUpdate();
+                Refresh();
+                _dragDrop_InsertionIndex = -1;
+                _dragDrop_ItemDragInProgress = false;
+                _dragDrop_FilesFromExternalSource = Array.Empty<FileInfo>();
+            }
+        }
+
+
+        protected void OnDragDrop_ItemReorder ( DragEventArgs e )
+        {
+            if ( !_dragDrop_ItemDragInProgress )
+            {
+                return;
+            }
+
+            try
+            {
+
+                ListViewItem? dropToItem = ( _dragDrop_InsertionIndex != -1 )
+                    ? Items[ _dragDrop_InsertionIndex ]
+                    : null;
+
+                if ( dropToItem != null )
+                {
+                    object? sel = e.Data?.GetData (typeof (SelectedListViewItemCollection));
+                    if ( sel != null )
+                    {
+                        var dragItems = ( (SelectedListViewItemCollection) sel )
+                            .Cast<ListViewItem> ()
+                            .ToArray ();
+
+                        if ( dragItems.Length == 0 )
+                        {
+                            return;
+                        }
+
+                        try
+                        {
+                            BeginUpdate();
+                            {
+                                foreach ( var dragItem in dragItems )
+                                {
+                                    int dropIndex = dropToItem.Index;
+
+                                    if ( dragItem.Index < dropIndex )
+                                    {
+                                        dropIndex--;
+                                    }
+
+                                    if ( _dragDrop_InsertionMode == DragDropInsertionModes.After && dragItem.Index < Items.Count - 1 )
+                                    {
+                                        dropIndex++;
+                                    }
+
+                                    if ( dropIndex == dragItem.Index )
+                                    {
+                                        return;//Drop on itself
+                                    }
+
+                                    Point clientPoint = PointToClient (new Point (e.X, e.Y));
+                                    DragDrop_ItemReorderEventArgs args = new (
+                                        dragItem,
+                                        dropToItem,
+                                        dropIndex,
+                                        _dragDrop_InsertionMode,
+                                        clientPoint);
+
+                                    OnDragDrop_ItemReorder( args );
+                                    if ( args.Cancel )
+                                    {
+                                        continue;
+                                    }
 
-									this.Items.Remove (dragItem);
-									this.Items.Insert (dropIndex, dragItem);
-									dragItem.Selected = true;
-								}
-							}
-						}
-						finally
-						{
-							FocusedItem = dragItems.First ();
-							EndUpdate ();
-							Refresh ();
-						}
-					}
-				}
-			}
-			finally
-			{
-				this._dragDrop_InsertionIndex = -1;
-				this._dragDrop_ItemDragInProgress = false;
-			}
-		}
+                                    Items.Remove( dragItem );
+                                    Items.Insert( dropIndex , dragItem );
+                                    dragItem.Selected = true;
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            FocusedItem = dragItems.First();
+                            EndUpdate();
+                            Refresh();
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                _dragDrop_InsertionIndex = -1;
+                _dragDrop_ItemDragInProgress = false;
+            }
+        }
 
 
 
 
-		protected virtual void OnDragDropModeChanged ( EventArgs e ) => this.DragDropModeChanged?.Invoke (this, e);
+        protected virtual void OnDragDropModeChanged ( EventArgs e ) => DragDropModeChanged?.Invoke( this , e );
 
 
-		protected virtual void OnInsertionLineColorChanged ( EventArgs e ) => this.InsertionLineColorChanged?.Invoke (this, e);
+        protected virtual void OnInsertionLineColorChanged ( EventArgs e ) => InsertionLineColorChanged?.Invoke( this , e );
 
 
-		protected virtual void OnDragDrop_ItemReorder ( DragDrop_ItemReorderEventArgs e ) => this.DragDrop_ItemReorder?.Invoke (this, e);
+        protected virtual void OnDragDrop_ItemReorder ( DragDrop_ItemReorderEventArgs e ) => DragDrop_ItemReorder?.Invoke( this , e );
 
 
-		protected virtual void OnItemDragStart ( CancelListViewItemDragEventArgs e ) => this.ItemDragStart?.Invoke (this, e);
+        protected virtual void OnItemDragStart ( CancelListViewItemDragEventArgs e ) => ItemDragStart?.Invoke( this , e );
 
 
-		protected virtual void OnWmPaint ( ref Message m ) => this.DrawInsertionLine ();
+        protected virtual void OnWmPaint ( ref Message m ) => DrawInsertionLine();
 
 
 
 
 
-		#endregion
+        #endregion
 
 
-		#endregion
+        #endregion
 
 
-		#region EmptyText
+        #region EmptyText
 
 
-		private string _emptyText = string.Empty;
-		[DefaultValue ("")]
-		public string EmptyText
-		{
-			get { return _emptyText; }
-			set
-			{
-				//,'Можно переназначить сообщение LVN_GETEMPTYMARKUP в список, отправив сообщение LVM_RESETEMPTYTEXT = (LVM_FIRST + 84) в список или получив интерфейс IListView и выполнив метод
-				//,'ResetEmptyText.Таким образом вы можете условно изменить или очистить пустой текст :)
-				_emptyText = value;
-				ResetEmptyText ();
-				Invalidate ();
-			}
-		}
+        [DefaultValue( "" )]
+        public string EmptyText
+        {
+            get => field;
+            set
+            {
+                field = value;
+                ResetEmptyText();
+                Invalidate();
+            }
+        } = string.Empty;
 
-		private bool _emptyTextDisplayInCenter = false;
-		[DefaultValue (false)]
-		public bool EmptyTextDisplayInCenter
-		{
-			get { return _emptyTextDisplayInCenter; }
-			set
-			{
-				_emptyTextDisplayInCenter = value;
-				ResetEmptyText ();
-				Invalidate ();
-			}
-		}
 
+        [DefaultValue( false )]
+        public bool EmptyTextDisplayInCenter
+        {
+            get => field;
+            set
+            {
+                field = value;
+                ResetEmptyText();
+                Invalidate();
+            }
+        } = false;
 
-		private void ResetEmptyText ()
-		{
-			if (IsHandleCreated)
-				User32.SendMessage<ListViewMessageEx> (Handle, ListViewMessageEx.LVM_RESETEMPTYTEXT, 0, 0);
-		}
 
 
-		#endregion
 
 
 
+        [MethodImpl( MethodImplOptions.NoOptimization )] // Disable compiler optimization
+        private void ResetEmptyText ()
+        {
+            // ensure handle exists
+            if ( !IsHandleCreated ) _ = Handle; // forces handle creation
+            if ( !IsHandleCreated ) return;
 
+            User32.SendMessage<ComCtl32.ListViewMessage>( Handle , ComCtl32.ListViewMessage.LVM_RESETEMPTYTEXT );
+        }
 
 
+        #endregion
 
 
-
-
-
-
-
-
-
-
-
-		/* 
+        /* 
 		/// <summary>Raises the <see cref="E:System.Windows.Forms.Control.Paint"/> event.</summary>
 		/// <param name="e">A <see cref="T:System.Windows.Forms.PaintEventArgs"/> that contains the event data. </param>
 		protected override void OnPaint(PaintEventArgs e) => base.OnPaint(e);
+        [DebuggerStepThrough]
 		 */
 
-		[DebuggerStepThrough]
-		protected override void WndProc ( ref Message m )
-		{
-			var msg = (WindowMessage) m.Msg;
-			switch (msg)
-			{
-				case (WindowMessage) User32.OCM_NOTIFY:
-					OnOCNNotifyMessage (ref m);
-					break;
+        protected override void WndProc ( ref Message m )
+        {
+            base.WndProc( ref m );
 
-			}
+            var msg = (WindowMessage) m.Msg;
+            switch ( msg )
+            {
+                case ( WindowMessage )User32.OCM_NOTIFY:
+                    {
+                        var nmhdr = (NMHDR) m.GetLParam (typeof (NMHDR))!;
+                        var ocmNotifyCode = (ListViewNotification) nmhdr.code;
+                        switch ( ocmNotifyCode )
+                        {
+                            case ( ListViewNotification )LVN_GETEMPTYMARKUP: // ListViewNotification.LVN_GETEMPTYMARKUP:
+                                //if ( Control.FromHandle( ( IntPtr )nmhdr.hwndFrom ) == this )
+                                {
+                                    //Debug.WriteLine( $"LVN_GETEMPTYMARKUP" );
 
-			base.WndProc (ref m);
+                                    var markup = (NMLVEMPTYMARKUP) m.GetLParam (typeof (NMLVEMPTYMARKUP))!;
+                                    markup.szMarkup = EmptyText;
+                                    markup.dwFlags = EmptyTextDisplayInCenter
+                                        ? EMF.EMF_CENTERED
+                                        : 0;
 
-			switch (msg)
-			{
-				case WindowMessage.WM_PAINT:
-					this.OnWmPaint (ref m);
-					break;
+                                    Marshal.StructureToPtr( markup , m.LParam , false );
+                                    m.Result = new IntPtr( 1 );
+                                    return;
+                                }
+                                //break;
+                        }
+                        //return;
 
-				case WindowMessage.WM_LBUTTONUP:
-					//This provides collapsing/expanding groups by clicking on the right triangle.
-					//Collapsing/expanding by doubleclicking on group header - occurs independently from this by itself.
+                    }
+                    break;
+
+                case WindowMessage.WM_PAINT:
+                    OnWmPaint( ref m );
+                    break;
+
 #if !NET
-					base.DefWndProc(ref m);
-					CheckGroupsCollapsedStatesForChanges();
+                case WindowMessage.WM_LBUTTONUP:
+                    //This provides collapsing/expanding groups by clicking on the right triangle.
+                    //Collapsing/expanding by doubleclicking on group header - occurs independently from this by itself.
+					base.DefWndProc (ref m);
+					UpdateGroupsStateInStorage ();
+                    break;
 #endif
-					break;
-			}
-		}
+            }
+        }
 
 
-		private void OnOCNNotifyMessage ( ref Message m )
-		{
-			var nmhdr = (NMHDR) m.GetLParam (typeof (NMHDR))!;
-			var ocmNotifyCode = (ListViewNotification) nmhdr.code;
-			switch (ocmNotifyCode)
-			{
-				case ListViewNotification.LVN_GETEMPTYMARKUP:
-					if (Control.FromHandle ((IntPtr) nmhdr.hwndFrom) == this)
-					{
-						var markup = (NMLVEMPTYMARKUP) m.GetLParam (typeof (NMLVEMPTYMARKUP))!;
-						markup.szMarkup = _emptyText;
-						markup.dwFlags = _emptyTextDisplayInCenter ? EMF.EMF_CENTERED : 0;
-						Marshal.StructureToPtr (markup, m.LParam, false);
-						m.Result = new IntPtr (1);
-						return;
-					}
-					break;
-			}
+        protected void WndProc222 ( ref Message m )
+        {
+
+            if ( m.Msg == ( int )WindowMessage.WM_NOTIFY )
+            {
+                NMHDR hdr = Marshal.PtrToStructure<NMHDR>(m.LParam);
+
+                // Проверяем "отражённость": уведомление пришло от нашего собственного окна
+                //if ( hdr.hwndFrom == Handle && hdr.code == ( int )ListViewNotification.LVN_GETEMPTYMARKUP )
+                if ( hdr.code == LVN_GETEMPTYMARKUP )
+                {
+                    string text = EmptyText;// "Нет элементов для отображения 22222222222222";
+                    if ( text.Length >= 256 ) text = text.Substring( 0 , 255 );
 
 
-		}
+                    NMLVEMPTYMARKUP markup =                    Marshal.PtrToStructure<NMLVEMPTYMARKUP>(m.LParam);
+                    //markup.szMarkup = text;
+                    //markup.dwFlags = 0; // 0 = показывать текст (не FLAG_NO_TEXT)
+                    markup.dwFlags = EmptyTextDisplayInCenter
+                        ? EMF.EMF_CENTERED
+                        : 0;
+
+                    //Array.Copy( text.ToCharArray() , markup.szMarkup , text.Length );
+                    // Записываем структуру обратно
+                    Marshal.StructureToPtr( markup , m.LParam , false );
+
+                    m.Result = 1; // сообщаем системе, что обработали
+                    return;
+                }
+            }
+
+            base.WndProc( ref m );
+        }
 
 
-		protected override void OnNotifyMessage ( Message m )
-		{
-			//var msg = m.Msg;
-			base.OnNotifyMessage (m);
-		}
+
+
+        /*
+protected override void OnNotifyMessage ( Message m )
+{
+base.OnNotifyMessage( m );
+var mm = (WindowMessage)m.Msg;
+switch ( mm )
+{
+case WindowMessage.WM_NOTIFY:
+{
+    var nmhdr = m.GetLParamOf<NMHDR> ();
+    //if ( nmhdr != null )
+    {
+
+        Debug.WriteLine( $"OnNotifyMessage: WM_NOTIFY {nmhdr}" );
+                    var ocmNotifyCode = (ListViewNotification) nmhdr.code;
+                    Debug.WriteLine( ocmNotifyCode );
+    }
+
+}
+break;
+
+default:
+break;
+}
+
+}
+         */
+
+
+
+        #region Group Tools
+
+
+        private const string DEFAULT_LIST_VIEW_GROUP_NAME = "default";
+
+
+        private Dictionary<string, bool> _knownGroupsStates = [];
 
 
 
 
 
-
-
-		#region Group Tools
-
-		private const string DEFAULT_LIST_VIEW_GROUP_NAME = "default";
-
-		private Dictionary<string, bool> _knownGroupsStates = [];
-
-		[MethodImpl (MethodImplOptions.AggressiveInlining)]
-		private Dictionary<string, bool> GetCurrentGroupsCollapsedStates ()
-			=> this
-				.eGroupsAsIEnumerable ()
-				.Select (grp =>
-				{
-					string id = grp.eGetStringID (DEFAULT_LIST_VIEW_GROUP_NAME).ToLower ().Trim ();
-					bool collapsed = false;
+        private Dictionary<string , bool> GetGroupsState ()
+            => this
+                .groupsAsIEnumerable()
+                .Select( grp =>
+                {
+                    string id = grp.eGetStringID (DEFAULT_LIST_VIEW_GROUP_NAME).ToLower ().Trim ();
+                    bool collapsed = false;
 #if NET
-					collapsed = grp.CollapsedState == ListViewGroupCollapsedState.Collapsed;
+                    collapsed = grp.CollapsedState == ListViewGroupCollapsedState.Collapsed;
 #else
-					collapsed = grp.eGetState_IsCollapsed();
+					collapsed = grp.eGetState_IsCollapsed ();
 #endif
-					return (Name: id, Collapsed: collapsed);
-				}
-				)
-				.Where (grp => !string.IsNullOrWhiteSpace (grp.Name))
-				.OrderBy (grp => grp.Name)
-				.ToDictionary (grp => grp.Name, grp => grp.Collapsed);
+                    return (ID: id, Collapsed: collapsed);
+                }
+                )
+                .Where( grp => grp.ID.isNotNullOrWhiteSpace )
+                .OrderBy( grp => grp.ID )
+                .ToDictionary( grp => grp.ID , grp => grp.Collapsed );
 
 
+
+        private FileInfo GetGroupsStateStorageFile ( string? @directory = null , string dataID = "" )
+        {
+            const string GROUPS_SATES_EXT = ".groups.xml";
+            string lvID = this.eCreateListViewID ();
+            if ( !dataID.isNullOrWhiteSpace ) lvID += $"_{dataID}";
+
+            DirectoryInfo di = ( @directory != null )
+                ? new (@directory)
+                : uom.AppInfo.UserAppDataPath (true);
+
+            return System.IO.Path.Combine( di.FullName , lvID + GROUPS_SATES_EXT ).eToFileInfo()!;
+        }
+
+
+        /// <summary>Write all groups collapsed/epanded state fo file</summary>
+        /// <param name="directory">Folder where settings file will be placed</param>
+        /// <param name="dataID">Some user custom file suffix</param>
+        /// <param name="append">Do not replace all file data, but update/append groups. When append mode is not used only current groups existing in the ListView will be saved</param>
+        /// <returns>Saved settings file</returns>
+
+        public FileInfo SaveGroupsState ( string? @directory = null , string dataID = "" , bool append = true )
+        {
+            Dictionary<string, bool>? states = null;
+            if ( append )
+            {
+                states = LoadGroupsState( @directory , dataID ) ?? [];
+                var currentStates = GetGroupsState ();
+                foreach ( var kvp in currentStates )
+                {
+                    if ( !states.TryAdd( kvp.Key , kvp.Value ) ) // Already exist just modify
+                        states [kvp.Key] = kvp.Value;
+                }
+            }
+            else // Only save existing listview groups.
+            {
+                states = GetGroupsState();
+            }
+
+            _knownGroupsStates = states;
+
+            var sortedRows = _knownGroupsStates
+                .Select (kvp => (Name: kvp.Key, Collapsed: kvp.Value))
+                .Where (grp => grp.Name.isNotNullOrWhiteSpace )
+                .OrderBy (grp => grp.Name)
+                .ToArray ();
+
+#if DEBUG
+            var dd = _knownGroupsStates.dumpArrayToString ();
+            Debug.WriteLine( $"SaveGroupsState: {dd}" );
+#endif
+
+            var text = sortedRows.eSerializeAsXML ();
+
+            FileInfo fi = GetGroupsStateStorageFile (@directory, dataID);
+            using ( var sw = fi.eCreateWriter( FileMode.OpenOrCreate , encoding: System.Text.Encoding.Unicode ) )
+            {
+                sw.BaseStream.eTruncate(); //trim previous file data										   
+                sw.WriteLine( text ); //writing actual data
+                sw.Flush();
+            }
+            return fi;
+        }
+
+
+        /// <summary>Load groups collapsed/expanded state from storage file</summary>
+        /// <param name="directory">Folder where settings file will be placed</param>
+        /// <param name="dataID">Some user custom file suffix</param>
+
+        private Dictionary<string , bool>? LoadGroupsState ( string? @directory = null , string dataID = "" )
+        {
+            try
+            {
+                FileInfo fi = GetGroupsStateStorageFile (@directory, dataID);
+                return !fi.Exists
+                    ? null
+                    : fi
+                    .eReadAsText()!
+                    .Trim()
+                    .eDeSerializeXML<(string Name, bool Collapsed) []>( throwOnError: true )!
+                    .Where( grp => grp.Name.isNotNullOrWhiteSpace )
+                    .OrderBy( grp => grp.Name )
+                    .ToDictionary( r => r.Name , r => r.Collapsed );
+            }
+            catch ( Exception ex )
+            {
+                //just ignore any errors
+                ex.eLogError( false );
+                return null;
+            }
+        }
+
+
+
+        /// <summary>Load groups collapsed/expanded state from storage file and apply to ListView</summary>
+        /// <param name="directory">Folder where settings file will be placed</param>
+        /// <param name="dataID">Some user custom file suffix</param>
+
+        public void RestoreGroupsStateFromStorage ( string? @directory = null , string dataID = "" )
+        {
+            var savedStates = LoadGroupsState (@directory, dataID);
+            try
+            {
+                this.runOnLockedUpdate( () =>
+                {
+                    this.groupsAsIEnumerable()
+                    .forEach( grp =>
+                        {
 #if !NET
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private void CheckGroupsCollapsedStatesForChanges()
+							grp.eSetStateFlag (ListViewGroupState.LVGS_COLLAPSIBLE);
+#endif
+                            string grpID = grp.eGetStringID (DEFAULT_LIST_VIEW_GROUP_NAME).ToLower ().Trim ();
+
+                            if ( savedStates != null && savedStates.TryGetValue( grpID , out bool savedState ) )
+                            {
+#if NET
+                                grp.CollapsedState = savedState ? ListViewGroupCollapsedState.Collapsed : ListViewGroupCollapsedState.Expanded;
+#else
+								grp.eSetState_Collapsed (savedState);
+#endif
+                            }
+                        } );
+                } );
+
+#if DEBUG
+                var dd = savedStates.dumpArrayToString ();
+                Debug.WriteLine( $"RestoreGroupsStateFromStorage: {dd}" );
+#endif
+
+            }
+            catch ( Exception ex )
+            {
+                //just ignore any errors
+                ex.eLogError( false );
+            }
+        }
+
+
+        //#if !NET
+#if !NET
+
+
+
+		
+		private void UpdateGroupsStateInStorage ()
 		{
-			var currentStates = GetCurrentGroupsCollapsedStates();
-			bool hasAnyChanges = !currentStates.eIsDictionaryEqualTo(_knownGroupsStates);
+			var currentStates = GetGroupsState ();
+			bool hasAnyChanges = !currentStates.eIsDictionaryEqualTo (_knownGroupsStates);
 			if (hasAnyChanges)
 			{
-				this.GroupsCollapsedStateChangedByMouse?.Invoke(this, "");
-			}
-		}
-#endif
-
-
-		[MethodImpl (MethodImplOptions.AggressiveInlining)]
-		private FileInfo GetGroupsCollapsedStateStorage ( string? @directory = null, string dataID = "" )
-		{
-			const string GROUPS_SATES_EXT = ".groups.xml";
-			string lvID = this.eCreateListViewID ();
-			if (!string.IsNullOrWhiteSpace (dataID))
-			{
-				lvID += $"_{dataID}";
-			}
-
-			DirectoryInfo di = ( @directory != null )
-				? new (@directory)
-				: uom.AppInfo.UserAppDataPath (true);
-
-			return System.IO.Path.Combine (di.FullName, lvID + GROUPS_SATES_EXT)
-				.eToFileInfo ()!;
-		}
-
-
-		[MethodImpl (MethodImplOptions.AggressiveInlining)]
-		public FileInfo SaveAllGroupsCollapsedStates ( string? @directory = null, string dataID = "", bool append = true )
-		{
-			Dictionary<string, bool>? states = null;
-			if (append)//Do not replace all file data, but update known groups states
-			{
-				states = LoadGroupsCollapsedStateFromStorage (@directory, dataID) ?? [];
-				var currentStates = GetCurrentGroupsCollapsedStates ();
-				foreach (var kvp in currentStates)
-				{
-					states[ kvp.Key ] = kvp.Value;
-				}
-			}
-			else//Just only save groups existing in the listview
-			{
-				states = GetCurrentGroupsCollapsedStates ();
-			}
-
-			_knownGroupsStates = states;
-
-			var sortedRows = _knownGroupsStates
-				.Select (kvp => (Name: kvp.Key, Collapsed: kvp.Value))
-				.Where (grp => !string.IsNullOrWhiteSpace (grp.Name))
-				.OrderBy (grp => grp.Name)
-				.ToArray ();
-
-			var dd = _knownGroupsStates.eDumpArrayToString ();
-			Debug.WriteLine ($"SaveAllGroupsCollapsedStates: {dd}");
-
-			var text = sortedRows.eSerializeAsXML ();
-
-			//Debug.WriteLine($"RestoreAllGroupsCollapsedStateFromStorage (dataID: '{dataID}') GroupID: '{grpID}', State: '{loadedCollapsedState}'");
-
-			FileInfo fi = GetGroupsCollapsedStateStorage (@directory, dataID);
-			using (var sw = fi.eCreateWriter (FileMode.OpenOrCreate, encoding: System.Text.Encoding.Unicode))
-			{
-				sw.BaseStream.eTruncate (); //trim previous file data										   
-				sw.WriteLine (text); //writing actual data
-				sw.Flush ();
-			}
-			return fi;
-		}
-
-
-		[MethodImpl (MethodImplOptions.AggressiveInlining)]
-		private Dictionary<string, bool>? LoadGroupsCollapsedStateFromStorage ( string? @directory = null, string dataID = "" )
-		{
-			try
-			{
-				FileInfo fi = GetGroupsCollapsedStateStorage (@directory, dataID);
-				if (!fi.Exists)
-				{
-					return null;
-				}
-
-				return fi
-					.eReadAsText ()!
-					.Trim ()
-					.eDeSerializeXML<(string Name, bool Collapsed)[]> (throwOnError: true)!
-					.Where (grp => !string.IsNullOrWhiteSpace (grp.Name))
-					.OrderBy (grp => grp.Name)
-					.ToDictionary (r => r.Name, r => r.Collapsed);
-			}
-			catch (Exception ex)
-			{
-				//just ignore errors
-				ex.eLogError (false);
-				return null;
-			}
-		}
-
-
-		[MethodImpl (MethodImplOptions.AggressiveInlining)]
-		public void RestoreAllGroupsCollapsedStateFromStorage ( string? @directory = null, string dataID = "" )
-		{
-			var loadedGroupStates = LoadGroupsCollapsedStateFromStorage (@directory, dataID);
-			try
-			{
-				this.eRunOnLockedUpdate (delegate
-				{
-					this.eGroupsAsIEnumerable ()
-					.eForEach (grp =>
-						{
-#if !NET
-							grp.eSetStateFlag(ListViewGroupState.Collapsible);
-#endif
-							string grpID = grp.eGetStringID (DEFAULT_LIST_VIEW_GROUP_NAME).ToLower ().Trim ();
-
-							if (loadedGroupStates != null && loadedGroupStates.TryGetValue (grpID, out bool loadedCollapsedState))
-							{
-#if NET
-								grp.CollapsedState = loadedCollapsedState
-									? ListViewGroupCollapsedState.Collapsed
-									: ListViewGroupCollapsedState.Expanded;
-
-								Debug.WriteLine ($"RestoreAllGroupsCollapsedStateFromStorage (dataID: '{dataID}') GroupID: '{grpID}', State: '{loadedCollapsedState}'");
-#else
-								grp.eSetState_Collapsed(loadedCollapsedState);
-#endif
-							}
-						});
-				});
-
-			}
-			catch (Exception ex)
-			{
-				//just ignore errors
-				ex.eLogError (false);
+				this.GroupsCollapsedStateChangedByMouse?.Invoke (this, "");
 			}
 		}
 
 
 
+        #region SetGroupState
 
 
-
-#if !NET
-
-
-
-
-		#region Groups API
-
-
-		[Flags]
-		public enum ListViewGroupMask : Int32
+		public static void SetGroupState ( ListViewGroup grp, ListViewGroupState state )
 		{
-			LVGF_NONE = 0x0,
-			LVGF_HEADER = 0x1,
-			LVGF_FOOTER = 0x2,
-			LVGF_STATE = 0x4,
-			LVGF_ALIGN = 0x8,
-			LVGF_GROUPID = 0x10,
-			#region Version 6.00 and Windows Vista"
-			LVGF_SUBTITLE = 0x100,
-			LVGF_TASK = 0x200,
-			LVGF_DESCRIPTIONTOP = 0x400,
-			LVGF_DESCRIPTIONBOTTOM = 0x800,
-			LVGF_TITLEIMAGE = 0x1000,
-			LVGF_EXTENDEDIMAGE = 0x2000,
-			LVGF_ITEMS = 0x4000,
-			LVGF_SUBSET = 0x8000,
-			LVGF_SUBSETITEMS = 0x10000
-			#endregion
+			grp.eSetGroup (state: state);
+			grp.ListView!.runInUIThread (() => grp.ListView!.Refresh ());
 		}
 
-		[Flags]
-		public enum ListViewGroupState : int
+		public static void SetGroupStateFlag ( ListViewGroup grp, ListViewGroupState flag, bool flagState = true )
 		{
-			///<summary>This is non WinAPI value used to specify that state flag must not be changed!</summary>
-			Invalid = -1,
-
-			///<summary>Groups are expanded, the group name is displayed, and all items in the group are displayed.</summary>
-			Normal = 0,
-			///<summary>The group is collapsed.</summary>
-			Collapsed = 1,
-			///<summary>The group is hidden.</summary>
-			Hidden = 2,
-			#region Version 6.00 and Windows Vista
-			///<summary>Version 6.00 and Windows Vista. The group does not display a header.</summary>
-			NoHeader = 4,
-			///<summary>Version 6.00 and Windows Vista. The group can be collapsed.</summary>
-			Collapsible = 8,
-			///<summary>Version 6.00 and Windows Vista. The group has keyboard focus.</summary>
-			Focused = 16,
-			///<summary>Version 6.00 and Windows Vista. The group is selected.</summary>
-			Selected = 32,
-			///<summary>Version 6.00 and Windows Vista. The group displays only a portion of its items.</summary>
-			SubSeted = 64,
-			///<summary>Version 6.00 and Windows Vista. The subset link of the group has keyboard focus.</summary>
-			SubSetLinkFocused = 128
-			#endregion
-		}
-
-		public enum ListViewGroupAlign : int
-		{
-			LVGA_HEADER_LEFT = 0x1,
-			LVGA_HEADER_CENTER = 0x2,
-			LVGA_HEADER_RIGHT = 0x4,  // Don//t forget to validate exclusivity
-			LVGA_FOOTER_LEFT = 0x8,
-			LVGA_FOOTER_CENTER = 0x10,
-			LVGA_FOOTER_RIGHT = 0x20   // Don//t forget to validate exclusivity
-		}
-
-
-		[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode), Description("LVGROUP StructureUsed to set and retrieve groups.")]
-		public struct LVGROUP
-		{
-			///<summary>Size of this structure, in bytes.</summary>
-			public Int32 CbSize;
-
-			///<summary>Mask that specifies which members of the structure are valid input.
-			///One or more of the following values:LVGF_NONENo other items are valid.</summary>
-			public ListViewGroupMask Mask = ListViewGroupMask.LVGF_NONE;
-
-			///<summary>Pointer to a null-terminated string that contains the header text when item information is being set.  if  group information is being retrieved, this member specifies the address of the buffer that receives the header text.</summary>
-			[MarshalAs(UnmanagedType.LPWStr)] public string PszHeader = string.Empty;
-
-			///<summary> Size in TCHARs of the buffer pointed to by the pszHeader member.
-			/// if the structure is not receiving information about a group, this member is ignored. </summary>
-			public Int32 CchHeader = 0;
-
-			///<summary>
-			///Pointer to a null-terminated string that contains the footer text
-			///when item information is being set.  if  group information is being retrieved,
-			///this member specifies the address of the buffer that receives the footer text.
-			///</summary>
-			[MarshalAs(UnmanagedType.LPWStr)] public string PszFooter = string.Empty;
-
-			///<summary> Size in TCHARs of the buffer pointed to by the pszFooter member.
-			/// if the structure is not receiving information about a group, this member is ignored.</summary>
-			public Int32 CchFooter = 0;
-
-			///<summary>ID of the group.</summary>
-			public Int32 IGroupId = 0;
-
-			///<summary>Mask used with LVM_GETGROUPINFO (Microsoft Windows XP and Windows Vista)
-			///and LVM_SETGROUPINFO (Windows Vista only) to specify which flags in the
-			///state value are being retrieved or set.</summary>
-			public Int32 StateMask = 0;
-
-			///<summary>Flag that can have one of the following values:LVGS_NORMALGroups are expanded,
-			///the group name is displayed, and all items in the group are displayed.</summary>
-			public ListViewGroupState State = ListViewGroupState.Normal;
-
-			///<summary>Indicates the alignment of the header or footer text for the group.
-			///It can have one or more of the following values. Use one of the header flags.
-			///Footer flags are optional.
-			///Windows XP: Footer flags are reserved.LVGA_FOOTER_CENTER Reserved.</summary>
-			public ListViewGroupAlign UAlign = ListViewGroupAlign.LVGA_HEADER_LEFT;
-
-			///<summary>
-			///Windows Vista. Pointer to a null-terminated string that contains the
-			///subtitle text when item information is being set.  if  group information
-			///is being retrieved, this member specifies the address of the buffer that
-			///receives the subtitle text. This element is drawn under the header text.
-			///</summary>
-			[MarshalAs(UnmanagedType.LPWStr)] public string PszSubtitle = string.Empty;
-
-			///<summary>Windows Vista. Size, in TCHARs, of the buffer pointed to by the
-			///pszSubtitle member.  if  the structure is not receiving information
-			///about a group, this member is ignored.</summary>
-			public int CchSubtitle = 0;
-
-			///<summary>Windows Vista. Pointer to a null-terminated string that contains the text
-			///for a task link when item information is being set.  if  group information
-			///is being retrieved, this member specifies the address of the buffer
-			///that receives the task text. This item is drawn right-aligned opposite
-			///the header text. When clicked by the user,
-			///the task link generates an LVN_LINKCLICK notification.</summary>
-			[MarshalAs(UnmanagedType.LPWStr)] public string PszTask = string.Empty;
-
-			///<summary>Windows Vista. Size in TCHARs of the buffer pointed to by the pszTask member.
-			/// if  the structure is not receiving information about a group, this member is ignored.</summary>
-			public int CchTask = 0;
-
-			///<summary>Windows Vista. Pointer to a null-terminated string that contains the top description text when item information is being set.
-			/// if  group information is being retrieved, this member specifies the address of the buffer that receives the top description text.
-			///This item is drawn opposite the title image when there is a title image, no extended image, and uAlign==LVGA_HEADER_CENTER.
-			///</summary>
-			[MarshalAs(UnmanagedType.LPWStr)] public string PszDescriptionTop = string.Empty;
-
-			///<summary>Windows Vista. Size in TCHARs of the buffer pointed to by the
-			///pszDescriptionTop member.  if  the structure is not receiving information
-			///about a group, this member is ignored.
-			///</summary>
-			public int CchDescriptionTop = 0;
-
-			///<summary>
-			///Windows Vista. Pointer to a null-terminated string that contains the
-			///bottom description text when item information is being set.
-			/// if  group information is being retrieved, this member specifies the address
-			///of the buffer that receives the bottom description text.
-			///This item is drawn under the top description text when there is a title image,
-			///no extended image, and uAlign==LVGA_HEADER_CENTER.
-			///</summary>
-			[MarshalAs(UnmanagedType.LPWStr)] public string PszDescriptionBottom = string.Empty;
-
-			///<summary>Windows Vista. Size in TCHARs of the buffer pointed to by the pszDescriptionBottom member.  if  the structure is not receiving information about a group, this member is ignored. </summary>
-			public int CchDescriptionBottom = 0;
-
-			///<summary>Windows Vista. Index of the title image in the control imagelist.</summary>
-			public Int32 ITitleImage = 0;
-
-			///<summary>Windows Vista. Index of the extended image in the control imagelist.</summary>
-			public Int32 IExtendedImage = 0;
-
-			///<summary>Windows Vista. Read-only.</summary>
-			public Int32 IFirstItem = 0;
-
-			///<summary>Windows Vista. Read-only in non-owner data mode.</summary>
-			public IntPtr CItems = IntPtr.Zero;
-
-			///<summary> Windows Vista. NULL if group is not a subset.
-			///Pointer to a null-terminated string that contains the subset title text when item information is being set.
-			/// if  group information is being retrieved, this member specifies the address
-			///of the buffer that receives the subset title text. </summary>
-			public IntPtr PszSubsetTitle = IntPtr.Zero;
-
-			///<summary>Windows Vista. Size in TCHARs of the buffer pointed to by the pszSubsetTitle member.
-			/// if  the structure is not receiving information about a group, this member is ignored.</summary>
-			public IntPtr CchSubsetTitle = IntPtr.Zero;
-
-			public LVGROUP() { this.CbSize = Marshal.SizeOf(typeof(LVGROUP)); }
-		}
-
-
-		[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-		internal static extern Int32 SendMessage(
-		[In] IntPtr hwnd,
-		[In, MarshalAs(UnmanagedType.I4)] ListViewMessage wMsg,
-		[In] Int32 groupId,
-		[In, Out] int lParam);
-
-
-		[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-		internal static extern Int32 SendMessage(
-		[In] IntPtr hwnd,
-		[In, MarshalAs(UnmanagedType.I4)] ListViewMessage wMsg,
-		[In] Int32 groupId,
-		[In, Out] ref LVGROUP lParam);
-
-		#endregion
-
-
-		#region SetGroup
-
-		public static Int32 SetGroup(ListViewGroup lstvwgrp, LVGROUP group)
-		{
-			int result = 0;
-			lstvwgrp.ListView!.eRunInUIThread(delegate
-			{
-				Int32 groupId = group.IGroupId;
-				result = SendMessage(lstvwgrp.ListView!.Handle, ListViewMessage.LVM_SETGROUPINFO, groupId, ref group);
-			});
-			return result;
-		}
-
-		public static Int32 SetGroup(
-			ListViewGroup lstvwgrp,
-			string? Header = null,
-			string? SubTitle = null,
-			string? Footer = null,
-			string? TaskLinkText = null,
-			ListViewGroupAlign align = 0,
-			ListViewGroupState state = ListViewGroupState.Invalid)
-		{
-
-			int groupId = 0;
-			lstvwgrp!.ListView!.eRunInUIThread(delegate { groupId = lstvwgrp.eGetWin32ID(); });
-
-			ListViewGroupMask eMask = ListViewGroupMask.LVGF_NONE;
-			if (Header != null) eMask |= ListViewGroupMask.LVGF_HEADER;
-			if (Footer != null) eMask |= ListViewGroupMask.LVGF_FOOTER;
-			if (SubTitle != null) eMask |= ListViewGroupMask.LVGF_SUBTITLE;
-			if (TaskLinkText != null) eMask |= ListViewGroupMask.LVGF_TASK;
-			if (align != 0) eMask |= ListViewGroupMask.LVGF_ALIGN;
-			if (state != ListViewGroupState.Invalid) eMask |= ListViewGroupMask.LVGF_STATE;
-
-			LVGROUP group = new()
-			{
-				PszHeader = Header ?? string.Empty,
-				PszFooter = Footer ?? string.Empty,
-				PszSubtitle = SubTitle ?? string.Empty,
-				PszTask = TaskLinkText ?? string.Empty,
-				UAlign = align,
-				State = state,
-				Mask = eMask,
-				IGroupId = groupId
-			};
-
-			return SetGroup(lstvwgrp, group);
-		}
-
-
-
-		#endregion
-
-
-		#region SetGroupState
-
-		public static void SetGroupState(ListViewGroup grp, ListViewGroupState state)
-		{
-			SetGroup(grp, state: state);
-			grp.ListView!.eRunInUIThread(delegate { grp.ListView!.Refresh(); });
-		}
-
-		public static void SetGroupStateFlag(ListViewGroup grp, ListViewGroupState flag, bool flagState = true)
-		{
-			ListViewGroupState state = GetGroupState(grp);
+			ListViewGroupState state = GetGroupState (grp);
 
 			state |= flag;
 			if (!flagState) state ^= flag;
 
-			SetGroupState(grp, state);
+			SetGroupState (grp, state);
 		}
-
-
 
 
 		/// <summary>Returns the combination of state values that are set. For example, if dwMask is LVGS_COLLAPSED and the value returned is zero, the LVGS_COLLAPSED state is not set. Zero is returned if the group is not found.</summary>
 		/// <param name="Mask">Specifies the state values to retrieve. This is a combination of the flags listed for the state member of LVGROUP.</param>
-		public static ListViewGroupState GetGroupState(ListViewGroup grp, ListViewGroupState? bitsToGet = null)
+		public static ListViewGroupState GetGroupState ( ListViewGroup grp, ListViewGroupState? bitsToGet = null )
 		{
-			if (grp == null || grp.ListView == null) return default;
-			if (bitsToGet == null) bitsToGet = (ListViewGroupState)ListViewGroupState.Collapsed.eMixFlagsAsInt32(ListViewGroupState.Invalid);
+			if (grp?.ListView == null) return default;
 
-			ListViewGroupState result = 0;
-			grp.ListView.eRunInUIThread(delegate
+			if (!bitsToGet.HasValue) bitsToGet = ListViewGroupState.LVGS_COLLAPSED;
+
+			ListViewGroupState result = grp.ListView.runInUIThread (() =>
 			{
-				int groupID = grp.eGetWin32ID();
-				result = (ListViewGroupState)SendMessage(grp.ListView.Handle, ListViewMessage.LVM_GETGROUPSTATE, groupID, (int)bitsToGet.Value);
+				return (ListViewGroupState) SendMessage<ListViewMessage> (
+					grp.ListView.Handle,
+					ListViewMessage.LVM_GETGROUPSTATE,
+					grp.eGetWin32ID (),
+					(int) bitsToGet.Value);
 			});
 			return result;
 		}
 
-		#endregion
+        #endregion
 
 
-		private delegate void CallbackSetGroupString(ListViewGroup lstvwgrp, string value);
 
 
-		#region SetGroupText
+
+
+		private delegate void CallbackSetGroupString ( ListViewGroup lstvwgrp, string value );
+
+
+        #region SetGroupText
 
 		/*	  	 
 
@@ -1578,9 +1484,9 @@ namespace uom.controls
 					 }
 				}
 		 */
-		#endregion
+        #endregion
 
-		#region SetGroupFooter
+        #region SetGroupFooter
 		/*
 		public static void SetGroupFooter(lstvwgrp As ListViewGroup, Footer As  string )
 				  if (lstvwgrp == null) || (lstvwgrp.ListView == null)  {
@@ -1603,9 +1509,9 @@ namespace uom.controls
 				  }
 		}
 		*/
-		#endregion
+        #endregion
 
-		#region SetGroupSubTitle
+        #region SetGroupSubTitle
 		/*
 
 
@@ -1627,9 +1533,9 @@ namespace uom.controls
 					 }
 		}
 			*/
-		#endregion
+        #endregion
 
-		#region SetGroupTaskLink
+        #region SetGroupTaskLink
 		/*
 
 		/// <summary>Обработку кликов надо делать в событии Listview.TaskLinkClick</summary>
@@ -1656,9 +1562,9 @@ namespace uom.controls
 		 }
 		}
 		*/
-		#endregion
+        #endregion
 
-		#region SetGroupAlign
+        #region SetGroupAlign
 
 		/*
 
@@ -1689,12 +1595,12 @@ namespace uom.controls
 		  }
 		*/
 
-		#endregion
+        #endregion
 
 #endif
 
 
-		#endregion
+        #endregion
 
 
 
@@ -1702,7 +1608,7 @@ namespace uom.controls
 
 
 
-		/*
+        /*
 
 
 
@@ -1734,24 +1640,24 @@ Two of the events are simple:
 
 
 		   private void listView1_DrawSubItem(object sender, DrawListViewSubItemEventArgs e)
-    {
-        e.DrawBackground();
-        Size sz = listView1.SmallImageList.ImageSize;
-        int idx = 0;
-        if (e.SubItem.Tag != null) idx = (int)e.SubItem.Tag;
-        Bitmap bmp = (Bitmap)listView1.SmallImageList.Images[idx];
-        Rectangle rTgt = new Rectangle(e.Bounds.Location, sz);
-        bool selected = e.ItemState.HasFlag(ListViewItemStates.Selected);
-        // optionally show selection:
-        if (selected ) e.Graphics.FillRectangle(Brushes.CornflowerBlue, e.Bounds);
+	{
+		e.DrawBackground();
+		Size sz = listView1.SmallImageList.ImageSize;
+		int idx = 0;
+		if (e.SubItem.Tag != null) idx = (int)e.SubItem.Tag;
+		Bitmap bmp = (Bitmap)listView1.SmallImageList.Images[idx];
+		Rectangle rTgt = new Rectangle(e.Bounds.Location, sz);
+		bool selected = e.ItemState.HasFlag(ListViewItemStates.Selected);
+		// optionally show selection:
+		if (selected ) e.Graphics.FillRectangle(Brushes.CornflowerBlue, e.Bounds);
 
-        if (bmp != null) e.Graphics.DrawImage(bmp, rTgt);
+		if (bmp != null) e.Graphics.DrawImage(bmp, rTgt);
 
-        // optionally draw text
-        e.Graphics.DrawString(e.SubItem.Text, listView1.Font,
-                              selected  ? Brushes.White: Brushes.Black,
-                              e.Bounds.X + sz.Width + 2, e.Bounds.Y + 2);
-    }
+		// optionally draw text
+		e.Graphics.DrawString(e.SubItem.Text, listView1.Font,
+							  selected  ? Brushes.White: Brushes.Black,
+							  e.Bounds.X + sz.Width + 2, e.Bounds.Y + 2);
+	}
 
 
 
@@ -1770,7 +1676,7 @@ Two of the events are simple:
 
 
 
-	}
+    }
 
 
 }
@@ -1780,296 +1686,80 @@ namespace uom.Extensions
 {
 
 
-	[DebuggerNonUserCode, DebuggerStepThrough]
-	internal static partial class Extensions_WinForms_Controls_Listview
-	{
+    //[DebuggerNonUserCode, DebuggerStepThrough]
+    internal static partial class Extensions_WinForms_Controls_Listview
+    {
 
 
 #if !NET
 
 
-		#region Set group state
+        #region Group State
+
+
+		internal const ListViewGroupState DEFAULT_GROUP_STATE = ListViewGroupState.LVGS_COLLAPSIBLE;
 
 
 		/// <summary>Группа будет сворачиваться/разворачиваться только на ListViewNF (или надо реализовать соответствующую функциональность самостоятельно)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void eSetState(this ListViewGroup grp, ListViewEx.ListViewGroupState state = DEFAULT_GROUP_STATE)
-			=> ListViewEx.SetGroupState(grp, state);
+		
+		internal static void eSetState ( this ListViewGroup grp, ListViewGroupState state = DEFAULT_GROUP_STATE )
+			=> ListViewEx.SetGroupState (grp, state);
 
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void eSetStateFlag(this ListViewGroup grp, ListViewGroupState flag, bool flagState = true)
-			=> ListViewEx.SetGroupStateFlag(grp, flag, flagState);
+		
+		internal static void eSetStateFlag ( this ListViewGroup grp, ListViewGroupState flag, bool flagState = true )
+			=> ListViewEx.SetGroupStateFlag (grp, flag, flagState);
 
 
 		/// <summary>Группа будет сворачиваться/разворачиваться только на ListViewNF (или надо реализовать соответствующую функциональность самостоятельно)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void eSetState_Collapsed(this ListViewGroup grp, bool makeCollapsed)
+		
+		internal static void eSetState_Collapsed ( this ListViewGroup grp, bool collapse )
 		{
 			bool needChangeState = false;
-			ListViewEx.ListViewGroupState state = grp.eGetState();
+			ListViewGroupState state = grp.eGetState ();
 
-			if (!state.HasFlag(ListViewGroupState.Collapsible))//check that also Collapsible flag already set
+			if (!state.HasFlag (ListViewGroupState.LVGS_COLLAPSIBLE))
 			{
 				needChangeState = true;
-				state |= ListViewGroupState.Collapsible;
+				state |= ListViewGroupState.LVGS_COLLAPSIBLE;
 			}
 
-			if (state.HasFlag(ListViewGroupState.Collapsed) != makeCollapsed)
+			if (state.HasFlag (ListViewGroupState.LVGS_COLLAPSED) != collapse)
 			{
 				needChangeState = true;
-				state ^= ListViewEx.ListViewGroupState.Collapsed;//revering Collapsed state
+				state ^= ListViewGroupState.LVGS_COLLAPSED; // revering Collapsed state
 			}
 
-			if (needChangeState) grp.eSetState(state);
+			if (needChangeState) grp.eSetState (state);
 		}
 
 
 		/// <summary>Группа будет сворачиваться/разворачиваться только на ListViewNF (или надо реализовать соответствующую функциональность самостоятельно)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void eSetGroupsState(this ListView? lvw, ListViewEx.ListViewGroupState state = DEFAULT_GROUP_STATE)
-			=> lvw?.eGroupsAsIEnumerable().ToList().ForEach(grp => grp.eSetState(state));
+		
+		internal static void eSetGroupsState ( this ListView? lvw, ListViewGroupState state = DEFAULT_GROUP_STATE )
+			=> lvw?.eGroupsAsIEnumerable ().ToList ().ForEach (grp => grp.eSetState (state));
 
 
-		#endregion
 
 
 
 		/// <summary>Группа будет сворачиваться/разворачиваться только на ListViewNF (или надо реализовать соответствующую функциональность самостоятельно)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static ListViewEx.ListViewGroupState eGetState(this ListViewGroup grp)
-			=> ListViewEx.GetGroupState(grp);
+		
+		internal static ListViewGroupState eGetState ( this ListViewGroup grp )
+			=> ListViewEx.GetGroupState (grp);
 
 
 		/// <summary>Группа будет сворачиваться/разворачиваться только на ListViewNF (или надо реализовать соответствующую функциональность самостоятельно)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static bool eGetState_IsCollapsed(this ListViewGroup grp)
-			=> grp.eGetState().HasFlag(ListViewEx.ListViewGroupState.Collapsed);
-
-
-		internal const ListViewEx.ListViewGroupState DEFAULT_GROUP_STATE = ListViewEx.ListViewGroupState.Collapsible;
-
-#endif
-
-
-		private const string ERROR_LIST_VIEW_GROUP_NAME_NULL = "ListViewGroup.Name = NULL!";
-		private const string LISTVIEW_GROUPS_STATE_KEY_PREFIX = @"ListView Groups states\";
-
-		[Obsolete ("Do not save group states in to registry! Save to file instead!", true)]
-		[MethodImpl (MethodImplOptions.AggressiveInlining)]
-		internal static void eSaveGroupsCollapsedStates_Reg ( this ListView lvw, string listViewID = "" )
-			=> lvw
-			.eGroupsAsIEnumerable ()
-			.ToList ()
-			.ForEach (grp => grp.eSaveGroupCollapsedState_Reg (listViewID));
-
-
-		[Obsolete ("Do not save group states in to registry! Save to file instead!", true)]
-		[MethodImpl (MethodImplOptions.AggressiveInlining)]
-		internal static void eSaveGroupCollapsedState_Reg ( this ListViewGroup grp, string listViewID = "" )
-		{
-			if (string.IsNullOrWhiteSpace (grp.Name))
-			{
-				throw new ArgumentNullException (ERROR_LIST_VIEW_GROUP_NAME_NULL);
-			}
-
-			if (string.IsNullOrWhiteSpace (listViewID))
-			{
-				if (grp.ListView == null)
-				{
-					return; // Группе не назначен ListView - Просто игнорируем
-				}
-
-				listViewID = grp.ListView.eCreateListViewID ();
-			}
-
-			var sFullGroupIDRegKey = LISTVIEW_GROUPS_STATE_KEY_PREFIX + listViewID;
-			//uomvb.Settings.SaveSetting(grp.Name, grp.GetState_IsCollapsed, null, sFullGroupIDRegKey);
-		}
+		
+		internal static bool eGetState_IsCollapsed ( this ListViewGroup grp )
+			=> grp.eGetState ().HasFlag (ListViewGroupState.LVGS_COLLAPSED);
 
 
 
+        #endregion
 
 
-		[Obsolete ("Do not save group states in to registry! Save to file instead!", true)]
-		[MethodImpl (MethodImplOptions.AggressiveInlining)]
-		internal static void eLoadGroupCollapsedState_Reg ( this ListViewGroup grp, string listViewID = "", bool SearchPreVersion = false )
-		{
-			if (string.IsNullOrWhiteSpace (grp.Name))
-			{
-				throw new ArgumentNullException (ERROR_LIST_VIEW_GROUP_NAME_NULL);
-			}
-
-			if (string.IsNullOrWhiteSpace (listViewID))
-			{
-				if (grp.ListView == null)
-				{
-					return; // Группе не назначен ListView - Просто игнорируем
-				}
-
-				listViewID = grp.ListView.eCreateListViewID ();
-			}
-
-			var sFullGroupIDRegKey = LISTVIEW_GROUPS_STATE_KEY_PREFIX + listViewID;
-			/*
-			var bCollapsed = uomvb.Settings.GetSetting_Boolean(grp.Name, false, null, SearchPreVersion, sFullGroupIDRegKey).Value;
-			ListViewEx.ListViewGroupState State = DEFAULT_GROUP_STATE;
-			if (bCollapsed) State |= ListViewEx.ListViewGroupState.Collapsed;
-			grp.eSetState(State);
-			 */
-		}
-
-
-		/// <summary>Generate ListView ID with Form Name</summary>
-		[MethodImpl (MethodImplOptions.AggressiveInlining)]
-		internal static string eCreateListViewID ( this ListView lvw ) => $"{lvw.FindForm ()!.Name}.{lvw.Name}";
-
-#if !NET
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void eSetGroupsTitlesBy_Count(
-			this ListView lvw,
-			Func<ListViewGroup, string>? callbackGroupTitleProvider = null,
-			Action<ListViewGroup, string, ListViewEx.ListViewGroupState>? callbackGroupTitleApplier = null)
-		{
-			foreach (var grp in lvw.eGroupsAsIEnumerable())
-			{
-				{
-					var bCollapsed = grp.eGetState_IsCollapsed();
-
-					ListViewEx.ListViewGroupState state = DEFAULT_GROUP_STATE;
-					if (bCollapsed) state |= ListViewEx.ListViewGroupState.Collapsed;
-
-					var sTitle = (callbackGroupTitleProvider != null)
-						? callbackGroupTitleProvider.Invoke(grp)
-						: $"{grp.Name} ({grp.Items.Count})";
-
-					if (callbackGroupTitleApplier != null)
-						callbackGroupTitleApplier.Invoke(grp, sTitle, state);
-					else
-						grp.eSetGroup(Header: sTitle, state: state);
-				}
-			}
-		}
-
-
-		/// <summary>Safely sets group Header and don't broke groups collapswd states</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void eSetGroupsTitlesFastW32Safe(
-			this ListView? lvw,
-			Func<ListViewGroup, string>? getGroupHeader = null)
-				=> lvw?.eGroupsAsIEnumerable().eForEach(g =>
-				{
-					string sTitle = g.Name ?? "";
-					if (getGroupHeader != null)
-						sTitle = getGroupHeader.Invoke(g);
-					else
-						sTitle = $"{sTitle} ({g.Items.Count:N0})".Trim();
-
-					if (!string.IsNullOrWhiteSpace(sTitle))
-					{
-						g.eSetText(sTitle);
-					}
-				});
-
-
-
-		///<summary>
-		///Safely sets group Header and don't broke groups collapswd states
-		///MT Safe!!!</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void erunOnLockedUpdateW32Safe(
-			this ListView? lvw,
-			Action a,
-			bool autoSizeColumns = false,
-			bool fastUpdateGroupHeaders = false)
-		{
-			_ = a ?? throw new ArgumentNullException(nameof(a));
-
-			void a2()
-			{
-				lvw?.BeginUpdate();
-				try { a!.Invoke(); }
-				finally
-				{
-					if (autoSizeColumns) lvw?.eAutoSizeColumnsAuto();
-					if (fastUpdateGroupHeaders) lvw?.eSetGroupsTitlesFastW32Safe();
-					lvw?.EndUpdate();
-				}
-			};
-
-			if (lvw != null && lvw.InvokeRequired)
-				lvw.eRunInUIThread(a2);
-			else
-				a2();
-		}
-
-
-		/// <summary>Группа будет сворачиваться/разворачиваться только на ListViewNF (или надо реализовать соответствующую функциональность самостоятельно)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void AddToListViewAndSetState(this IEnumerable<ListViewGroup>? GG, ListView lvw, ListViewEx.ListViewGroupState state = DEFAULT_GROUP_STATE)
-		{
-			if (GG == null || lvw == null) return;
-			foreach (var G in GG)
-			{
-				lvw.Groups.Add(G);
-				G.eSetState(state);
-			}
-		}
-
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void eSetGroup(
-			this ListViewGroup lvg,
-			string? Header = null,
-			string? SubTitle = null,
-			string? Footer = null,
-			string? TaskLinkText = null,
-			ListViewGroupAlign align = 0,
-			ListViewGroupState state = ListViewGroupState.Invalid)
-			=> ListViewEx.SetGroup(lvg, Header, SubTitle, Footer, TaskLinkText, align, state);
-
-
-		/// <summary>Задаёт текст для группы, но не меняет флаг состояния группы (!!! Стандартный .Header=String меняет флаг состояния!!!)</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void eSetText(this ListViewGroup lvg, string Text) => lvg.eSetGroup(Text);
-
-
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void eSetSubTitle(this ListViewGroup lvg, string subTitle) => lvg.eSetGroup(SubTitle: subTitle);
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void eSetFooter(this ListViewGroup lvg, string footerText) => lvg.eSetGroup(Footer: footerText);
-
-
-		internal static Int32 eGetWin32ID(this ListViewGroup lstvwgrp)
-		{
-			_ = lstvwgrp!.ListView ?? throw new ArgumentException("Group must ge Added to ListView before!", nameof(lstvwgrp));
-
-			var groupID = lstvwgrp.eGetPropertyValue_Int32("ID");
-			if (!groupID.HasValue) groupID = lstvwgrp.ListView.Groups.IndexOf(lstvwgrp);
-			return groupID.Value;
-		}
-
-#endif
-
-
-		[MethodImpl (MethodImplOptions.AggressiveInlining)]
-		internal static string eGetStringID ( this ListViewGroup g, string defaultID = "default" )
-		{
-			string?[] fields = [ g.Name, g.Header ];
-			return fields.FirstOrDefault (s => s.IsNotNullOrWhiteSpace ()) ?? defaultID;
-		}
-
-
-
-
-
-#if NETCOREAPP3_0_OR_GREATER
-
-#else
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		
 		public static (ListViewGroup Group, bool Created) eGroupsCreateGroupByKey(
 			this ListViewEx lvw,
 			string key,
@@ -2078,41 +1768,273 @@ namespace uom.Extensions
 			=> lvw.eGroupsCreateGroupByKey(key, header, new Action<ListViewGroup>(grp => grp.eSetStateFlag(newGroupState)));
 
 
-#endif
 
-
-
-
-
-
-		#region Allow SubItemImages
-
-		[StructLayout (LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-		private struct LV_ITEM
+		
+		internal static void eSetGroupsTitlesBy_Count (
+			this ListView lvw,
+			Func<ListViewGroup, string>? callbackGroupTitleProvider = null,
+			Action<ListViewGroup, string, ListViewGroupState>? callbackGroupTitleApplier = null )
 		{
-			public MaskFlags mask;
-			public Int32 iItem;
-			public Int32 iSubItem;
-			public UInt32 state;
-			public UInt32 stateMask;
-			public String pszText;
-			public Int32 cchTextMax;
-			public Int32 iImage;
-			public IntPtr lParam;
-
-			public enum MaskFlags : UInt32
+			foreach (var grp in lvw.eGroupsAsIEnumerable ())
 			{
-				LVIF_TEXT = 0x0001,
-				LVIF_IMAGE = 0x0002
+				{
+					var collapsed = grp.eGetState_IsCollapsed ();
+
+					ListViewGroupState state = DEFAULT_GROUP_STATE;
+					if (collapsed) state |= ListViewGroupState.LVGS_COLLAPSED;
+
+					var title = ( callbackGroupTitleProvider != null )
+						? callbackGroupTitleProvider.Invoke (grp)
+						: $"{grp.Name} ({grp.Items.Count})";
+
+					if (callbackGroupTitleApplier != null)
+						callbackGroupTitleApplier.Invoke (grp, title, state);
+					else
+						grp.eSetGroup (header: title, state: state);
+				}
 			}
-
-			public void Apply ( IntPtr h )
-				=> User32.SendMessage (h, ListViewMessage.LVM_SETITEM, 0, ref this);
-
 		}
 
 
-		/*
+		/// <summary>Safely sets group Header and don't broke groups collapswd states</summary>
+		
+		public static void eSetGroupsTitlesFastW32Safe (
+			this ListView? lvw,
+			Func<ListViewGroup, string>? getGroupHeader = null )
+				=> lvw?.eGroupsAsIEnumerable ().forEach (g =>
+				{
+					string sTitle = g.Name ?? "";
+					if (getGroupHeader != null)
+						sTitle = getGroupHeader.Invoke (g);
+					else
+						sTitle = $"{sTitle} ({g.Items.Count:N0})".Trim ();
+
+					if (!string.isNullOrWhiteSpace (sTitle))
+					{
+						g.eSetText (sTitle);
+					}
+				});
+
+
+
+		///<summary>
+		///Safely sets group Header and don't broke groups collapswd states
+		///MT Safe!!!</summary>
+		
+		public static void erunOnLockedUpdateW32Safe (
+			this ListView? lvw,
+			Action a,
+			bool autoSizeColumns = false,
+			bool fastUpdateGroupHeaders = false )
+		{
+			_ = a ?? throw new ArgumentNullException (nameof (a));
+
+			void a2 ()
+			{
+				lvw?.BeginUpdate ();
+				try { a!.Invoke (); }
+				finally
+				{
+					if (autoSizeColumns) lvw?.eAutoSizeColumnsAuto ();
+					if (fastUpdateGroupHeaders) lvw?.eSetGroupsTitlesFastW32Safe ();
+					lvw?.EndUpdate ();
+				}
+			}
+			;
+
+			if (lvw != null && lvw.InvokeRequired)
+				lvw.runInUIThread (a2);
+			else
+				a2 ();
+		}
+
+
+		
+		internal static void eAddGroupsWithState ( this ListView lvw, IEnumerable<ListViewGroup>? groups, ComCtl32.ListViewGroupState state = DEFAULT_GROUP_STATE )
+		{
+			if (groups == null || lvw == null) return;
+			foreach (var G in groups)
+			{
+				lvw.Groups.Add (G);
+				G.eSetState (state);
+			}
+		}
+
+
+
+
+        #region SetGroup
+
+		internal static Int32 SetGroupInfo ( this ListViewGroup lstvwgrp, LVGROUP group )
+			=> lstvwgrp.ListView!.runInUIThread (() =>
+				SendMessage (lstvwgrp.ListView!.Handle, ListViewMessage.LVM_SETGROUPINFO, group.iGroupId, group));
+
+
+		internal static Int32 eSetGroup (
+			this ListViewGroup lstvwgrp,
+			string? header = null,
+			string? subTitle = null,
+			string? footer = null,
+			string? taskLinkText = null,
+			ListViewGroupAlignment align = 0,
+			ListViewGroupState? state = null )
+		{
+
+			int groupId = lstvwgrp!.ListView!.runInUIThread (() => lstvwgrp.eGetWin32ID ());
+			LVGROUP group = new (ListViewGroupMask.LVGF_NONE) { iGroupId = groupId, };
+
+			if (header != null)
+			{
+				group.mask |= ListViewGroupMask.LVGF_HEADER;
+				group.pszHeader.Assign (header);
+			}
+
+			if (footer != null)
+			{
+				group.mask |= ListViewGroupMask.LVGF_FOOTER;
+				group.pszFooter.Assign (footer);
+			}
+
+			if (subTitle != null)
+			{
+				group.mask |= ListViewGroupMask.LVGF_SUBTITLE;
+				group.pszSubtitle.Assign (subTitle);
+			}
+
+			if (taskLinkText != null)
+			{
+				group.mask |= ListViewGroupMask.LVGF_TASK;
+				group.pszTask.Assign (taskLinkText);
+			}
+
+			if (align != 0)
+			{
+				group.mask |= ListViewGroupMask.LVGF_ALIGN;
+				group.uAlign = align;
+			}
+
+			if (state.HasValue)
+			{
+				group.mask |= ListViewGroupMask.LVGF_STATE;
+				group.state = state.Value;
+			}
+
+			return SetGroupInfo (lstvwgrp, group);
+		}
+
+
+        #endregion
+
+
+
+
+		/// <summary>Задаёт текст для группы, но не меняет флаг состояния группы (!!! Стандартный .Header=String меняет флаг состояния!!!)</summary>
+		
+		internal static void eSetText ( this ListViewGroup lvg, string Text )
+			=> lvg.eSetGroup (Text);
+
+		
+		internal static void eSetSubTitle ( this ListViewGroup lvg, string subTitle )
+			=> lvg.eSetGroup (subTitle: subTitle);
+
+		
+		internal static void eSetFooter ( this ListViewGroup lvg, string footerText )
+			=> lvg.eSetGroup (footer: footerText);
+
+
+		internal static Int32 eGetWin32ID ( this ListViewGroup lstvwgrp )
+		{
+			_ = lstvwgrp!.ListView ?? throw new ArgumentException ("Group must ge Added to ListView before!", nameof (lstvwgrp));
+
+			var groupID = lstvwgrp.eGetPropertyValue_Int32 ("ID");
+			if (!groupID.HasValue) groupID = lstvwgrp.ListView.Groups.IndexOf (lstvwgrp);
+			return groupID.Value;
+		}
+
+
+        #region Obsolete! DO NOT USE! Only for compatibility!
+
+
+		private const string ERROR_LIST_VIEW_GROUP_NAME_NULL = "ListViewGroup.Name = NULL!";
+		private const string LISTVIEW_GROUPS_STATE_KEY_PREFIX = @"ListView Groups states\";
+
+		[Obsolete ("Do not save group states in to registry! Save to file instead!", true)]
+		
+		internal static void eSaveGroupsCollapsedStates_Reg ( this ListView lvw, string listViewID = "" )
+			=> lvw
+			.eGroupsAsIEnumerable ()
+			.ToList ()
+			.ForEach (grp => grp.eSaveGroupCollapsedState_Reg (listViewID));
+
+
+		[Obsolete ("Do not save group states in to registry! Save to file instead!", true)]
+		
+		internal static void eSaveGroupCollapsedState_Reg ( this ListViewGroup grp, string listViewID = "" )
+		{
+			if (grp.Name.isNullOrWhiteSpace )
+				throw new ArgumentNullException (ERROR_LIST_VIEW_GROUP_NAME_NULL);
+
+			if (listViewID.isNullOrWhiteSpace )
+			{
+				if (grp.ListView == null) return; // Group has no assigned ListView - ignore
+				listViewID = grp.ListView.eCreateListViewID ();
+			}
+
+			//var sFullGroupIDRegKey = LISTVIEW_GROUPS_STATE_KEY_PREFIX + listViewID;
+			//uomvb.Settings.SaveSetting(grp.Name, grp.GetState_IsCollapsed, null, sFullGroupIDRegKey);
+		}
+
+
+		[Obsolete ("Do not save group states in to registry! Save to file instead!", true)]
+		
+		internal static void eLoadGroupCollapsedState_Reg ( this ListViewGroup grp, string listViewID = "", bool SearchPreVersion = false )
+		{
+			if (grp.Name.isNullOrWhiteSpace )
+				throw new ArgumentNullException (ERROR_LIST_VIEW_GROUP_NAME_NULL);
+
+			if (listViewID.isNullOrWhiteSpace )
+			{
+				if (grp.ListView == null) return; // Group has no assigned ListView - ignore
+				listViewID = grp.ListView.eCreateListViewID ();
+			}
+
+			/*
+			var sFullGroupIDRegKey = LISTVIEW_GROUPS_STATE_KEY_PREFIX + listViewID;
+			var bCollapsed = uomvb.Settings.GetSetting_Boolean(grp.Name, false, null, SearchPreVersion, sFullGroupIDRegKey).Value;
+			ListViewEx.ListViewGroupState State = DEFAULT_GROUP_STATE;
+			if (bCollapsed) State |= ListViewEx.ListViewGroupState.Collapsed;
+			grp.eSetState(State);
+			 */
+		}
+
+
+        #endregion
+
+
+#endif
+
+
+        /// <summary>Generate ListView ID with Form Name</summary>
+
+        internal static string eCreateListViewID ( this ListView lvw ) => $"{lvw.FindForm()!.Name}.{lvw.Name}";
+
+
+
+
+        internal static string eGetStringID ( this ListViewGroup g , string defaultID = "default" )
+        {
+            string?[] fields = [ g.Name, g.Header ];
+            return fields.FirstOrDefault( s => s.isNotNullOrWhiteSpace ) ?? defaultID;
+        }
+
+
+
+
+
+
+
+
+        /*
 		protected override void OnHandleCreated(EventArgs e)
 		{
 			base.OnHandleCreated(e);
@@ -2120,94 +2042,54 @@ namespace uom.Extensions
 		}
 
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IntPtr SendMessage_IntPtr (this ListView lvw, ListViewMessage m, IntPtr? wParam = default, IntPtr? lParam = default)
-			=> User32.SendMessage(lvw.Handle, (int)m, wParam.HasValue ? wParam.Value : IntPtr.Zero, lParam.HasValue ? lParam.Value : IntPtr.Zero);
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int SendMessage_Int (this ListView lvw, ListViewMessage m, int? wParam = 0, int? lParam = 0)
-			=> (int
-			)User32.SendMessage<ListViewMessage>(lvw.Handle, m, wParam.HasValue ? wParam.Value : 0, lParam.HasValue ? lParam.Value : 0);
+		
 		 */
 
-		[MethodImpl (MethodImplOptions.AggressiveInlining)]
-		public static ListViewStyleEx GetExtendedStyle ( this ListView lvw )
-			=> (ListViewStyleEx) User32.SendMessage (lvw.Handle, ListViewMessage.LVM_GETEXTENDEDLISTVIEWSTYLE);
 
 
-		[MethodImpl (MethodImplOptions.AggressiveInlining)]
-		public static void SetExtendedStyle ( this ListView lvw, ListViewStyleEx s )
-			=> User32.SendMessage<ListViewMessage> (lvw.Handle, ListViewMessage.LVM_SETEXTENDEDLISTVIEWSTYLE, 0, (int) s);
-
-		[MethodImpl (MethodImplOptions.AggressiveInlining)]
-		public static void SetExtendedStyleFlag ( this ListView lvw, ListViewStyleEx s )
-			=> lvw.SetExtendedStyle (lvw.GetExtendedStyle () | s);
-
-
-		[MethodImpl (MethodImplOptions.AggressiveInlining)]
-		public static void AllowSubItemImages ( this ListView lvw )
-			=> lvw.SetExtendedStyleFlag (ListViewStyleEx.LVS_EX_SUBITEMIMAGES);
-
-
-		/*
-		public void SetSubItem(ListView lvw, int row, int col, string text, int iconIndex)
-		{
-			LV_ITEM lvi = new()
-			{
-				iItem = row,
-				iSubItem = col,
-				pszText = text,
-				mask = LV_ITEM.MaskFlags.LVIF_IMAGE | LV_ITEM.MaskFlags.LVIF_TEXT,
-				iImage = iconIndex
-			};
-			lvi.Apply(this.Handle);
-			//SendMessage(this.Handle, ListViewMessage.LVM_SETITEM, 0, ref lvi);
-		}
-
-		public static void SetSubItemImage(this ListView lvw, int row, int col, int iconIndex)
-		{
-			LV_ITEM lvi = new()
-			{
-				iItem = row,
-				iSubItem = col,
-				mask = LV_ITEM.MaskFlags.LVIF_IMAGE,
-				iImage = iconIndex
-			};
-			lvi.Apply(lvw.Handle);
-		}
-		 */
-
-		[MethodImpl (MethodImplOptions.AggressiveInlining)]
-		public static bool SetSubItemImage ( this ListViewItem li, int col, int iconIndex )
-		{
-			//ListViewItem.ListViewSubItem? lsi = li.SubItems[col];
-			if (li.ListView == null)
-			{
-				return false;// throw new ArgumentNullException(nameof(li), "ListViewItem.ListView = NULL!");
-			}
-
-			LV_ITEM lvi = new ()
-			{
-				iItem = li.Index,
-				iSubItem = col,
-				mask = LV_ITEM.MaskFlags.LVIF_IMAGE,
-				iImage = iconIndex
-			};
-			lvi.Apply (li.ListView.Handle);
-			return true;
-		}
-
-		#endregion
+        public static ListViewStyleEx GetExtendedStyle ( this ListView lvw )
+           => ( ListViewStyleEx )User32.SendMessage<ListViewMessage>( lvw.Handle , ListViewMessage.LVM_GETEXTENDEDLISTVIEWSTYLE );
 
 
 
+        public static void SetExtendedStyle ( this ListView lvw , ListViewStyleEx s )
+            => User32.SendMessage<ListViewMessage>( lvw.Handle , ListViewMessage.LVM_SETEXTENDEDLISTVIEWSTYLE , 0 , ( int )s );
+
+
+        public static void SetExtendedStyleFlag ( this ListView lvw , ListViewStyleEx s )
+            => lvw.SetExtendedStyle( lvw.GetExtendedStyle() | s );
+
+
+        #region Allow SubItemImages
+
+
+        public static bool Apply ( this ComCtl32.LVITEM lvi , IntPtr h )
+            => SendMessage( h , ListViewMessage.LVM_SETITEM , 0 , lvi ) != 0;
 
 
 
+        public static void AllowSubItemImages ( this ListView lvw )
+            => lvw.SetExtendedStyleFlag( ListViewStyleEx.LVS_EX_SUBITEMIMAGES );
 
 
 
-	}
+        public static bool SetSubItemImage ( this ListViewItem li , int col , int iconIndex )
+        {
+            if ( li.ListView == null ) return false;// throw new ArgumentNullException(nameof(li), "ListViewItem.ListView = NULL!");
+
+            ComCtl32.LVITEM lvi = new (li.Index, col, ListViewItemMask.LVIF_IMAGE)
+            {
+                iImage = iconIndex
+            };
+            return lvi.Apply( li.ListView.Handle );
+        }
+
+
+        #endregion
+
+
+
+    }
 
 
 

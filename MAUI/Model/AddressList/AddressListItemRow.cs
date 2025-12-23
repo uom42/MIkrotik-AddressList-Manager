@@ -34,7 +34,7 @@ internal class AddressListItemRow(AddressListItem ali) : ObservableObject
 	public string GroupName => MikrotikRow.List.Trim();
 
 
-	public InvertableBool IsStateChanging { get; private set; } = false;
+	public uom.InvertableBool IsStateChanging { get; private set; } = false;
 
 
 	public bool Checked
@@ -115,7 +115,7 @@ internal class AddressListItemRow(AddressListItem ali) : ObservableObject
 		if (MikrotikRow.Address.Contains(filter, sc)) return true;
 		if (MikrotikRow.List.Contains(filter, sc)) return true;
 		if (MikrotikRow.CreationTime.ToString().Contains(filter, sc)) return true;
-		if (MikrotikRow.Comment.IsNotNullOrWhiteSpace() && MikrotikRow.Comment.Contains(filter, sc)) return true;
+		if (MikrotikRow.Comment.isNotNullOrWhiteSpace && MikrotikRow.Comment.Contains(filter, sc)) return true;
 
 		return false;
 	}

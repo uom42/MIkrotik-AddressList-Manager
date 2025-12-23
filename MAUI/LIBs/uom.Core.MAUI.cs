@@ -777,7 +777,7 @@ namespace uom.maui
 			Page? ctx = null)
 		{
 			ctx ??= uom.AppInfo.CurrentUIContext!;
-			title ??= uom.AppInfo.TitleShort;
+			title ??= uom.AppInfo.Title;
 
 			//flags ??= (MsgBoxFlags.Btn_OK | MsgBoxFlags.Icn_Information | MsgBoxFlags.DefBtn_1);
 			//			var ff = ParseMsgboxFlags(flags.Value);
@@ -794,7 +794,7 @@ namespace uom.maui
 			Page? ctx = null)
 		{
 			ctx ??= uom.AppInfo.CurrentUIContext!;
-			title ??= uom.AppInfo.TitleShort;
+			title ??= uom.AppInfo.Title;
 
 			/*
 			MsgBoxFlags flg = MsgBoxFlags.Btn_YesNo | MsgBoxFlags.Icn_Question

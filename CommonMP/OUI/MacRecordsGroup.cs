@@ -2,24 +2,23 @@
 
 using System.Net.NetworkInformation;
 
-namespace MALM.OUI
+namespace MALM.OUI;
+
+
+internal class MacRecordsGroup
 {
+    public readonly string MFGCode;
+    public readonly MacRecordInfo[] InfoList;
 
-	internal class MacRecordsGroup
-	{
-		public readonly string MFGCode;
-		public readonly MacRecordInfo[] InfoList;
+    public MacRecordsGroup ( string mFGCode , MacRecordInfo[] infoList )
+    {
+        MFGCode = mFGCode ?? throw new ArgumentNullException(nameof(mFGCode));
+        InfoList = infoList ?? throw new ArgumentNullException(nameof(infoList));
 
-		public MacRecordsGroup(string mFGCode, MacRecordInfo[] infoList)
-		{
-			MFGCode = mFGCode ?? throw new ArgumentNullException(nameof(mFGCode));
-			InfoList = infoList ?? throw new ArgumentNullException(nameof(infoList));
+        InfoList.forEach(il => il.Parent = this);
+    }
 
-			InfoList.eForEach(il => il.Parent = this);
-		}
+    public string? MfgCountryID => InfoList.FirstOrDefault(r => r.Country2LetterUCode.isNotNullOrWhiteSpace)?.Country2LetterUCode;
 
-		public string? MfgCountryID => InfoList.FirstOrDefault(r => r.Country2LetterUCode.IsNotNullOrWhiteSpace())?.Country2LetterUCode;
-
-	}
 }
 

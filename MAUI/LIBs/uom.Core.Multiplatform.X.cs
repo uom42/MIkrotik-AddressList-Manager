@@ -5,6 +5,8 @@ using System.Xml.Serialization;
 
 #if UWP
 using Windows.Data.Xml.Dom;
+
+using Application = Microsoft.UI.Xaml.Application;
 #endif
 
 /*
@@ -54,7 +56,7 @@ namespace uom;
 [Serializable]
 public partial class InvertableBool :
 #if UWP
-	ObservableObject	,
+	ObservableObject,
 #endif
 	IXmlSerializable
 {
@@ -68,7 +70,7 @@ public partial class InvertableBool :
 #if UWP
 	[ObservableProperty]
 	[property: XmlIgnore]
-	[NotifyPropertyChangedFor(nameof(Invert))]
+	[NotifyPropertyChangedFor (nameof (Invert))]
 #endif
 	private bool _value = false;
 #if ( !UWP )
@@ -121,7 +123,7 @@ internal static class ResourceHelper
 	}
 	 */
 
-#if UWP
+#if !WINDOWS
 
 	[MethodImpl (MethodImplOptions.AggressiveInlining)]
 	public static T FindAppResource<T> ( this string resourcekey, T defaultValue = default, Action<Exception>? onError = null ) where T : struct

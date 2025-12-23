@@ -1,0 +1,18 @@
+<Solution>
+ <!-- Solution folder(s) -->
+  <Folder Name="/Solution Items/">
+    
+	<File Path="CommonProject.Multiplatform.props" />	
+	<File Path="CommonProject.Windows.props" />
+	<File Path="CommonProject.MALM.props" />
+    
+	<File Path="Directory.Packages.props" />    
+  </Folder>
+   
+  <Project Path="../../_LIB/Mikrotik/MikrotikDotNet/Mikrotik.Net/Mikrotik.Net.csproj" />
+ 
+ <Project Path="MAUI/MALM MAUI.csproj">
+    <Deploy />
+  </Project>
+  <Project Path="WinDesktop/MALM WinDesktop.csproj" />
+</Solution>

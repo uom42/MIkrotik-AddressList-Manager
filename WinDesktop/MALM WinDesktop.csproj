@@ -1,150 +1,94 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+	<Import Project="$(SolutionDir)\CommonProject.Multiplatform.props" />
+	<Import Project="$(SolutionDir)\CommonProject.Windows.props" />
+	<Import Project="$(SolutionDir)\CommonProject.MALM.props" />
+
+	<!--
+	<Text Include="test.proto" />
+	-->
+	
 	<PropertyGroup>
+		<TargetFramework>net10.0-windows</TargetFramework>		
 		<OutputType>WinExe</OutputType>
-
-		<!--
-		//<TargetFramework>net9.0-windows10.0.17763.0</TargetFramework>
-		-->
-		<TargetFramework>net9.0-windows</TargetFramework>
-
+		
 		<UseWindowsForms>true</UseWindowsForms>
-		<Nullable>enable</Nullable>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<CodePage>1251</CodePage>
-		<LangVersion>Latest</LangVersion>
+		
+		<!--https://github.com/dotnet/winforms/blob/main/docs/designer/designer-high-dpi-mode.md-->
+		<ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+		<ForceDesignerDpiUnaware>true</ForceDesignerDpiUnaware>
 
-		<IsPublishable>False</IsPublishable>
-
-
-		<RootNamespace>MALM</RootNamespace>
-
-		<!-- Display name -->
-		<ApplicationTitle>Mikrotik AddressList Manager</ApplicationTitle>
-		<Title>Mikrotik AddressList Manager</Title>
-		<Product>Mikrotik AddressList Manager</Product>
-		<Authors>UOM</Authors>
-		<Description>UOM Mikrotik AddressList Manager</Description>
-		<Copyright>(C)UOM 2010-2024</Copyright>
-
-		<ApplicationIcon>..\CommonMP\Media\Router\Router.ico</ApplicationIcon>
-
-		<NeutralLanguage>en-US</NeutralLanguage>
-
-		<!--
-		Uncomment for inclute add net core dll's to output dir.
-		<SelfContained>True</SelfContained>
-		-->
-
-		<!-- Versions -->
 		<AssemblyName>MALM</AssemblyName>
-		<AssemblyVersion>3.0.0.1</AssemblyVersion>
-		<FileVersion>3.0.0.1</FileVersion>
-		<ProductVersion>3.0.0.1</ProductVersion>
+		<ApplicationDisplayVersion>$(Version)</ApplicationDisplayVersion>		
+		<ApplicationIcon>$(SolutionDir)\CommonMP\Media\Router\Router.ico</ApplicationIcon>
 
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-
-	</PropertyGroup>
-	<PropertyGroup>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+	
 	</PropertyGroup>
-
-
-
-
+	
+	
 	<ItemGroup>
-
 		<!-- Resources -->
-		<EmbeddedResource Include="..\CommonMP\OUI\oui.txt" Link="OUI\oui.txt" />
-		<EmbeddedResource Include="..\CommonMP\Media\Router\Router_gray.svg" Link="Media\Router\Router_gray.svg" />
-		<EmbeddedResource Include="..\CommonMP\Media\Balls\ball_green.svg" Link="Media\Balls\ball_green.svg" />
-
-
+		<EmbeddedResource Include="$(SolutionDir)\CommonMP\OUI\oui.txt" Link="OUI\oui.txt" />
+		<EmbeddedResource Include="$(SolutionDir)\CommonMP\Media\Router\Router_gray.svg" Link="Media\Router\Router_gray.svg" />
+		<EmbeddedResource Include="$(SolutionDir)\CommonMP\Media\Balls\ball_green.svg" Link="Media\Balls\ball_green.svg" />
 		<!-- Localization String Resources -->
 		<EmbeddedResource Update="Localization\LStrings.resx">
 			<Generator>ResXFileCodeGenerator</Generator>
 			<LastGenOutput>LStrings.Designer.cs</LastGenOutput>
 		</EmbeddedResource>
-
 		<Compile Update="Localization\LStrings.Designer.cs">
 			<DesignTime>True</DesignTime>
 			<AutoGen>True</AutoGen>
 			<DependentUpon>LStrings.resx</DependentUpon>
 		</Compile>
-
 		<EmbeddedResource Update="Localization\LStrings.ru.resx">
 			<Generator>ResXFileCodeGenerator</Generator>
 		</EmbeddedResource>
-
 		<EmbeddedResource Update="Localization\LStrings.uk.resx">
 			<Generator>ResXFileCodeGenerator</Generator>
 		</EmbeddedResource>
-
-
-
 		<!-- Include -->
-
-		<Compile Include="..\CommonMP\OUI\MacRecordInfo.cs" Link="OUI\MacRecordInfo.cs" />
-		<Compile Include="..\CommonMP\OUI\MacRecordsGroup.cs" Link="OUI\MacRecordsGroup.cs" />
-		<Compile Include="..\CommonMP\OUI\Manager.cs" Link="OUI\Manager.cs" />
-		<Compile Include="..\CommonMP\OUI\Tools.cs" Link="OUI\Tools.cs" />
-		<Compile Include="..\CommonMP\OUI\OUIDatabase.cs" Link="OUI\OUIDatabase.cs" />
-
+		<Compile Include="$(SolutionDir)\CommonMP\OUI\MacRecordInfo.cs" Link="OUI\MacRecordInfo.cs" />
+		<Compile Include="$(SolutionDir)\CommonMP\OUI\MacRecordsGroup.cs" Link="OUI\MacRecordsGroup.cs" />
+		<Compile Include="$(SolutionDir)\CommonMP\OUI\Manager.cs" Link="OUI\Manager.cs" />
+		<Compile Include="$(SolutionDir)\CommonMP\OUI\Tools.cs" Link="OUI\Tools.cs" />
+		<Compile Include="$(SolutionDir)\CommonMP\OUI\OUIDatabase.cs" Link="OUI\OUIDatabase.cs" />
 		<!-- Include Partial UI files -->
-		<Compile Include="..\CommonMP\UI\MasterKeyUI_Multiplatform.cs" Link="UI\MasterKeyUI_Multiplatform.cs">
+		<Compile Include="$(SolutionDir)\CommonMP\UI\MasterKeyUI_Multiplatform.cs" Link="UI\MasterKeyUI_Multiplatform.cs">
 			<DependentUpon>MasterKeyUI.cs</DependentUpon>
 		</Compile>
-
-		<Compile Include="..\CommonMP\UI\DevicesListUI_Multiplatform.cs" Link="UI\DevicesListUI_Multiplatform.cs">
+		<Compile Include="$(SolutionDir)\CommonMP\UI\DevicesListUI_Multiplatform.cs" Link="UI\DevicesListUI_Multiplatform.cs">
 			<DependentUpon>DevicesListUI.cs</DependentUpon>
 		</Compile>
-
-		<Compile Include="..\CommonMP\UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs" Link="UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs">
+		<Compile Include="$(SolutionDir)\CommonMP\UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs" Link="UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs">
 			<DependentUpon>MikrotikAddressTableRecord_ListUI.cs</DependentUpon>
 		</Compile>
-
-
 		<!-- Include Partial Model files -->
-		<Compile Include="..\CommonMP\Model\DevicesListRecord_Multiplatform.cs" Link="Model\DevicesListRecord_Multiplatform.cs">
+		<Compile Include="$(SolutionDir)\CommonMP\Model\DevicesListRecord_Multiplatform.cs" Link="Model\DevicesListRecord_Multiplatform.cs">
 			<DependentUpon>DevicesListRecord.cs</DependentUpon>
 		</Compile>
-
 	</ItemGroup>
-
-
-
+	
 	<!-- References -->
 	<ItemGroup>
-		<PackageReference Include="Svg" Version="3.4.7" />
-		<PackageReference Include="System.Management" Version="8.0.0" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Include="Vanara.Pinvoke.Kernel32" Version="4.0.5" />
-		<PackageReference Include="Vanara.Pinvoke.User32" Version="4.0.5" />
-		<PackageReference Include="Vanara.Pinvoke.Gdi32" Version="4.0.5" />
-
-
-		<PackageReference Include="Vanara.Security" Version="4.0.5" />
-		<PackageReference Include="Vanara.Pinvoke.Security" Version="4.0.5" />
-
-		<PackageReference Include="Vanara.Pinvoke.Shell32" Version="4.0.5" />
-		<PackageReference Include="Vanara.Pinvoke.ShlwApi" Version="4.0.5" />
-
-		<PackageReference Include="Vanara.Pinvoke.IpHlpApi" Version="4.0.5" />
-		<PackageReference Include="Vanara.Pinvoke.NtDll" Version="4.0.5" />
-
-		<PackageReference Include="Vanara.PInvoke.Accessibility" Version="4.0.5" />
-
-		<PackageReference Include="Vanara.Pinvoke.DwmApi" Version="4.0.5" />
-		<PackageReference Include="Vanara.Windows.Forms" Version="4.0.5" />
-	</ItemGroup>
-
-
-	<ItemGroup>
-		<ProjectReference Include="..\..\..\_LIB\Mikrotik\MikrotikDotNet\Mikrotik.Net\Mikrotik.Net.csproj" />
+		<PackageReference Include="Svg" />
+		<PackageReference Include="System.Management" />
+		
+		<PackageReference Include="Vanara.Pinvoke.Kernel32" />
+		<PackageReference Include="Vanara.Pinvoke.User32" />
+		<PackageReference Include="Vanara.Pinvoke.Gdi32" />
+		<PackageReference Include="Vanara.Security" />
+		<PackageReference Include="Vanara.Pinvoke.Security" />
+		<PackageReference Include="Vanara.Pinvoke.Shell32" />
+		<PackageReference Include="Vanara.Pinvoke.ShlwApi" />
+		<PackageReference Include="Vanara.Pinvoke.IpHlpApi" />
+		<PackageReference Include="Vanara.Pinvoke.NtDll" />
+		<PackageReference Include="Vanara.PInvoke.Accessibility" />
+		<PackageReference Include="Vanara.Pinvoke.DwmApi" />
+		<PackageReference Include="Vanara.Windows.Forms" />
 	</ItemGroup>
 	<ItemGroup>
 		<Compile Update="Localization\LStrings.Designer.cs">
@@ -153,8 +97,4 @@
 			<DependentUpon>LStrings.resx</DependentUpon>
 		</Compile>
 	</ItemGroup>
-
-
-
-
 </Project>

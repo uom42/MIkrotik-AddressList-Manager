@@ -1,0 +1,15 @@
+<Project>
+
+	<PropertyGroup>
+
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<LangVersion>Latest</LangVersion>
+		<CharacterSet>Unicode</CharacterSet>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+
+		
+	</PropertyGroup>
+
+
+</Project>

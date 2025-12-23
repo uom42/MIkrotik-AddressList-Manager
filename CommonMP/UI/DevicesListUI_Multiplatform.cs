@@ -1,13 +1,11 @@
-﻿#nullable enable
-
-namespace MALM.UI;
-
-using static MALM.Localization.LStrings;
-
+﻿
 using MALM.Model;
 using MikrotikDotNet;
+using static MALM.Localization.LStrings;
 
+#nullable enable
 
+namespace MALM.UI;
 #if !WINDOWS
 
 using System.Collections.ObjectModel;
@@ -23,31 +21,31 @@ using CommunityToolkit.Mvvm.Input;
 #endif
 
 
-partial class DevicesListUI
+internal partial class DevicesListUI
 {
 
-	private MasterKeyManager? _mkm = null;
+    private readonly MasterKeyManager? _mkm = null;
 
 
 #if !WINDOWS
 	private ObservableCollection<DevicesListRecord> _devices = [];
 #else
-	private MKConnection? _dialogResult = null;
-	private DevicesListRecord[] _devices = [];
+    private MKConnection? _dialogResult = null;
+    private readonly DevicesListRecord[] _devices = [];
 #endif
 
 
-	public DevicesListUI()
-	{
+    public DevicesListUI ()
+    {
 
 #if !WINDOWS
 		//Checking reference to MauiIcon (AathifMahir.Maui.MauiIcons.Material.Outlined) http://www.aathifmahir.com/dotnet/2022/maui/icons
 		_ = new MauiIcons.Core.MauiIcon();
 #endif
 
-		InitializeComponent();
+        InitializeComponent();
 
-		LocalizeUI();
+        LocalizeUI();
 
 
 #if !WINDOWS
@@ -61,40 +59,40 @@ partial class DevicesListUI
 		this.Appearing += async (s, e) => await onAppearing();
 		this.Disappearing += async (s, e) => await onDisappearing();
 #else
-		lvwDevices.MultiSelect = false;
-		lvwDevices.SelectedIndexChanged += delegate { OnDeviceSelected(); };
+        lvwDevices.MultiSelect = false;
+        lvwDevices.SelectedIndexChanged += delegate { OnDeviceSelected(); };
 
-		btnAdd.Click += OnAdd!;
-		btnEdit.Click += Device_Edit!;
-		btnDelete.Click += Device_Delete!;
-		btnSetMasterKey.Click += OnChangeMasterKey!;
+        btnAdd.Click += OnAdd!;
+        btnEdit.Click += Device_Edit!;
+        btnDelete.Click += Device_Delete!;
+        btnSetMasterKey.Click += OnChangeMasterKey!;
 
-		btnConnect.Click += async (s, e) => await OnTryConnectDevice(s, e);
-		lvwDevices.DoubleClick += async (s, e) => await OnTryConnectDevice(s, e);
+        btnConnect.Click += async ( s , e ) => await OnTryConnectDevice(s , e);
+        lvwDevices.DoubleClick += async ( s , e ) => await OnTryConnectDevice(s , e);
 
-		this.Load += (_, _) => OnLoad();
+        Load += ( _ , _ ) => OnLoad();
 #endif
 
-		OUI.Manager.BeginInitialize(2);
-	}
+        OUI.Manager.BeginInitialize(2);
+    }
 
 
-	/// <summary>	Only Windows</summary>
-	internal DevicesListUI(LoginResult l) : this()
-	{
-		_mkm = l.Manager;
+    /// <summary>	Only Windows</summary>
+    internal DevicesListUI ( LoginResult l ) : this()
+    {
+        _mkm = l.Manager;
 #if ANDROID
 		_devices = new(l.Devices);
 #else
-		_devices = l.Devices;
+        _devices = l.Devices;
 #endif
 
-	}
+    }
 
 
 
-	private void LocalizeUI()
-	{
+    private void LocalizeUI ()
+    {
 
 #if !WINDOWS
 		Title = L_DEVICES_LIST;
@@ -109,30 +107,30 @@ partial class DevicesListUI
 		btnExitApp.Clicked += (_, _) => OnExit();
 
 #else
-		Text = L_DEVICES_LIST;
+        Text = L_DEVICES_LIST;
 
-		btnDelete.Text = L_DELETE;
-		btnEdit.Text = L_EDIT;
+        btnDelete.Text = L_DELETE;
+        btnEdit.Text = L_EDIT;
 
-		btnConnect.Text = L_CONNECT;
+        btnConnect.Text = L_CONNECT;
 
-		colAddress.Text = L_DEVICE_ADDRESS;
-		colUser.Text = L_DEVICE_USER;
+        colAddress.Text = L_DEVICE_ADDRESS;
+        colUser.Text = L_DEVICE_USER;
 
 #endif
 
-		btnAdd.Text = L_ADD;
-		btnSetMasterKey.Text = $"{L_SET} {L_MASTER_KEY.ToLower()}";
-	}
+        btnAdd.Text = L_ADD;
+        btnSetMasterKey.Text = $"{L_SET} {L_MASTER_KEY.ToLower()}";
+    }
 
 
 
-	#region Edit list
+    #region Edit list
 
 
 
-	private async void OnAdd(object s, EventArgs e)
-	{
+    private async void OnAdd ( object s , EventArgs e )
+    {
 
 #if !WINDOWS
 
@@ -165,52 +163,52 @@ partial class DevicesListUI
 #else
 
 
-		using DevicesListRecordEditorUI fe = DevicesListRecordEditorUI.InitUI(null);
-		if (fe.ShowDialog(this) != DialogResult.OK) return;
+        using DevicesListRecordEditorUI fe = DevicesListRecordEditorUI.InitUI(null);
+        if ( fe.ShowDialog(this) != DialogResult.OK ) return;
 
-		DevicesListRecord abr = DevicesListRecord.FromEditor(fe);
-		var li = AddRecordToList(abr);
-		await SaveDevicesList();
-		li.eActivate();
+        DevicesListRecord abr = DevicesListRecord.FromEditor(fe);
+        var li = AddRecordToList(abr);
+        await SaveDevicesList();
+        li.activate();
 
 #endif
 
-	}
+    }
 
 
 
 
 
-	#endregion
+    #endregion
 
 
 
-	private async void OnChangeMasterKey(object s, EventArgs e)
-	{
+    private async void OnChangeMasterKey ( object s , EventArgs e )
+    {
 #if !WINDOWS
 		await _mkm!.ShowEditorUI(SaveDevicesList);
 #else
-		await _mkm!.ShowEditorUI(this, SaveDevicesList);
+        await _mkm!.ShowEditorUI(this , SaveDevicesList);
 #endif
-	}
+    }
 
 
-	private async Task SaveDevicesList()
-	{
+    private async Task SaveDevicesList ()
+    {
 
 #if !WINDOWS
 		var rows = _devices;
 #else
 
-		//uom.controls.ListViewItemT<DevicesListRecord>? SelectedDeviceeeeee		=> lvwDevices.eSelectedItemsAs<uom.controls.ListViewItemT<DevicesListRecord>>().FirstOrDefault();
+        //uom.controls.ListViewItemT<DevicesListRecord>? SelectedDeviceeeeee		=> lvwDevices.eSelectedItemsAs<uom.controls.ListViewItemT<DevicesListRecord>>().FirstOrDefault();
 
 
-		var rows = lvwDevices
-			.eItemsAs<uom.controls.ListViewItemT<DevicesListRecord>>()
-			.Select(li => li.Value2);
+        var rows = lvwDevices
+            .itemsAs<uom.controls.ListViewItemT<DevicesListRecord>>()
+            .Select(li => li.Value2);
 #endif
-		await _mkm!.Database_WriteEncrypted([.. rows]);
-	}
+        await _mkm!.Database_WriteEncrypted([ .. rows ]);
+    }
 
 
 

@@ -13,7 +13,7 @@ namespace uom.controls.MAUI.Animations
 		{
 			try
 			{
-				delay ??= "ButtonClickDelay".FindAppResource_Int32(100);
+				delay ??=  "ButtonClickDelay".FindAppResource_Int32(100);
 				//string s = $"Type: '{d.GetType()}', value: '{d}'";
 				await Task.Delay(delay.Value); //Add delay for button click animation				
 			}

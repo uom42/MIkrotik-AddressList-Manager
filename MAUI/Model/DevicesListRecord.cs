@@ -34,7 +34,7 @@ namespace MALM.Model
 
 
 		[XmlIgnore]
-		public InvertableBool IsOnline => OnlineDeviceStatus != null;
+		public	uom.InvertableBool IsOnline => OnlineDeviceStatus != null;
 
 
 		public void OnPropertyChanged2([CallerMemberName] string propName = "")

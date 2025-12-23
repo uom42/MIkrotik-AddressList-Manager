@@ -1,12 +1,7 @@
 using MALM.Model.Mikrotik;
-
-
-using MikrotikDotNet.Model.IP.Firewall.AddressList;
-
 using MikrotikDotNet;
-
+using MikrotikDotNet.Model.IP.Firewall.AddressList;
 using uom.maui;
-
 using static MALM.Localization.LStrings;
 
 namespace MALM.UI;
@@ -14,10 +9,10 @@ namespace MALM.UI;
 partial class MikrotikAddressTableRecord_ListUI : ContentPage
 {
 
-	private void OnExit() => Application.Current?.Quit();
+    private void OnExit () => Application.Current?.Quit();
 
 
-	/*
+    /*
 
 	private void OnGroupTap(object sender, TappedEventArgs e)
 	{
