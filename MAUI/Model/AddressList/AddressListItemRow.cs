@@ -1,22 +1,23 @@
 ﻿#nullable enable
 
-using static MALM.Localization.LStrings;
-
+using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 using MikrotikDotNet.Model.IP.Firewall.AddressList;
 
 using uom.maui;
-using CommunityToolkit.Maui.Alerts;
+using uom.mvvm;
+
+using static MALM.Localization.LStrings;
 
 
 namespace MALM.Model.AddressList;
 
 
-internal class AddressListItemRow(AddressListItem ali) : ObservableObject
+internal class AddressListItemRow ( AddressListItem ali ) : ObservableObject
 {
 
-	internal AddressListItemRow Clone() => new(MikrotikRow);
+	internal AddressListItemRow Clone () => new(MikrotikRow);
 
 	public AddressListItem MikrotikRow { get; private set; } = ali;
 
@@ -26,7 +27,7 @@ internal class AddressListItemRow(AddressListItem ali) : ObservableObject
 		: $" ({MikrotikRow.Comment})");
 
 
-	public string CreatedTimestamp => MikrotikRow.CreationTime.eToLongDateTimeString();
+	public string CreatedTimestamp => MikrotikRow.CreationTime.toLongDateTimeString();
 
 	public string ID => MikrotikRow.MKID;
 
@@ -34,7 +35,7 @@ internal class AddressListItemRow(AddressListItem ali) : ObservableObject
 	public string GroupName => MikrotikRow.List.Trim();
 
 
-	public uom.InvertableBool IsStateChanging { get; private set; } = false;
+	public InvertableBool IsStateChanging { get; private set; } = false;
 
 
 	public bool Checked
@@ -43,7 +44,7 @@ internal class AddressListItemRow(AddressListItem ali) : ObservableObject
 		set
 		{
 			bool oldValue = MikrotikRow.Enabled;
-			if (value == oldValue) return;
+			if ( value == oldValue ) return;
 			OnPropertyChanging(nameof(Checked));
 
 			Debug.WriteLine($"\t***\t Trying to write 'Checked' property from '{oldValue}' to '{value}'");
@@ -53,16 +54,16 @@ internal class AddressListItemRow(AddressListItem ali) : ObservableObject
 		}
 	}
 
-	private void SetMikrotikRowStateAsync(bool enabled)
+	private void SetMikrotikRowStateAsync ( bool enabled )
 	{
 		//Trying to change  property async...
 		_ = Task.Factory.StartNew(async () => await SetMikrotikRowState(enabled));
 	}
 
-	private async Task SetMikrotikRowState(bool enable)
+	private async Task SetMikrotikRowState ( bool enable )
 	{
 
-		void setChangingModeInMainThread(bool isChanging)
+		void setChangingModeInMainThread ( bool isChanging )
 		{
 			MainThread.BeginInvokeOnMainThread(() =>
 			{
@@ -71,7 +72,7 @@ internal class AddressListItemRow(AddressListItem ali) : ObservableObject
 			});
 		}
 
-		void OnPropertyChangedOnMainThread(string propName)
+		void OnPropertyChangedOnMainThread ( string propName )
 			=> MainThread.BeginInvokeOnMainThread(() => OnPropertyChanged(propName));
 
 		//Disabling Checkbox
@@ -84,12 +85,12 @@ internal class AddressListItemRow(AddressListItem ali) : ObservableObject
 			AddressListItem? mkRow = await MikrotikRow.ReQueryAsync(true);
 
 			//if item with this id will be not found - error will bw thrown and no modification on item with wrong id will be made.
-			await mkRow.EnableAsync(true, enable);//item with this id was found. Make modification
+			await mkRow.EnableAsync(true , enable);//item with this id was found. Make modification
 
 			//Again requery item to get new properties
 			MikrotikRow = await mkRow.ReQueryAsync(true);
 		}
-		catch (Exception ex)
+		catch ( Exception ex )
 		{
 			ex.eLogErrorToast();
 			//await QueryMKData();//On any error we refill list with actual data from mikrotik
@@ -105,18 +106,15 @@ internal class AddressListItemRow(AddressListItem ali) : ObservableObject
 
 
 
-	public bool Filter(string filter)
+	public bool Filter ( string filter )
 	{
-		if (string.IsNullOrWhiteSpace(filter)) return true;
+		if ( string.IsNullOrWhiteSpace(filter) ) return true;
 
 		filter = filter.Trim();
 		const StringComparison sc = StringComparison.OrdinalIgnoreCase;
 
-		if (MikrotikRow.Address.Contains(filter, sc)) return true;
-		if (MikrotikRow.List.Contains(filter, sc)) return true;
-		if (MikrotikRow.CreationTime.ToString().Contains(filter, sc)) return true;
-		if (MikrotikRow.Comment.isNotNullOrWhiteSpace && MikrotikRow.Comment.Contains(filter, sc)) return true;
-
-		return false;
+		if ( MikrotikRow.Address.Contains(filter , sc) ) return true;
+		if ( MikrotikRow.List.Contains(filter , sc) ) return true;
+		return MikrotikRow.CreationTime.ToString().Contains(filter , sc) || MikrotikRow.Comment.isNotNullOrWhiteSpace && MikrotikRow.Comment.Contains(filter , sc);
 	}
 }

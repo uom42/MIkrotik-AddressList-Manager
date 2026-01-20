@@ -167,11 +167,12 @@ namespace MALM.Model
                     using IsolatedStorageFileStream issfs = isf.OpenFile(I_STORE_FILE , FileMode.Open);
                     if ( issfs.Length < 2 ) return null;
 
-                    byte[] encryptedKey = issfs.eReadAllBytes();
+                    using var r = issfs.readExAllBytes();
+                    byte[] encryptedKey = r.Value;
                     try
                     {
                         byte[] masterKeyBytes = ProtectedData.Unprotect(encryptedKey , GetEntrophyBytes() , DataProtectionScope.CurrentUser);
-                        return masterKeyBytes.eToStringUni();
+                        return masterKeyBytes.toStringUni();
                     }
                     catch ( CryptographicException )
                     { }
@@ -312,7 +313,7 @@ namespace MALM.Model
                 {
                     byte[] abKey = ProtectedData.Protect(masterKey.eGetBytes_Unicode() , GetEntrophyBytes() , DataProtectionScope.CurrentUser);
                     using IsolatedStorageFileStream of = isoStore.CreateFile(I_STORE_FILE);
-                    of.eWriteAllBytes(abKey);
+                    of.writeAllBytes(abKey);
                     of.Flush();
                 });
 #endif

@@ -1,8 +1,9 @@
-﻿global using static uom.constants;
+﻿//global using static uom.constants;
 
 using System.Net.NetworkInformation;
 
-namespace MALM.OUI;
+
+namespace uom.network.OUI;
 
 
 internal class MacRecordsGroup

@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.Input;
 using MvvmHelpers;
 
 using uom.maui;
+using uom.mvvm;
 
 
 namespace uom.controls.MAUI.CollectionViews;
@@ -30,11 +31,11 @@ internal abstract partial class ExpandableGroupsCollection<TRow> : IList<TRow>, 
 	public event PropertyChangedEventHandler? PropertyChanged;
 	public event NotifyCollectionChangedEventHandler? CollectionChanged;
 
-	public ExpandableGroupsCollection(CollectionView cv,
-		string name,
-		IEnumerable<TRow> rows,
-		string emptyGroupNamePlaceholder,
-		bool defaultCollapsedStateIfSettingsNotFound,
+	public ExpandableGroupsCollection ( CollectionView cv ,
+		string name ,
+		IEnumerable<TRow> rows ,
+		string emptyGroupNamePlaceholder ,
+		bool defaultCollapsedStateIfSettingsNotFound ,
 		bool? overrideSettingsCollapsedState = null
 		) : base()
 	{
@@ -42,9 +43,9 @@ internal abstract partial class ExpandableGroupsCollection<TRow> : IList<TRow>, 
 		_name = name;
 		_emptyGroupNamePlaceholder = emptyGroupNamePlaceholder;
 
-		_rowsCache = [.. rows];
+		_rowsCache = [ .. rows ];
 
-		if (overrideSettingsCollapsedState.HasValue)
+		if ( overrideSettingsCollapsedState.HasValue )
 		{
 			_collapsed = overrideSettingsCollapsedState.Value;
 		}
@@ -53,7 +54,7 @@ internal abstract partial class ExpandableGroupsCollection<TRow> : IList<TRow>, 
 			try
 			{
 				string prefKey = CollapsedStatePrefKey;
-				if (Preferences.ContainsKey(prefKey)) _collapsed = Preferences.Get(prefKey, defaultCollapsedStateIfSettingsNotFound);
+				if ( Preferences.ContainsKey(prefKey) ) _collapsed = Preferences.Get(prefKey , defaultCollapsedStateIfSettingsNotFound);
 			}
 			catch { _collapsed = defaultCollapsedStateIfSettingsNotFound; }
 		}
@@ -74,7 +75,7 @@ internal abstract partial class ExpandableGroupsCollection<TRow> : IList<TRow>, 
 	/// <summary>Returns 'real' count of group items</summary>
 	public int CachedItemsCount => _rowsCache.Count();
 
-	public override string ToString() => $"{Name} ({CachedItemsCount})";
+	public override string ToString () => $"{Name} ({CachedItemsCount})";
 
 
 
@@ -98,18 +99,18 @@ internal abstract partial class ExpandableGroupsCollection<TRow> : IList<TRow>, 
 		get => _collapsed;
 		set
 		{
-			if (value == _collapsed) return;
+			if ( value == _collapsed ) return;
 
 			try
 			{
-				Preferences.Set(CollapsedStatePrefKey, value.Value);
+				Preferences.Set(CollapsedStatePrefKey , value.Value);
 			}
 			catch { }
 
 			_collapsed = value;
 			MainThread.BeginInvokeOnMainThread(() =>
 			{
-				PropertyChanged?.Invoke(this, new(nameof(IsCollapsed)));
+				PropertyChanged?.Invoke(this , new(nameof(IsCollapsed)));
 			});
 
 			ApplyCollapsedState(value);
@@ -119,12 +120,12 @@ internal abstract partial class ExpandableGroupsCollection<TRow> : IList<TRow>, 
 
 	/// <summary>Collapsing-Expanding implementation is:<br></br>
 	/// Removing all group items from the CollectionView when group collapsed and add them back when expanded</summary>
-	private void ApplyCollapsedState(bool collapsed)
+	private void ApplyCollapsedState ( bool collapsed )
 	{
 		//_cvControl.BatchBegin();
 		try
 		{
-			if (collapsed)
+			if ( collapsed )
 			{
 				/*
 				Clear();
@@ -135,7 +136,7 @@ internal abstract partial class ExpandableGroupsCollection<TRow> : IList<TRow>, 
 					//var killRows = _rowsVisible;
 					//CollectionChanged?.Invoke(this, new(NotifyCollectionChangedAction.Remove, killRows));
 					_rowsVisible.Clear();
-					CollectionChanged?.Invoke(this, new(NotifyCollectionChangedAction.Reset));
+					CollectionChanged?.Invoke(this , new(NotifyCollectionChangedAction.Reset));
 				});
 			}
 			else
@@ -144,7 +145,7 @@ internal abstract partial class ExpandableGroupsCollection<TRow> : IList<TRow>, 
 				{
 					_rowsVisible.Clear();
 					_rowsVisible.AddRange(_rowsCache);
-					CollectionChanged?.Invoke(this, new(NotifyCollectionChangedAction.Reset));
+					CollectionChanged?.Invoke(this , new(NotifyCollectionChangedAction.Reset));
 
 					//var addRows = _rowsCache.ToArray();
 					//CollectionChanged?.Invoke(this, new(NotifyCollectionChangedAction.Add, addRows));
@@ -188,7 +189,7 @@ internal abstract partial class ExpandableGroupsCollection<TRow> : IList<TRow>, 
 
 
 	[RelayCommand]
-	private async Task SwitchExpandedState()
+	private async Task SwitchExpandedState ()
 	{
 		//await Task.Delay(400);
 
@@ -241,9 +242,9 @@ internal abstract partial class ExpandableGroupsCollection<TRow> : IList<TRow>, 
 	#region Unsupported
 
 
-	public void Insert(int index, TRow item) => throw new NotImplementedException();
-	public void RemoveAt(int index) => throw new NotImplementedException();
-	public void CopyTo(TRow[] array, int arrayIndex) => throw new NotImplementedException();
+	public void Insert ( int index , TRow item ) => throw new NotImplementedException();
+	public void RemoveAt ( int index ) => throw new NotImplementedException();
+	public void CopyTo ( TRow[] array , int arrayIndex ) => throw new NotImplementedException();
 
 
 
@@ -253,49 +254,49 @@ internal abstract partial class ExpandableGroupsCollection<TRow> : IList<TRow>, 
 
 
 
-	public IEnumerator<TRow> GetEnumerator() => _rowsVisible.GetEnumerator();
-	IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+	public IEnumerator<TRow> GetEnumerator () => _rowsVisible.GetEnumerator();
+	IEnumerator IEnumerable.GetEnumerator () => GetEnumerator();
 
 
 	public int Count => _rowsVisible.Count;
 	public bool IsReadOnly => false;
 
-	public TRow this[int index]
+	public TRow this[ int index ]
 	{
-		get => _rowsVisible[index];
+		get => _rowsVisible[ index ];
 		set
 		{
-			var oldItem = _rowsVisible[index];
+			var oldItem = _rowsVisible[ index ];
 			var n = _rowsCache.IndexOf(oldItem);
-			_rowsVisible[index] = value;
-			_rowsCache[n] = value;
+			_rowsVisible[ index ] = value;
+			_rowsCache[ n ] = value;
 
-			MainThread.BeginInvokeOnMainThread(() => CollectionChanged?.Invoke(this,
-			 new(NotifyCollectionChangedAction.Replace, value, oldItem)));
+			MainThread.BeginInvokeOnMainThread(() => CollectionChanged?.Invoke(this ,
+			 new(NotifyCollectionChangedAction.Replace , value , oldItem)));
 		}
 	}
 
 
-	public int IndexOf(TRow item) => _rowsVisible.IndexOf(item);
-	public bool Contains(TRow item) => _rowsVisible.Contains(item);
+	public int IndexOf ( TRow item ) => _rowsVisible.IndexOf(item);
+	public bool Contains ( TRow item ) => _rowsVisible.Contains(item);
 
-	[Obsolete("Internal use only!", true)]
-	void ICollection<TRow>.Clear()
+	[Obsolete("Internal use only!" , true)]
+	void ICollection<TRow>.Clear ()
 	{
 		//_rowsVisible.Clear();
 		//OnCollectionChanged(NotifyCollectionChangedAction.Reset);
 		//OnCollectionChanged(NotifyCollectionChangedAction.Remove);
 	}
 
-	public bool Remove(TRow item)
+	public bool Remove ( TRow item )
 	{
 		_rowsCache.Remove(item);
-		if (_rowsVisible.Contains(item)) _rowsVisible.Remove(item);
+		if ( _rowsVisible.Contains(item) ) _rowsVisible.Remove(item);
 		OnCollectionChanged_Remove(item);
 		return true;
 	}
 
-	public void Add(TRow item)
+	public void Add ( TRow item )
 	{
 		_rowsCache.Add(item);
 		_rowsVisible.Add(item);
@@ -303,11 +304,11 @@ internal abstract partial class ExpandableGroupsCollection<TRow> : IList<TRow>, 
 	}
 
 
-	private void OnCollectionChanged_Add(TRow row) => MainThread.BeginInvokeOnMainThread(() => CollectionChanged?.Invoke(this,
-			 new(NotifyCollectionChangedAction.Add, row)));
+	private void OnCollectionChanged_Add ( TRow row ) => MainThread.BeginInvokeOnMainThread(() => CollectionChanged?.Invoke(this ,
+			 new(NotifyCollectionChangedAction.Add , row)));
 
-	private void OnCollectionChanged_Remove(TRow row) => MainThread.BeginInvokeOnMainThread(() => CollectionChanged?.Invoke(this,
-			 new(NotifyCollectionChangedAction.Remove, row)));
+	private void OnCollectionChanged_Remove ( TRow row ) => MainThread.BeginInvokeOnMainThread(() => CollectionChanged?.Invoke(this ,
+			 new(NotifyCollectionChangedAction.Remove , row)));
 
 
 

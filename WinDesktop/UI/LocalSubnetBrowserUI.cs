@@ -1,6 +1,8 @@
-﻿using MALM.Model;
+﻿using System.Data;
+
+using MALM.Model;
+
 using MikrotikDotNet.Model.IP.ARP;
-using System.Data;
 
 namespace MALM.UI
 {
@@ -111,13 +113,13 @@ namespace MALM.UI
 
             var arpRows = (await MikrotikDotNet.Model.IP.ARP.ARPItem.GetItemsAsync(_connection , true))
                 .Where(arp => arp.Dynamic)
-                .Where(arp => arp.Status.eEqualsOneOf(ARPItem.STATUSES.Reachable , ARPItem.STATUSES.Stale))
+                .Where(arp => arp.Status.equalsOneOf(ARPItem.STATUSES.Reachable , ARPItem.STATUSES.Stale))
                 .Where(arp => arp.Complete && !arp.Invalid && arp.Address != null && arp.MacAddress != null)
                 .Where(arp => !dhcpActiveIPList.Contains(arp.Address!))
                 .Where(arp =>
                 {
                     var arpIP = arp.Address!;
-                    var iip = mikrotikNetworks.FirstOrDefault(subnetIP => arpIP.eIsInSubnet(subnetIP.Address_Parsed!));
+                    var iip = mikrotikNetworks.FirstOrDefault(subnetIP => arpIP.isInSubnet(subnetIP.Address_Parsed!));
                     return iip != null;
                 })
                 .ToArray();
@@ -169,7 +171,7 @@ namespace MALM.UI
                             return foundInDHCP == null;
                         }
                         )
-                        .OrderBy(arp => arp.Address!.eToUInt32CalculableOrder())
+                        .OrderBy(arp => arp.Address!.toUInt32CalculableOrder())
                         .ToArray();
 
 

@@ -1,15 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<Import Project="$(SolutionDir)\CommonProject.Multiplatform.props" />
-	<Import Project="$(SolutionDir)\CommonProject.Windows.props" />
-	<Import Project="$(SolutionDir)\CommonProject.MALM.props" />
+	<Import Project="$(SolutionDir)\CommonMP\CommonProject.Multiplatform.props" />
+	<Import Project="$(SolutionDir)\CommonMP\CommonProject.LIBs.props" />
+	<Import Project="$(SolutionDir)\CommonMP\CommonProject.MALM.props" />
 
 	<!--
 	<Text Include="test.proto" />
 	-->
 	
 	<PropertyGroup>
-		<TargetFramework>net10.0-windows</TargetFramework>		
+		<TargetFramework>net11.0-windows10.0.19041.0</TargetFramework>
 		<OutputType>WinExe</OutputType>
 		
 		<UseWindowsForms>true</UseWindowsForms>
@@ -26,50 +26,39 @@
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 	
+		
 	</PropertyGroup>
 	
 	
 	<ItemGroup>
-		<!-- Resources -->
-		<EmbeddedResource Include="$(SolutionDir)\CommonMP\OUI\oui.txt" Link="OUI\oui.txt" />
+		
+		<!-- Resources -->		
 		<EmbeddedResource Include="$(SolutionDir)\CommonMP\Media\Router\Router_gray.svg" Link="Media\Router\Router_gray.svg" />
 		<EmbeddedResource Include="$(SolutionDir)\CommonMP\Media\Balls\ball_green.svg" Link="Media\Balls\ball_green.svg" />
-		<!-- Localization String Resources -->
-		<EmbeddedResource Update="Localization\LStrings.resx">
-			<Generator>ResXFileCodeGenerator</Generator>
-			<LastGenOutput>LStrings.Designer.cs</LastGenOutput>
-		</EmbeddedResource>
+		
+		
+		<!-- Include -->
+		
+		<!-- Include Partial UI files -->
+		<Compile Include="$(SolutionDir)\CommonMP\UI\MasterKeyUI_Multiplatform.cs" Link="UI\MasterKeyUI_Multiplatform.cs">
+			<DependentUpon>MasterKeyUI.cs</DependentUpon>
+		</Compile>
+		
+		<Compile Include="$(SolutionDir)\CommonMP\UI\DevicesListUI_Multiplatform.cs" Link="UI\DevicesListUI_Multiplatform.cs">
+			<DependentUpon>DevicesListUI.cs</DependentUpon>
+		</Compile>
+
+		<Compile Include="$(SolutionDir)\CommonMP\UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs" Link="UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs">
+			<DependentUpon>MikrotikAddressTableRecord_ListUI.cs</DependentUpon>
+		</Compile>
+	 
 		<Compile Update="Localization\LStrings.Designer.cs">
 			<DesignTime>True</DesignTime>
 			<AutoGen>True</AutoGen>
 			<DependentUpon>LStrings.resx</DependentUpon>
 		</Compile>
-		<EmbeddedResource Update="Localization\LStrings.ru.resx">
-			<Generator>ResXFileCodeGenerator</Generator>
-		</EmbeddedResource>
-		<EmbeddedResource Update="Localization\LStrings.uk.resx">
-			<Generator>ResXFileCodeGenerator</Generator>
-		</EmbeddedResource>
-		<!-- Include -->
-		<Compile Include="$(SolutionDir)\CommonMP\OUI\MacRecordInfo.cs" Link="OUI\MacRecordInfo.cs" />
-		<Compile Include="$(SolutionDir)\CommonMP\OUI\MacRecordsGroup.cs" Link="OUI\MacRecordsGroup.cs" />
-		<Compile Include="$(SolutionDir)\CommonMP\OUI\Manager.cs" Link="OUI\Manager.cs" />
-		<Compile Include="$(SolutionDir)\CommonMP\OUI\Tools.cs" Link="OUI\Tools.cs" />
-		<Compile Include="$(SolutionDir)\CommonMP\OUI\OUIDatabase.cs" Link="OUI\OUIDatabase.cs" />
-		<!-- Include Partial UI files -->
-		<Compile Include="$(SolutionDir)\CommonMP\UI\MasterKeyUI_Multiplatform.cs" Link="UI\MasterKeyUI_Multiplatform.cs">
-			<DependentUpon>MasterKeyUI.cs</DependentUpon>
-		</Compile>
-		<Compile Include="$(SolutionDir)\CommonMP\UI\DevicesListUI_Multiplatform.cs" Link="UI\DevicesListUI_Multiplatform.cs">
-			<DependentUpon>DevicesListUI.cs</DependentUpon>
-		</Compile>
-		<Compile Include="$(SolutionDir)\CommonMP\UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs" Link="UI\MikrotikAddressTableRecord_ListUI_Multiplatform.cs">
-			<DependentUpon>MikrotikAddressTableRecord_ListUI.cs</DependentUpon>
-		</Compile>
-		<!-- Include Partial Model files -->
-		<Compile Include="$(SolutionDir)\CommonMP\Model\DevicesListRecord_Multiplatform.cs" Link="Model\DevicesListRecord_Multiplatform.cs">
-			<DependentUpon>DevicesListRecord.cs</DependentUpon>
-		</Compile>
+		
+		
 	</ItemGroup>
 	
 	<!-- References -->
@@ -90,11 +79,31 @@
 		<PackageReference Include="Vanara.Pinvoke.DwmApi" />
 		<PackageReference Include="Vanara.Windows.Forms" />
 	</ItemGroup>
+
+	
+	
+	<!-- bin_publish -->
 	<ItemGroup>
-		<Compile Update="Localization\LStrings.Designer.cs">
-			<DesignTime>True</DesignTime>
-			<AutoGen>True</AutoGen>
-			<DependentUpon>LStrings.resx</DependentUpon>
-		</Compile>
+		<Compile Remove="bin_publish\**" />
+		<EmbeddedResource Remove="bin_publish\**" />
+		<None Remove="bin_publish\**" />
 	</ItemGroup>
+	<PropertyGroup>
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+		<PublishSingleFile>true</PublishSingleFile>
+		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+		<SelfContained>true</SelfContained>
+		<PublishReadyToRun>true</PublishReadyToRun>
+	</PropertyGroup>
+
+	
+	
+	
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<!--Disable PDB creating in Release|AnyCPU-->
+		<DebugType>none</DebugType>
+		<DebugSymbols>false</DebugSymbols>
+	</PropertyGroup>
+
+
 </Project>

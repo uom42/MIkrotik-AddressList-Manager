@@ -1,11 +1,12 @@
-﻿
+﻿#nullable enable
+
 using MALM.Model;
+
 using MikrotikDotNet;
+
 using static MALM.Localization.LStrings;
 
-#nullable enable
 
-namespace MALM.UI;
 #if !WINDOWS
 
 using System.Collections.ObjectModel;
@@ -14,6 +15,7 @@ using uom.maui;
 
 using MALM.Pages;
 using MALM.Model.Mikrotik;
+
 using CommunityToolkit.Maui.Markup;
 using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Mvvm.Input;
@@ -21,10 +23,13 @@ using CommunityToolkit.Mvvm.Input;
 #endif
 
 
+namespace MALM.UI;
+
+
 internal partial class DevicesListUI
 {
 
-    private readonly MasterKeyManager? _mkm = null;
+	private readonly MasterKeyManager? _mkm = null;
 
 
 #if !WINDOWS
@@ -35,29 +40,27 @@ internal partial class DevicesListUI
 #endif
 
 
-    public DevicesListUI ()
-    {
+	public DevicesListUI ()
+	{
 
 #if !WINDOWS
 		//Checking reference to MauiIcon (AathifMahir.Maui.MauiIcons.Material.Outlined) http://www.aathifmahir.com/dotnet/2022/maui/icons
 		_ = new MauiIcons.Core.MauiIcon();
 #endif
 
-        InitializeComponent();
+		InitializeComponent();
 
-        LocalizeUI();
+		LocalizeUI();
 
 
 #if !WINDOWS
 		btnAdd.Clicked += OnAdd!;
 		btnSetMasterKey.Clicked += OnChangeMasterKey!;
 
+		Loaded += async ( s , e ) => await OnLoad();
 
-
-		this.Loaded += async (s, e) => await OnLoad();
-
-		this.Appearing += async (s, e) => await onAppearing();
-		this.Disappearing += async (s, e) => await onDisappearing();
+		Appearing += async ( s , e ) => await onAppearing();
+		Disappearing += async ( s , e ) => await onDisappearing();
 #else
         lvwDevices.MultiSelect = false;
         lvwDevices.SelectedIndexChanged += delegate { OnDeviceSelected(); };
@@ -71,28 +74,31 @@ internal partial class DevicesListUI
         lvwDevices.DoubleClick += async ( s , e ) => await OnTryConnectDevice(s , e);
 
         Load += ( _ , _ ) => OnLoad();
+
+        this.attach_PositionAndStateSaver();
+
 #endif
 
-        OUI.Manager.BeginInitialize(2);
-    }
+		uom.network.OUI.OUIDatabase.BeginInitInstance();
+	}
 
 
-    /// <summary>	Only Windows</summary>
-    internal DevicesListUI ( LoginResult l ) : this()
-    {
-        _mkm = l.Manager;
+	/// <summary>	Only Windows</summary>
+	internal DevicesListUI ( LoginResult l ) : this()
+	{
+		_mkm = l.Manager;
 #if ANDROID
-		_devices = new(l.Devices);
+		_devices = [ with(l.Devices) ];
 #else
         _devices = l.Devices;
 #endif
 
-    }
+	}
 
 
 
-    private void LocalizeUI ()
-    {
+	private void LocalizeUI ()
+	{
 
 #if !WINDOWS
 		Title = L_DEVICES_LIST;
@@ -104,7 +110,7 @@ internal partial class DevicesListUI
 			);
 
 		btnExitApp.Text = L_APP_EXIT;
-		btnExitApp.Clicked += (_, _) => OnExit();
+		btnExitApp.Clicked += ( _ , _ ) => OnExit();
 
 #else
         Text = L_DEVICES_LIST;
@@ -119,32 +125,32 @@ internal partial class DevicesListUI
 
 #endif
 
-        btnAdd.Text = L_ADD;
-        btnSetMasterKey.Text = $"{L_SET} {L_MASTER_KEY.ToLower()}";
-    }
+		btnAdd.Text = L_ADD;
+		btnSetMasterKey.Text = $"{L_SET} {L_MASTER_KEY.ToLower()}";
+	}
 
 
 
-    #region Edit list
+	#region Edit list
 
 
 
-    private async void OnAdd ( object s , EventArgs e )
-    {
+	private async void OnAdd ( object s , EventArgs e )
+	{
 
 #if !WINDOWS
 
 		//TODO: Change android to dialogresult with AutoresetEvent
 
 
-		void AppendDeviceToDatabase(DevicesListRecord? dev)
+		void AppendDeviceToDatabase ( DevicesListRecord? dev )
 		{
-			if (dev == null) return;
+			if ( dev == null ) return;
 			_devices.Add(dev);
 
-			var fr = FindDeviceGroup(dev, true);
+			var fr = FindDeviceGroup(dev , true);
 			DevicesListRecordsGroup g = fr.Group!;
-			if (fr.Added)
+			if ( fr.Added )
 			{
 				//Adding new group with to Old Existing Group
 				_deviceGroups.Add(g);
@@ -155,10 +161,10 @@ internal partial class DevicesListUI
 		}
 
 		DevicesListRecord md = new();
-		await this.eGoToWithReturnAsync<DevicesListRecord>(
-			nameof(DevicesListRecordEditorUI),
-			retDev => AppendDeviceToDatabase(retDev),
-			DevicesListRecordEditorUI.C_INPUT_PARAM_KEY, md);
+		await this.goToWithReturnAsync<DevicesListRecord>(
+			nameof(DevicesListRecordEditorUI) ,
+			retDev => AppendDeviceToDatabase(retDev) ,
+			DevicesListRecordEditorUI.C_INPUT_PARAM_KEY , md);
 
 #else
 
@@ -173,28 +179,28 @@ internal partial class DevicesListUI
 
 #endif
 
-    }
+	}
 
 
 
 
 
-    #endregion
+	#endregion
 
 
 
-    private async void OnChangeMasterKey ( object s , EventArgs e )
-    {
+	private async void OnChangeMasterKey ( object s , EventArgs e )
+	{
 #if !WINDOWS
 		await _mkm!.ShowEditorUI(SaveDevicesList);
 #else
         await _mkm!.ShowEditorUI(this , SaveDevicesList);
 #endif
-    }
+	}
 
 
-    private async Task SaveDevicesList ()
-    {
+	private async Task SaveDevicesList ()
+	{
 
 #if !WINDOWS
 		var rows = _devices;
@@ -207,8 +213,8 @@ internal partial class DevicesListUI
             .itemsAs<uom.controls.ListViewItemT<DevicesListRecord>>()
             .Select(li => li.Value2);
 #endif
-        await _mkm!.Database_WriteEncrypted([ .. rows ]);
-    }
+		await _mkm!.Database_WriteEncrypted([ .. rows ]);
+	}
 
 
 

@@ -47,7 +47,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\..\_LIB\Mikrotik\MikrotikDotNet\Mikrotik.Net\Mikrotik.Net.csproj" />
+		<ProjectReference Include="..\..\..\..\_LIB\Mikrotik\MikrotikDotNet\Mikrotik.Net\Mikrotik.Net.csproj" />
+		<PackageReference Include="Microsoft.Extensions.Logging"  />
 	</ItemGroup>
 
 

@@ -1,0 +1,85 @@
+<Project>
+
+	<PropertyGroup>
+		<TargetFramework>net10.0-windows</TargetFramework>
+		<OutputType>WinExe</OutputType>
+
+		<UseWindowsForms>true</UseWindowsForms>
+		<ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+		<LangVersion>latest</LangVersion>
+		<CharacterSet>Unicode</CharacterSet>
+
+		<!--https://github.com/dotnet/winforms/blob/main/docs/designer/designer-high-dpi-mode.md-->
+		<ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+		<ForceDesignerDpiUnaware>true</ForceDesignerDpiUnaware>
+
+	</PropertyGroup>
+
+
+	<PropertyGroup>
+		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+
+		<RootNamespace>$(MSBuildProjectName)</RootNamespace>
+
+		<Product>WinAdmin</Product>
+		<AssemblyProduct>$(Product)</AssemblyProduct>
+
+		<Authors>UOM</Authors>
+		<AssemblyCompany>$(Authors)</AssemblyCompany>
+
+		<!-- Versions -->
+		<!--https://learn.microsoft.com/en-us/visualstudio/msbuild/property-functions?view=vs-2022-->
+		<Today>$([System.DateTime]::Now.ToString("yy.M.d"))</Today>
+		<Year>$([System.DateTime]::Now.ToString("yyyy"))</Year>
+		<Copyright>©UOM 2010-$(Year)</Copyright>
+		<AssemblyCopyright>$(Copyright)</AssemblyCopyright>
+		<Version>$(Today).1</Version>
+		<ApplicationVersion>$(Version)</ApplicationVersion>
+		<AssemblyVersion>$(Version)</AssemblyVersion>
+		<FileVersion>$(Version)</FileVersion>
+		<ProductVersion>$(Version)</ProductVersion>
+	</PropertyGroup>
+
+	<PropertyGroup Label="UserMacros">
+		<CommonLibsRoot>$(SolutionDir)\_common\LIBs</CommonLibsRoot>
+		<_Pro2Libs>P:\_Pro.2\_LIB</_Pro2Libs>
+		<PluginsOutDir>$(SolutionDir)\WinAdmin\bin\Plugins</PluginsOutDir>		
+
+		<!--
+		<ThirdPartyDir>$(RepositoryRoot)\..\ThirdParty</ThirdPartyDir>
+		<ProtoBufRoot>$(ThirdPartyDir)\protobuf\src</ProtoBufRoot>
+		-->
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+		<!--
+		<UseCommonOutputDirectory>true</UseCommonOutputDirectory>
+		-->
+		<OutDir>$(PluginsOutDir)\$(MSBuildProjectName)</OutDir>
+		<AssemblyName>$(MSBuildProjectName).plugin</AssemblyName>
+	</PropertyGroup>
+
+
+	<ItemGroup>
+		
+		<ProjectReference Include="$(CommonLibsRoot)\WAPluginsLib\WAPluginsLib.csproj">
+			<Private>False</Private>
+		</ProjectReference>
+
+		<ProjectReference Include="$(CommonLibsRoot)\uom.cs.lib\uom.cs.lib.csproj"></ProjectReference>
+
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Include="$(SolutionDir)\CommonPluginUsing.cs"></Compile>
+
+	</ItemGroup>
+
+
+
+</Project>

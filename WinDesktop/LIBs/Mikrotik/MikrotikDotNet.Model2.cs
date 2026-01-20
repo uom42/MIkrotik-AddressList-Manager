@@ -13,7 +13,7 @@ using uom.maui;
 
 #endif
 
-using uom.Network;
+using uom.network;
 
 using static MALM.Localization.LStrings;
 
@@ -34,9 +34,11 @@ namespace MikrotikDotNet.Model
         [DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static MKConnection CreateConnection ( string address , string user , string pwd , ushort port = DEFAULT_API_PORT )
         {
-            if ( address.isNullOrWhiteSpace ) throw new ArgumentNullException(nameof(address));
-            if ( user.isNullOrWhiteSpace ) throw new ArgumentNullException(nameof(user));
-            return pwd.isNullOrWhiteSpace ? throw new ArgumentNullException(nameof(pwd)) : new(address , user , pwd , port);
+            return address.isNullOrWhiteSpace
+                ? throw new ArgumentNullException(nameof(address))
+                : user.isNullOrWhiteSpace
+                ? throw new ArgumentNullException(nameof(user))
+                : pwd.isNullOrWhiteSpace ? throw new ArgumentNullException(nameof(pwd)) : new(address , user , pwd , port);
         }
 
 
@@ -80,12 +82,12 @@ namespace MikrotikDotNet.Model
 
 
         [DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uom.Network.IP4AddressWithMask? eParseIPMasked ( this string? ipm )
+        public static uom.network.IP4AddressWithMask? eParseIPMasked ( this string? ipm )
         {
             try
             {
                 if ( ipm.isNotNullOrWhiteSpace )
-                    return uom.Network.IP4AddressWithMask.ParseIPs(ipm!).FirstOrDefault();
+                    return uom.network.IP4AddressWithMask.ParseIPs(ipm!).FirstOrDefault();
             }
             catch { }
             return null;
@@ -168,7 +170,7 @@ namespace MikrotikDotNet.Model
 
             public TimeSpan? UpTime { get; private set; }
             public string UpTimeString => UpTime.HasValue
-                ? UpTime.Value.eFormatTimespan()
+                ? UpTime.Value.formatReadable()
                 : "-";
 
 
@@ -232,12 +234,12 @@ namespace MikrotikDotNet.Model
 
 #if !WINDOWS
 			public float FreeMemory_Percent => (float)((double)FreeMemory / (double)TotalMemory);
-			public string FreeMemory_String => FreeMemory.eFormatByteSizeMP();
-			public string TotalMemory_String => TotalMemory.eFormatByteSizeMP();
+			public string FreeMemory_String => FreeMemory.formatByteSizeMP();
+			public string TotalMemory_String => TotalMemory.formatByteSizeMP();
 
 			public float FreeHddSpace_Percent => (float)((double)FreeHddSpace / (double)TotalHddSpace);
-			public string FreeHddSpace_String => FreeHddSpace.eFormatByteSizeMP();
-			public string TotalHddSpace_String => TotalHddSpace.eFormatByteSizeMP();
+			public string FreeHddSpace_String => FreeHddSpace.formatByteSizeMP();
+			public string TotalHddSpace_String => TotalHddSpace.formatByteSizeMP();
 
 
 
@@ -436,7 +438,7 @@ namespace MikrotikDotNet.Model
                 [DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
                 private static IEnumerable<AddressListItem> Sort ( IEnumerable<AddressListItem> src ) => src
                     .OrderBy(r => r.List)
-                    .ThenBy(r => r.Address , uom.Network.IP4AddressWithMaskComparer.StaticInstance.Value);
+                    .ThenBy(r => r.Address , uom.network.IP4AddressWithMaskComparer.Instance);
 
 
                 /// <summary>Refresh item info from Mikrotik by item ID</summary>
@@ -622,7 +624,7 @@ namespace MikrotikDotNet.Model
                 private static IEnumerable<ARPItem> Sort ( IEnumerable<ARPItem> src )
                     => src
                     .OrderBy(r => r.Interface)
-                    .ThenBy(r => r.Address! , uom.Network.IP4AddressComparer.StaticInstance.Value);
+                    .ThenBy(r => r.Address! , uom.network.IP4AddressComparer.Instance);
 
 
                 #endregion
@@ -760,8 +762,8 @@ namespace MikrotikDotNet.Model
 
                 [DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
                 private static IEnumerable<LeaseItem> Sort ( IEnumerable<LeaseItem> src ) => src
-                    .OrderBy(r => r.Address , uom.Network.IP4AddressComparer.StaticInstance.Value!)
-                    .ThenBy(r => r.MacAddress , uom.Network.MACComparer.StaticInstance.Value!);
+                    .OrderBy(r => r.Address , uom.network.IP4AddressComparer.Instance!)
+                    .ThenBy(r => r.MacAddress , uom.network.MACComparer.Instance!);
 
 
                 #endregion
@@ -837,7 +839,7 @@ namespace MikrotikDotNet.Model
                 public string Interface { get; set; }
 
 
-                internal uom.Network.IP4AddressWithMask? Address_Parsed => Address.eParseIPMasked();
+                internal uom.network.IP4AddressWithMask? Address_Parsed => Address.eParseIPMasked();
 
                 internal IPAddress? Network_Parsed => Network.ConvertToIPAddress();
 
@@ -1095,7 +1097,7 @@ namespace MikrotikDotNet.Model
                 [DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
                 private static IEnumerable<BridgeItem> Sort ( IEnumerable<BridgeItem> src )
                     => src
-                    .OrderBy(br => br.MacAddress! , uom.Network.MACComparer.StaticInstance.Value!)
+                    .OrderBy(br => br.MacAddress! , uom.network.MACComparer.Instance!)
                     ;
 
 

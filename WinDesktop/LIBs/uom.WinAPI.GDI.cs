@@ -1,4 +1,9 @@
-﻿using Extensions;
+﻿using System.ComponentModel;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+using Extensions;
 
 using uom;
 using uom.AutoDisposable;
@@ -16,7 +21,7 @@ namespace uom.WinAPI.gdi
 
     /// <summary>Extened HDC</summary>
     [DebuggerDisplay("HDC2={Handle}")]
-    internal class HDC2 : AutoDisposable1, IHandle
+    internal class HDC2 : uom.AutoDisposable.AutoDisposableUniversal, IHandle
     {
 
         public enum FreeModes : int
@@ -43,7 +48,7 @@ namespace uom.WinAPI.gdi
         #region Constructor / Destructor
 
         /// <summary>Attach to an Existing DC</summary>
-        [DebuggerNonUserCode, DebuggerStepThrough]
+        [DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public HDC2 ( HDC hdcSource , FreeModes ddm ) : base()
         {
             if ( hdcSource.IsNull ) throw new ArgumentNullException(nameof(hdcSource));
@@ -147,11 +152,11 @@ namespace uom.WinAPI.gdi
 
 
         /// <summary>Uses Graphics.GetHdc</summary>
-        [DebuggerNonUserCode, DebuggerStepThrough]
+        [DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
 
         public static HDC2 GetGraphicsDC ( Graphics g )
         {
-            g.ThrowIfNull();
+            g.throwIfNull();
             var hdc = g.GetHdc();
             return hdc.isNotValid
                 ? throw new NotSupportedException("Graphics.GetHdc FAILED!")
@@ -159,7 +164,7 @@ namespace uom.WinAPI.gdi
         }
 
         /// <summary>Graphics.FromHdc(Me.DangerousGetHandle)</summary>
-        [DebuggerNonUserCode, DebuggerStepThrough]
+        [DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
 
         public Graphics CreateGraphics () => Graphics.FromHdc(_hdc.DangerousGetHandle());
 
@@ -1186,6 +1191,8 @@ namespace uom.WinAPI.gdi
         public static bool operator != ( GDIObjectBase GOB1 , GDIObjectBase GOB2 )
             => !(GOB1 == GOB2);
 
+        public override bool Equals ( object? obj ) => obj is not null && ReferenceEquals(this , obj);
+
 
         #endregion
 
@@ -1448,7 +1455,7 @@ namespace uom.WinAPI.gdi
             => Shell32.ExtractIconEx(file , -1 , null , null , uint.MaxValue);
 
 
-        public static (System.Drawing.Icon? Large, System.Drawing.Icon? Small) ExtractIconEx ( string sLib , int iIndex = 0 )
+        public static (System.Drawing.Icon? Large , System.Drawing.Icon? Small) ExtractIconEx ( string sLib , int iIndex = 0 )
         {
             HICON[] ptrLarge = [ IntPtr.Zero ];
             HICON[] ptrSmall = [ IntPtr.Zero ];
@@ -1462,7 +1469,7 @@ namespace uom.WinAPI.gdi
 
             var rIconLarge = HandleToIcon(ptrLarge[ 0 ]);
             var rIconSmall = HandleToIcon(ptrSmall[ 0 ]);
-            return (rIconLarge, rIconSmall);
+            return (rIconLarge , rIconSmall);
         }
 
 
@@ -1534,7 +1541,7 @@ namespace uom.WinAPI.gdi
 		internal static extern IntPtr CreateIconFromResource(IntPtr pbIconBits, int cbIconBits, bool fIcon, int dwVersion = 0x30000);
 
 
-		[DebuggerNonUserCode, DebuggerStepThrough]
+		[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		
 		public static System.Drawing.Icon CreateIconFromResource(IntPtr hMod, string ID)
 		{
@@ -1557,7 +1564,7 @@ namespace uom.WinAPI.gdi
 			}
 		}
 
-		[DebuggerNonUserCode, DebuggerStepThrough]
+		[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		
 		public static System.Drawing.Icon CreateIconFromResource(IntPtr hMod, int ID)
 		{
@@ -1805,7 +1812,7 @@ namespace Extensions
 
         internal static Bitmap GetWindowScreenShot ( this IWin32Window wnd , System.Drawing.Imaging.PixelFormat f , bool clientAreaOnly )
         {
-            var rcWindow = wnd.GetWindowRect();
+            var rcWindow = wnd.getWindowRect();
             using HDC2 dcSrc = new(wnd , clientAreaOnly);
             {
                 Bitmap bmTarget = new(rcWindow.Width , rcWindow.Height , f);
@@ -1866,7 +1873,7 @@ namespace Extensions
         extension( HDC? target )
         {
 
-            internal bool isValid => (target != null) && (IntPtr)target.Value != IntPtr.Zero;
+            internal bool isValid => (target is not null) && (IntPtr)target.Value != IntPtr.Zero;
             internal bool isNotValid => !target.isValid;
 
         }

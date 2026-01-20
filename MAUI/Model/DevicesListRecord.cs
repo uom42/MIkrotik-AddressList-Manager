@@ -10,13 +10,14 @@ using MALM.UI;
 using MikrotikDotNet;
 
 using uom.maui;
+using uom.mvvm;
 
 using static MALM.Localization.LStrings;
 
 namespace MALM.Model
 {
 
-	partial class DevicesListRecord : ObservableObject, INotifyPropertyChanged
+	public partial class DevicesListRecord : ObservableObject, INotifyPropertyChanged
 	{
 
 		[XmlIgnore] public string Title => $"{AddressString} ({UserName})";
@@ -34,10 +35,10 @@ namespace MALM.Model
 
 
 		[XmlIgnore]
-		public	uom.InvertableBool IsOnline => OnlineDeviceStatus != null;
+		public InvertableBool IsOnline => OnlineDeviceStatus != null;
 
 
-		public void OnPropertyChanged2([CallerMemberName] string propName = "")
+		public void OnPropertyChanged2 ( [CallerMemberName] string propName = "" )
 			=> OnPropertyChanged(new PropertyChangedEventArgs(propName));
 
 
@@ -45,21 +46,21 @@ namespace MALM.Model
 		private CancellationTokenSource _ctsPulse = new();
 
 
-		public async Task StatusPingBegin()
+		public async Task StatusPingBegin ()
 		{
 			await StatusPingStop();
 
 			_ctsPulse = new CancellationTokenSource();
 			_tmrPulse = new(
-				   async o => await StatusPing_Proc(o),
-					_ctsPulse,
-					 3000,
+				   async o => await StatusPing_Proc(o) ,
+					_ctsPulse ,
+					 3000 ,
 					 5000);
 		}
 
 
 		/// <summary>Gets device status (health + Voltage)</summary>
-		private async Task<MikrotikDotNet.Model.System.DeviceStatus> GetDeviceStatus()
+		private async Task<MikrotikDotNet.Model.System.DeviceStatus> GetDeviceStatus ()
 		{
 			var con = await MikrotikDotNet.Model.Helpers.ConnectDeviceAsync(CreateConnection());
 			var ds = await MikrotikDotNet.Model.System.DeviceStatus.GetDeviceStatusAsync(con);
@@ -72,13 +73,13 @@ namespace MALM.Model
 		//public ICommand PulseAnimationCommand { get; set; } = new Microsoft.Maui.Controls.Command(o => { });
 
 
-		private async Task StatusPing_Proc(object? o)
+		private async Task StatusPing_Proc ( object? o )
 		{
 			CancellationTokenSource ct = (CancellationTokenSource)o!;
 			try
 			{
 				var ds = await GetDeviceStatus();
-				if (ct.IsCancellationRequested) return;
+				if ( ct.IsCancellationRequested ) return;
 
 #if DEBUG
 				ds.Test_SetErrorSate();
@@ -94,9 +95,9 @@ namespace MALM.Model
 				_ = PulseAnimationCommand?.ExecuteForBindedAnimation();
 
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
-				if (ct.IsCancellationRequested) return;
+				if ( ct.IsCancellationRequested ) return;
 				OnlineDeviceStatus = null;
 
 				OnPropertyChanged(new PropertyChangedEventArgs(nameof(IsOnline)));
@@ -120,10 +121,10 @@ namespace MALM.Model
 		}
 
 
-		public async Task StatusPingStop(bool fast = false)
+		public async Task StatusPingStop ( bool fast = false )
 		{
 			_ctsPulse?.Cancel();
-			_tmrPulse?.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+			_tmrPulse?.Change(System.Threading.Timeout.Infinite , System.Threading.Timeout.Infinite);
 			_tmrPulse?.Dispose();
 
 			//	$"StatusPingStop: {AddressString!}".eToastShow();
@@ -136,23 +137,23 @@ namespace MALM.Model
 
 
 		[RelayCommand]
-		private async Task DeviceConnect()
+		private async Task DeviceConnect ()
 		{
 			var cts = ClickedAnimationCommand?.ExecuteForBindedAnimation();
 			await uom.controls.MAUI.Animations.Helpers.WaitForButtonAnimation(800);
 
 			var isGranted = await uom.maui.security.PermissionsHelper.CheckAndRequestPermissionAsync_Net_AccessNetworkStateAndInternet();
-			if (!isGranted)
+			if ( !isGranted )
 			{
 				await Toast
-						.Make(E_PERMISSION_NETWORK_ERROR, CommunityToolkit.Maui.Core.ToastDuration.Long, 14)
+						.Make(E_PERMISSION_NETWORK_ERROR , CommunityToolkit.Maui.Core.ToastDuration.Long , 14)
 						.Show();
 
 				return;
 			}
 
 			ConnectDevicePage cp = new(this);
-			await cp.eShowDialogAsync<MKConnection>(true,
+			await cp.showDialogAsync<MKConnection>(true ,
 				async con =>
 				{
 					MikrotikAddressTableRecord_ListUI p = new(con!);

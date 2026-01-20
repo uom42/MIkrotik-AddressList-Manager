@@ -1,202 +1,221 @@
 ﻿
+using System.DirectoryServices.ActiveDirectory;
+
 using MALM.Model;
 
 #nullable enable
 
 namespace MALM.UI;
 
-internal partial class DevicesListUI : Form
+internal partial class DevicesListUI : Form, uom.AppTools.ISecondInstanceHandler<uom.AppTools.SecondAppLaunchContext>
 {
 
-    private const string RECENT_FILE = "Recent.dat";
+	private const string RECENT_FILE = "Recent.dat";
 
 
-    public static MKConnection? SelectDeviceAndConnect ( LoginResult l )
-    {
-        using DevicesListUI f = new(l);
-        if ( f.ShowDialog() != DialogResult.OK ) return null; // User canceled device selection
-        return f._dialogResult!;
-    }
+	public static MKConnection? SelectDeviceAndConnect ( LoginResult l )
+	{
+		using DevicesListUI f = new(l);
+		if ( f.ShowDialog() != DialogResult.OK ) return null; // User canceled device selection
+		return f._dialogResult!;
+	}
 
 
-    private void OnLoad ()
-    {
-        lvwDevices.GroupCollapsedStateChanged += ( _ , _ )
-            => lvwDevices.SaveGroupsState(dataID: "DevicesList");
+	private void OnLoad ()
+	{
 
-        lvwDevices.clearItems();
+		var inst = uom.AppTools.SingleInstanceController<uom.AppTools.SecondAppLaunchContext>.Default;
+		inst?.SecondInstanceStarHandler = this;
 
-        var iconSize = System.Windows.Forms.SystemInformation.IconSize;
-        var iml = new ImageList()
-        {
-            ColorDepth = ColorDepth.Depth32Bit ,
-            ImageSize = iconSize ,
-        };
 
-        var bmRouter = uom.AppInfo.AppAssembly.eLoadSVGFromResourceFileAsBitmap("Router_gray.svg" , iconSize);
+		this.dwmSetBlurStyle(uom.WinAPI.winThemes.BlurTypes.Acrylic , this.calculateChildPaddings(lvwDevices));
 
-        iml.Images.Add(bmRouter);
-        lvwDevices.SmallImageList = iml;
 
-        //var sss = ((Func<string?>)LoadRecent).tryCatch(out var recent);
-        var recent = ((Func<string?>)LoadRecent).tryCatch().Value.valueOrEmpty;
-        foreach ( var abr in _devices )
-        {
-            var li = AddRecordToList(abr);
-            if ( li.Text.Equals(recent , StringComparison.OrdinalIgnoreCase) ) li.activate();
-        }
+		lvwDevices.GroupCollapsedStateChanged += ( _ , _ )
+			=> lvwDevices.SaveGroupsState(dataID: "DevicesList");
 
-        lvwDevices.RestoreGroupsStateFromStorage(dataID: "DevicesList");
+		lvwDevices.clearItems();
 
-        OnDeviceSelected();
-    }
+		var iconSize = System.Windows.Forms.SystemInformation.IconSize;
+		var iml = new ImageList()
+		{
+			ColorDepth = ColorDepth.Depth32Bit ,
+			ImageSize = iconSize ,
+		};
 
+		var bmRouter = uom.AppInfo.AppAssembly.eLoadSVGFromResourceFileAsBitmap("Router_gray.svg" , iconSize);
 
-    #region Recent Load / Save
+		iml.Images.Add(bmRouter);
+		lvwDevices.SmallImageList = iml;
 
+		//var sss = ((Func<string?>)LoadRecent).tryCatch(out var recent);
+		var recent = ((Func<string?>)LoadRecent).tryCatch().Value.valueOrEmpty;
+		foreach ( var abr in _devices )
+		{
+			var li = AddRecordToList(abr);
+			if ( li.Text.Equals(recent , StringComparison.OrdinalIgnoreCase) ) li.activate();
+		}
 
-    private static FileInfo GetRecentStorage () => uom.AppTools.GetFileIn_AppData(RECENT_FILE , true).eToFileInfo()!;
-    internal static string? LoadRecent () => GetRecentStorage().eReadAsText();
+		lvwDevices.RestoreGroupsStateFromStorage(dataID: "DevicesList");
 
-    private static void SaveRecent ( string host ) => GetRecentStorage().eWriteAllText(host);
+		OnDeviceSelected();
+	}
 
 
-    #endregion
+	#region Recent Load / Save
 
 
-    #region Internal Helpers
+	private static FileInfo GetRecentStorage () => uom.AppTools.GetFileIn_AppData(RECENT_FILE , true);
+	internal static string? LoadRecent () => GetRecentStorage().readAsText();
 
+	private static void SaveRecent ( string host ) => GetRecentStorage().writeAllText(host);
 
-    private uom.controls.ListViewItemT<DevicesListRecord> AddRecordToList ( DevicesListRecord abr )
-    {
-        var li = new uom.controls.ListViewItemT<DevicesListRecord>(abr);
-        li.addFakeSubitems(lvwDevices);
-        lvwDevices.Items.Add(li);
-        UpdateRecordInList(li);
-        return li;
-    }
 
+	#endregion
 
-    private void UpdateRecordInList ( uom.controls.ListViewItemT<DevicesListRecord> li )
-    {
-        DevicesListRecord abr = li.Value2;
-        string title = abr.AddressString;
-        if ( abr.PortInt.HasValue ) title += $":{abr.PortInt.Value}";
 
-        li.updateTexts(title , abr.UserName);
-        li.ImageIndex = 0;
+	#region Internal Helpers
 
-        li.Group = lvwDevices.groupsCreateGroupByKey(
-            string.IsNullOrWhiteSpace(abr.Group)
-                    ? L_DEFAULT
-                    : abr.Group ,
 
-            newGroupState: ListViewGroupCollapsedState.Expanded)
-        .Group;
+	private uom.controls.ListViewItemT<DevicesListRecord> AddRecordToList ( DevicesListRecord abr )
+	{
+		var li = new uom.controls.ListViewItemT<DevicesListRecord>(abr);
+		li.addFakeSubitems(lvwDevices);
+		lvwDevices.Items.Add(li);
+		UpdateRecordInList(li);
+		return li;
+	}
 
-        lvwDevices.AutoResizeColumns(ColumnHeaderAutoResizeStyle.ColumnContent);
 
-    }
+	private void UpdateRecordInList ( uom.controls.ListViewItemT<DevicesListRecord> li )
+	{
+		DevicesListRecord abr = li.Value2;
+		string title = abr.AddressString;
+		if ( abr.PortInt.HasValue ) title += $":{abr.PortInt.Value}";
 
+		li.updateTexts(title , abr.UserName);
+		li.ImageIndex = 0;
 
+		li.Group = lvwDevices.groupsCreateGroupByKey(
+			string.IsNullOrWhiteSpace(abr.Group)
+					? L_DEFAULT
+					: abr.Group ,
 
-    #endregion
+			newGroupState: ListViewGroupCollapsedState.Expanded)
+		.Group;
 
+		lvwDevices.AutoResizeColumns(ColumnHeaderAutoResizeStyle.ColumnContent);
 
-    private uom.controls.ListViewItemT<DevicesListRecord>? SelectedDevice
-        => lvwDevices.selectedItemsAs<uom.controls.ListViewItemT<DevicesListRecord>>().FirstOrDefault();
+	}
 
 
-    private void OnDeviceSelected ()
-    {
-        var sel = SelectedDevice;
-        var hasSel = sel != null;
 
-        btnConnect.Enabled = hasSel;
-        btnDelete.Enabled = hasSel;
-        btnEdit.Enabled = hasSel;
+	#endregion
 
-        try { SaveRecent(sel?.Value?.AddressString ?? ""); } catch { }
-    }
 
+	private uom.controls.ListViewItemT<DevicesListRecord>? SelectedDevice
+		=> lvwDevices.selectedItemsAs<uom.controls.ListViewItemT<DevicesListRecord>>().FirstOrDefault();
 
 
-    #region Editing
+	private void OnDeviceSelected ()
+	{
+		var sel = SelectedDevice;
+		var hasSel = sel != null;
 
-    private async void Device_Edit ( object s , EventArgs e )
-    {
-        var sel = SelectedDevice;
-        if ( sel == null ) return;
-        DevicesListRecord dev = sel.Value2;
+		btnConnect.Enabled = hasSel;
+		btnDelete.Enabled = hasSel;
+		btnEdit.Enabled = hasSel;
 
-        using DevicesListRecordEditorUI fe = DevicesListRecordEditorUI.InitUI(dev);
-        if ( fe.ShowDialog(this) != DialogResult.OK ) return;
+		try { SaveRecent(sel?.Value?.AddressString ?? ""); } catch { }
+	}
 
-        dev = DevicesListRecord.FromEditor(fe);
-        sel.Value2 = dev;
-        UpdateRecordInList(sel);
-        await SaveDevicesList();
-    }
 
 
-    private async void Device_Delete ( object s , EventArgs e )
-    {
-        var sel = SelectedDevice;
-        if ( sel == null ) return;
-        DevicesListRecord dev = sel.Value2;
+	#region Editing
 
-        string q = string.Format(Q_ADDRESSBOOK_DELETE_RECORD , dev.AddressString);
+	private async void Device_Edit ( object s , EventArgs e )
+	{
+		var sel = SelectedDevice;
+		if ( sel == null ) return;
+		DevicesListRecord dev = sel.Value2;
 
-        if ( !q.eMsgboxAskIsYes(false , L_DEVICES_LIST_EDITOR) ) return;
-        lvwDevices.Items.Remove(sel);
-        await SaveDevicesList();
-        OnDeviceSelected();
-    }
+		using DevicesListRecordEditorUI fe = DevicesListRecordEditorUI.InitUI(dev);
+		if ( fe.ShowDialog(this) != DialogResult.OK ) return;
 
+		dev = DevicesListRecord.FromEditor(fe);
+		sel.Value2 = dev;
+		UpdateRecordInList(sel);
+		await SaveDevicesList();
+	}
 
 
-    #endregion
+	private async void Device_Delete ( object s , EventArgs e )
+	{
+		var sel = SelectedDevice;
+		if ( sel == null ) return;
+		DevicesListRecord dev = sel.Value2;
 
+		string q = string.Format(Q_ADDRESSBOOK_DELETE_RECORD , dev.AddressString);
 
-    #region Connect
+		if ( !q.msgboxAskIsYes(false , L_DEVICES_LIST_EDITOR) ) return;
+		lvwDevices.Items.Remove(sel);
+		await SaveDevicesList();
+		OnDeviceSelected();
+	}
 
 
-    private async Task OnTryConnectDevice ( object? s , EventArgs e )
-    {
-        var sel = SelectedDevice;
-        if ( sel == null ) return;
-        DevicesListRecord dev = sel.Value2;
 
-        if ( string.IsNullOrWhiteSpace(dev.AddressString) ) return;
+	#endregion
 
-        Control[] buttonsToDisable = [ btnAdd , btnEdit , btnDelete , btnConnect , btnSetMasterKey ];
-        UseWaitCursor = true;
-        Update();
 
-        buttonsToDisable.enable(false);
+	#region Connect
 
-        try
-        {
-            var con = await MikrotikDotNet.Model.Helpers.ConnectDeviceAsync(dev.CreateConnection());
 
-            //Connected successfully
-            _dialogResult = con!;
-            DialogResult = DialogResult.OK;
-        }
-        catch ( Exception ex ) { ex.eLogError(true , E_TITLE_DEFAULT); }
-        finally
-        {
-            buttonsToDisable.enable(true);
-            UseWaitCursor = false;
-            OnDeviceSelected();
-        }
+	private async Task OnTryConnectDevice ( object? s , EventArgs e )
+	{
+		var sel = SelectedDevice;
+		if ( sel == null ) return;
+		DevicesListRecord dev = sel.Value2;
 
-    }
+		if ( string.IsNullOrWhiteSpace(dev.AddressString) ) return;
 
+		Control[] buttonsToDisable = [ btnAdd , btnEdit , btnDelete , btnConnect , btnSetMasterKey ];
+		UseWaitCursor = true;
+		Update();
 
-    #endregion
+		buttonsToDisable.enable(false);
 
+		try
+		{
+			var con = await MikrotikDotNet.Model.Helpers.ConnectDeviceAsync(dev.CreateConnection());
 
+			//Connected successfully
+			_dialogResult = con!;
+			DialogResult = DialogResult.OK;
+		}
+		catch ( Exception ex ) { ex.logError(true , E_TITLE_DEFAULT); }
+		finally
+		{
+			buttonsToDisable.enable(true);
+			UseWaitCursor = false;
+			OnDeviceSelected();
+		}
+
+	}
+
+
+	#endregion
+
+
+
+#if WINDOWS
+
+	void uom.AppTools.ISecondInstanceHandler<uom.AppTools.SecondAppLaunchContext>.OnSecondInstance ( uom.AppTools.SecondAppLaunchContext? context )
+	{
+		this.expandAndActivate();
+	}
+
+#endif
 
 
 }

@@ -109,7 +109,7 @@ public partial class MikrotikAddressTableRecord_ListUI : Form
         }
         catch ( Exception ex )
         {
-            ex.eLogError(true , Localization.LStrings.E_TITLE_DEFAULT);
+            ex.logError(true , Localization.LStrings.E_TITLE_DEFAULT);
 
             await QueryDataFromDevice();//On any error we refill list with actual data from mikrotik
         }
@@ -202,7 +202,7 @@ public partial class MikrotikAddressTableRecord_ListUI : Form
         }
         catch ( Exception ex )
         {
-            ex.eLogError(true , Localization.LStrings.E_TITLE_DEFAULT);
+            ex.logError(true , Localization.LStrings.E_TITLE_DEFAULT);
             await QueryDataFromDevice();//On any error we refill list with actual data from mikrotik
         }
         finally

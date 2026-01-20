@@ -3,14 +3,15 @@
 #endif
 #nullable enable
 
-using static MALM.Localization.LStrings;
-
-using System.Xml.Serialization;
 using System.ComponentModel;
 using System.Windows.Input;
+using System.Xml.Serialization;
+
+using MALM.UI;
 
 using MikrotikDotNet;
-using MALM.UI;
+
+using static MALM.Localization.LStrings;
 
 
 #if !WINDOWS
@@ -46,11 +47,11 @@ namespace MALM.Model
 
 
 
-		internal static Lazy<FileInfo> DatabseFile = new (
+		internal static Lazy<FileInfo> DatabseFile = new(
 #if !WINDOWS
 			new FileInfo(Path.Combine(FileSystem.Current.AppDataDirectory, ADDRESSBOOK_FILE))
 #else
-			uom.AppTools.GetFileIn_AppData (ADDRESSBOOK_FILE, true)
+			uom.AppTools.GetFileIn_AppData(ADDRESSBOOK_FILE , true)
 #endif
 		);
 
@@ -78,15 +79,15 @@ namespace MALM.Model
 
 #else
 
-		[DefaultValue (""), XmlElement ("Address")]
+		[DefaultValue(""), XmlElement("Address")]
 		public string AddressString { get; set; } = string.Empty;
 
 
-		[DefaultValue (""), XmlElement ("UserName")]
+		[DefaultValue(""), XmlElement("UserName")]
 		public string UserName { get; set; } = string.Empty;
 
 
-		[DefaultValue (""), XmlElement ("Group")]
+		[DefaultValue(""), XmlElement("Group")]
 		public string Group { get; set; } = string.Empty;
 #endif
 
@@ -96,20 +97,17 @@ namespace MALM.Model
 
 
 
-		[DefaultValue (""), XmlElement ("Port")]
+		[DefaultValue(""), XmlElement("Port")]
 		public string PortString
 		{
-			get => PortInt.HasValue ? PortInt.Value.ToString () : string.Empty;
+			get => PortInt.HasValue ? PortInt.Value.ToString() : string.Empty;
 			set
 			{
 #if !WINDOWS
 				this.OnPropertyChanging(nameof(PortString));
 #endif
 				string v = value;
-				if (string.IsNullOrWhiteSpace (v))
-					PortInt = null;
-				else
-					PortInt = UInt16.Parse (v);
+				PortInt = string.IsNullOrWhiteSpace(v) ? null : ushort.Parse(v);
 
 #if !WINDOWS
 				this.OnPropertyChanged(nameof(PortString));
@@ -120,16 +118,16 @@ namespace MALM.Model
 
 
 		/// <summary>Password stored in file as PlainText, but whole addressbook is encrypted</summary>
-		[DefaultValue (""), XmlElement ("Password")]
+		[DefaultValue(""), XmlElement("Password")]
 		public string PwdString
 		{
-			get => PwdSafe.eFromSecureStringToUnsafeString ();
+			get => PwdSafe.eFromSecureStringToUnsafeString();
 			set
 			{
 #if !WINDOWS
 				this.OnPropertyChanging();
 #endif
-				this.PwdSafe = value.eToSecureString ();
+				PwdSafe = value.eToSecureString();
 #if !WINDOWS
 				this.OnPropertyChanged();
 #endif
@@ -145,7 +143,7 @@ namespace MALM.Model
 
 
 		[XmlIgnore]
-		public UInt16? PortInt { get; set; } = null;
+		public ushort? PortInt { get; set; } = null;
 
 		/// <summary>
 		/// Storing password safe in memory. This protection only works to protect against random memory scanner programs.
@@ -156,22 +154,22 @@ namespace MALM.Model
 
 
 		/// <summary>User for sorting Rows in List</summary>
-		private UInt32 AddressParsedString
+		private uint AddressParsedString
 		{
 			get
 			{
 				try
 				{
-					if (!string.IsNullOrWhiteSpace (AddressString))
+					if ( !string.IsNullOrWhiteSpace(AddressString) )
 					{
-						if (IPAddress.TryParse (AddressString, out var ipa) && ipa != null)
+						if ( IPAddress.TryParse(AddressString , out var ipa) && ipa != null )
 						{
-							return ipa.eToUInt32CalculableOrder ();
+							return ipa.toUInt32CalculableOrder();
 						}
 					}
 				}
 				catch { }
-				return UInt32.MaxValue;
+				return uint.MaxValue;
 			}
 		}
 
@@ -199,17 +197,17 @@ namespace MALM.Model
 		/// <summary>Just for serialization/deserialization</summary>
 		public DevicesListRecord ()
 		{
-			PwdSafe = new ();
-			PwdSafe.MakeReadOnly ();
+			PwdSafe = new();
+			PwdSafe.MakeReadOnly();
 		}
 
-		internal DevicesListRecord ( string address, string user, string pwd, string group, string port ) : this ()
+		internal DevicesListRecord ( string address , string user , string pwd , string group , string port ) : this()
 		{
-			AddressString = address.Trim ();
-			PortString = port.Trim ();
-			UserName = user.Trim ();
+			AddressString = address.Trim();
+			PortString = port.Trim();
+			UserName = user.Trim();
 			PwdString = pwd;
-			Group = group.Trim ();
+			Group = group.Trim();
 		}
 
 
@@ -223,47 +221,46 @@ namespace MALM.Model
 		internal static async Task<DevicesListRecord[]?> LoadDevicesListAsync ( string masterP )
 		{
 			var fiDatabse = DatabseFile.Value;
-			if (!fiDatabse.Exists) return null;
+			if ( !fiDatabse.Exists ) return null;
 
-			string xml = ( await fiDatabse.eReadAsTextAsync () )!;
+			string xml = (await fiDatabse.readAsTextAsync())!;
 
 #if !DONT_ENCRYPT_ADDRESSBOOK || !DEBUG
-			masterP = ( masterP.Length > 0 )
+			masterP = (masterP.Length > 0)
 				? masterP
 				: DEFAULT_MASTER_KEY;
 
 			xml = xml
-				.eDecrypt_AES_FromBase64String (masterP, createSaltFromPassword: true, iterations: AES_ITERATIONS)
-				.eToStringUni ();
+				.eDecrypt_AES_FromBase64String(masterP , createSaltFromPassword: true , iterations: AES_ITERATIONS)
+				.toStringUni();
 #endif
 
-			DevicesListRecord[]? rawRows = xml.eDeSerializeXML<DevicesListRecord[]> (null, true);
-			if (rawRows == null) return null;
-			return Sort (rawRows);
+			DevicesListRecord[]? rawRows = xml.deSerializeXML<DevicesListRecord[]>(null , true);
+			return rawRows == null ? null : Sort(rawRows);
 		}
 
 
-		internal static async Task SaveAddressBookAsync ( DevicesListRecord[] rows, string masterP )
+		internal static async Task SaveAddressBookAsync ( DevicesListRecord[] rows , string masterP )
 		{
-			Debug.WriteLine ($"***************** SaveAddressBook");
+			Debug.WriteLine($"***************** SaveAddressBook");
 
-			string xml = rows.ToList ().eSerializeAsXML ();
+			string xml = rows.ToList().eSerializeAsXML();
 			var fiDatabse = DatabseFile.Value;
-			using var sw = fiDatabse.eCreateWriter (FileMode.OpenOrCreate, encoding: Encoding.Unicode);
-			sw.BaseStream.eTruncate ();
+			using var sw = fiDatabse.createStreamWriter(FileMode.OpenOrCreate , encoding: Encoding.Unicode);
+			sw.BaseStream.truncate();
 
 #if !DONT_ENCRYPT_ADDRESSBOOK || !DEBUG
 
-			masterP = ( masterP.Length > 0 )
+			masterP = (masterP.Length > 0)
 				? masterP
 				: DEFAULT_MASTER_KEY;
 
-			xml = xml.eEncrypt_AES_ToBase64String (masterP, iterations: AES_ITERATIONS);
+			xml = xml.eEncrypt_AES_ToBase64String(masterP , iterations: AES_ITERATIONS);
 
 #endif
 
-			await sw.WriteLineAsync (xml);
-			await sw.FlushAsync ();
+			await sw.WriteLineAsync(xml);
+			await sw.FlushAsync();
 		}
 
 
@@ -327,16 +324,16 @@ namespace MALM.Model
 #if WINDOWS
 
 		internal static DevicesListRecord FromEditor ( DevicesListRecordEditorUI e )
-			=> new (e.txtAddress.Text, e.txtUser.Text, e.txtPWD.Text, e.txtGroup.Text, e.txtPort.Text);
+			=> new(e.txtAddress.Text , e.txtUser.Text , e.txtPWD.Text , e.txtGroup.Text , e.txtPort.Text);
 
 #endif
 
 
-		[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl (MethodImplOptions.AggressiveInlining)]
+		[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public MKConnection CreateConnection ()
 			=> PortInt.HasValue
-			? MikrotikDotNet.Model.Helpers.CreateConnection (AddressString!, UserName!, PwdString, PortInt.Value)
-			: MikrotikDotNet.Model.Helpers.CreateConnection (AddressString!, UserName!, PwdString);
+			? MikrotikDotNet.Model.Helpers.CreateConnection(AddressString! , UserName! , PwdString , PortInt.Value)
+			: MikrotikDotNet.Model.Helpers.CreateConnection(AddressString! , UserName! , PwdString);
 
 
 

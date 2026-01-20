@@ -10,8 +10,7 @@
 	xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
 	xmlns:uom_ctl_ani="clr-namespace:uom.controls.MAUI.Animations"
 	xmlns:uom_ctl_cv="clr-namespace:uom.controls.MAUI.CollectionViews"
-	Title="MkAddressList"
-	x:ClassModifier="NotPublic"
+	Title="MkAddressList"	
 	SemanticProperties.HeadingLevel="Level1">
 
 

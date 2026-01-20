@@ -1,4 +1,3 @@
-namespace MALM.UI;
 
 using MALM.Model;
 
@@ -10,15 +9,16 @@ using uom.maui;
 
 using static MALM.Localization.LStrings;
 
+namespace MALM.UI;
 
-partial class MasterKeyUI : ContentPage
+internal partial class MasterKeyUI : ContentPage
 {
 
-	private async Task<bool> IsBiometricAvailableAsync()
+	private async Task<bool> IsBiometricAvailableAsync ()
 	{
 #if ANDROID
 		var bp = await uom.maui.security.PermissionsHelper.CheckAndRequestPermissionAsync_Biometric_Fingerprint();
-		if (!bp)
+		if ( !bp )
 		{
 			return false;
 		}
@@ -29,31 +29,31 @@ partial class MasterKeyUI : ContentPage
 		return await CrossFingerprint.Current.IsAvailableAsync(true);
 	}
 
-	private async Task<(bool Available, bool Authenticated)> AuthAuthenticateFingerprintAsync()
+	private async Task<(bool Available , bool Authenticated)> AuthAuthenticateFingerprintAsync ()
 	{
 		var isAvailable = await IsBiometricAvailableAsync();
 		Debug.WriteLine($"IsBiometricAvailableAsync: {isAvailable}");
-		if (isAvailable)
+		if ( isAvailable )
 		{
-			AuthenticationRequestConfiguration request = new(Q_MASTERKEY_BIO_REQ, Q_MASTERKEY_BIO_REQ_2)
+			AuthenticationRequestConfiguration request = new(Q_MASTERKEY_BIO_REQ , Q_MASTERKEY_BIO_REQ_2)
 			{
-				FallbackTitle = Q_MASTERKEY_BIO_USE_PIN,
-				AllowAlternativeAuthentication = true,
+				FallbackTitle = Q_MASTERKEY_BIO_USE_PIN ,
+				AllowAlternativeAuthentication = true ,
 			};
 			var fpResult = await CrossFingerprint.Current.AuthenticateAsync(request);
 
-			return (fpResult.Authenticated, fpResult.Authenticated);
+			return (fpResult.Authenticated , fpResult.Authenticated);
 
 		}
-		return (isAvailable, false);
+		return (isAvailable , false);
 	}
 
 
-	private async void OnCancel(object sender, EventArgs e)
+	private async void OnCancel ( object sender , EventArgs e )
 	{
 		await btnCancel.WaitForButtonAnimation();
 
-		switch (_mkm!.LoginMode)
+		switch ( _mkm!.LoginMode )
 		{
 			case MasterKeyManager.LoginModes.Login:
 			case MasterKeyManager.LoginModes.InitialSetupMK:
@@ -61,7 +61,7 @@ partial class MasterKeyUI : ContentPage
 				break;
 
 			case MasterKeyManager.LoginModes.Edit2:
-				await this.eSetDialogResultAndPopBackAsync(false);
+				await this.setDialogResultAndPopBackAsync(false);
 				break;
 		}
 	}

@@ -1,0 +1,50 @@
+<Project>
+
+	<PropertyGroup>
+
+
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- Include -->
+
+		<!-- LIBs\OUI\ -->
+		<Compile Include="$(SolutionDir)\CommonMP\OUI\uom.network.OUI.MacRecordInfo.cs" Link="LIBs\OUI\uom.network.OUI.MacRecordInfo.cs" />
+		<Compile Include="$(SolutionDir)\CommonMP\OUI\uom.network.OUI.MacRecordsGroup.cs" Link="LIBs\OUI\uom.network.OUI.MacRecordsGroup.cs" />
+		<Compile Include="$(SolutionDir)\CommonMP\OUI\uom.network.OUI.OUIDatabase.cs" Link="LIBs\OUI\uom.network.OUI.OUIDatabase.cs" />
+		<Compile Include="$(SolutionDir)\CommonMP\OUI\uom.Extensions.Extensions_OUI.cs" Link="LIBs\OUI\uom.Extensions.Extensions_OUI.cs" />
+		<EmbeddedResource Include="$(SolutionDir)\CommonMP\OUI\oui.txt" Link="LIBs\OUI\oui.txt" />
+
+
+		<!-- Include Partial Model files -->
+		<Compile Include="$(SolutionDir)\CommonMP\Model\DevicesListRecord_Multiplatform.cs" Link="Model\DevicesListRecord_Multiplatform.cs">
+			<DependentUpon>DevicesListRecord.cs</DependentUpon>
+		</Compile>
+
+
+		<!-- Localization String Resources -->
+		
+		<!-- Localization\Strings-->
+		<EmbeddedResource Update="Localization\LStrings.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+			<LastGenOutput>LStrings.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+		
+		<Compile Update="Localization\LStrings.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>LStrings.resx</DependentUpon>
+		</Compile>
+
+		<EmbeddedResource Update="Localization\LStrings.ru.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+		</EmbeddedResource>
+		
+		<EmbeddedResource Update="Localization\LStrings.uk.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+		</EmbeddedResource>
+
+	
+	</ItemGroup>
+
+</Project>

@@ -2,14 +2,14 @@
  <!-- Solution folder(s) -->
   <Folder Name="/Solution Items/">
     
-	<File Path="CommonProject.Multiplatform.props" />	
-	<File Path="CommonProject.Windows.props" />
-	<File Path="CommonProject.MALM.props" />
+	<File Path="CommonMP\CommonProject.Multiplatform.props" />	
+	<File Path="CommonMP\CommonProject.LIBs.props" />
+	<File Path="CommonMP\CommonProject.MALM.props" />
     
 	<File Path="Directory.Packages.props" />    
   </Folder>
    
-  <Project Path="../../_LIB/Mikrotik/MikrotikDotNet/Mikrotik.Net/Mikrotik.Net.csproj" />
+  <Project Path="../../../_LIB/Mikrotik/MikrotikDotNet/Mikrotik.Net/Mikrotik.Net.csproj" />
  
  <Project Path="MAUI/MALM MAUI.csproj">
     <Deploy />

@@ -1,7 +1,9 @@
 ﻿#nullable enable
 
-using MikrotikDotNet.Model.IP.Firewall.AddressList;
 using System.Drawing;
+
+using MikrotikDotNet.Model.IP.Firewall.AddressList;
+
 using uom.controls;
 
 namespace MALM.UI
@@ -34,7 +36,7 @@ namespace MALM.UI
             this.updateTexts(
                 ali.Address ,
                 ali.Comment ?? "" ,
-                ali.CreationTime!.eToLongDateTimeString() ,
+                ali.CreationTime!.toLongDateTimeString() ,
                 ali.MKID);
 
             ImageKey = ali.Disabled ? C_IMAGE_KEY_GRAY : C_IMAGE_KEY_GREEN;
@@ -50,8 +52,7 @@ namespace MALM.UI
             filter = filter.Trim().ToLower();
 
             if ( MikrotikRow.Address.ToLower().Contains(filter) ) return true;
-            if ( MikrotikRow.List.ToLower().Contains(filter) ) return true;
-            return MikrotikRow.CreationTime.ToString().Contains(filter) || MikrotikRow.Comment != null && MikrotikRow.Comment.ToLower().Contains(filter);
+            return MikrotikRow.List.ToLower().Contains(filter) || MikrotikRow.CreationTime.ToString().Contains(filter) || (MikrotikRow.Comment != null && MikrotikRow.Comment.ToLower().Contains(filter));
         }
     }
 }

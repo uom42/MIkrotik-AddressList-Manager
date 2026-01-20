@@ -1,5 +1,9 @@
-﻿using MALM.UI;
-using System.Net.NetworkInformation;
+﻿using System.Net.NetworkInformation;
+
+using MALM.UI;
+
+using uom.network.OUI;
+
 using static MALM.Localization.LStrings;
 
 namespace MALM.Model
@@ -13,7 +17,7 @@ namespace MALM.Model
             ARP
         }
 
-        private static readonly Lazy<OUI.OUIDatabase?> _ouiDb = new(() => OUI.Manager.Database);
+        private static readonly Lazy<OUIDatabase?> _ouiDb = new(OUIDatabase.Instance);
 
         private string _mfgString = string.Empty;
 
@@ -173,7 +177,7 @@ namespace MALM.Model
 
 
             li.updateTexts(
-                          MAC!.eToStringHex() ,
+                          MAC!.toStringHex() ,
                           ipString ,
                           name ,
                           lastSeen ,
