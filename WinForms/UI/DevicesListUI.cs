@@ -23,16 +23,11 @@ internal partial class DevicesListUI : Form, uom.AppTools.ISecondInstanceHandler
 
 	private void OnLoad ()
 	{
+		this.attach_PositionAndStateSaver_Jot();
+		this.dwmSetBlurStyle(uom.WinAPI.winThemes.BlurTypes.Acrylic , this.calculateChildPaddings(lvwDevices));
 
 		var inst = uom.AppTools.SingleInstanceController<uom.AppTools.SecondAppLaunchContext>.Default;
 		inst?.SecondInstanceStarHandler = this;
-
-
-		this.dwmSetBlurStyle(uom.WinAPI.winThemes.BlurTypes.Acrylic , this.calculateChildPaddings(lvwDevices));
-
-
-		lvwDevices.GroupCollapsedStateChanged += ( _ , _ )
-			=> lvwDevices.SaveGroupsState(dataID: "DevicesList");
 
 		lvwDevices.clearItems();
 
@@ -43,7 +38,7 @@ internal partial class DevicesListUI : Form, uom.AppTools.ISecondInstanceHandler
 			ImageSize = iconSize ,
 		};
 
-		var bmRouter = uom.AppInfo.AppAssembly.eLoadSVGFromResourceFileAsBitmap("Router_gray.svg" , iconSize);
+		var bmRouter = uom.AppInfo.AppAssembly.loadSVGFromResourceFileAsBitmap("Router_gray.svg" , iconSize);
 
 		iml.Images.Add(bmRouter);
 		lvwDevices.SmallImageList = iml;
@@ -56,7 +51,10 @@ internal partial class DevicesListUI : Form, uom.AppTools.ISecondInstanceHandler
 			if ( li.Text.Equals(recent , StringComparison.OrdinalIgnoreCase) ) li.activate();
 		}
 
-		lvwDevices.RestoreGroupsStateFromStorage(dataID: "DevicesList");
+
+		lvwDevices.attachGroupsCollapsingMonitor();
+		//lvwDevices.GroupCollapsedStateChanged += ( _ , _ )			=> lvwDevices.saveGroupsState(dataID: "DevicesList");
+		//lvwDevices.tryRestoreGroupsStateFromStorage(dataID: "DevicesList");
 
 		OnDeviceSelected();
 	}

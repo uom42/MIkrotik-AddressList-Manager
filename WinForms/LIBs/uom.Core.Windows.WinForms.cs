@@ -31,6 +31,8 @@ using uom.controls;
 
 using Vanara.PInvoke;
 
+using Windows.Foundation.Metadata;
+
 using static uom.WinAPI.winThemes;
 using static Vanara.PInvoke.DwmApi;
 using static Vanara.PInvoke.Gdi32;
@@ -1278,6 +1280,7 @@ namespace uom
 
 		///<summary>Saves From Position and size. Process Moved/Sized Events</summary>
 		[Serializable]
+		[Obsolete("Obsolete!  use attach_PositionAndStateSaver_Jot() instead!!!" , true)]
 		public class FormPositionInfo ()
 		{
 			private const string FORMS_SETTTINGS = "Windows";
@@ -1300,29 +1303,22 @@ namespace uom
 			public string Display = string.Empty;
 
 
-
+			[Obsolete("Obsolete!  use attach_PositionAndStateSaver_Jot() instead!!!" , true)]
 			public static void Attach ( Form f , [CallerMemberName] string caller = "" )
 			{
-				if ( caller != ".ctor" )
-				{
+				if ( !caller.Equals(".ctor" , StringComparison.OrdinalIgnoreCase) )
 					throw new Exception("e_AttachFormPositionSaver() must be called ONLY FROM form Constructor!");
-				}
 
-				string id = GetID(f);
+				//var id = GetID(f);
 				var fpi = Load(f);
 				if ( fpi is not null )
 				{
 					fpi._form = f;
 
-					//Found previous saved settings - load and apply it to the form
-					f.SuspendLayout();
-					try
+					using ( f.SuspendPainting(LayoutSuspendTraversal.TargetOnly) )
 					{
+						//Found previous saved settings - load and apply it to the form
 						fpi.Apply(f);
-					}
-					finally
-					{
-						f.ResumeLayout();
 					}
 				}
 				fpi ??= new FormPositionInfo(f);
@@ -1330,15 +1326,7 @@ namespace uom
 
 				lock ( _lll.Value )
 				{
-					var dic = _lll.Value;
-					if ( dic.ContainsKey(f) )
-					{
-						dic[ f ] = fpi!;
-					}
-					else
-					{
-						dic.Add(f , fpi!);
-					}
+					_lll.Value.addOrUpdate(f , fpi!);
 				}
 			}
 
@@ -1375,11 +1363,7 @@ namespace uom
 					//Removing from temp storage
 					lock ( _lll.Value )
 					{
-						var dic = _lll.Value;
-						if ( dic.ContainsKey(_form) )
-						{
-							dic.Remove(_form);
-						}
+						_lll.Value.Remove(_form);
 					}
 					_form = null;
 				};
@@ -1437,83 +1421,83 @@ namespace uom
 
 			private void Apply ( Form f )
 			{
-				if ( f.IsDisposed || State == FormWindowState.Minimized )
+				if ( f.IsDisposed || State == FormWindowState.Minimized ) return;
+
+				using ( f.SuspendPainting(LayoutSuspendTraversal.TargetOnly) )
 				{
-					return;
-				}
+					f.StartPosition = FormStartPosition.Manual;
 
-				f.StartPosition = FormStartPosition.Manual;
+					Screen targetDisplay = Screen
+						.AllScreens
+						.Where(d => d.DeviceName.Equals(Display , StringComparison.InvariantCultureIgnoreCase))
+						.FirstOrDefault() ?? Screen.PrimaryScreen!;
 
-				Screen targetDisplay = Screen
-					.AllScreens
-					.Where(d => d.DeviceName.Equals(Display , StringComparison.InvariantCultureIgnoreCase))
-					.FirstOrDefault() ?? Screen.PrimaryScreen!;
-
-				if ( State != FormWindowState.Maximized )
-				{
-					//Checking that bounds is not out of screen
+					if ( State != FormWindowState.Maximized )
 					{
-						int minX = Screen.AllScreens.Select(d => d.WorkingArea.Left).Min();
-						int minY = Screen.AllScreens.Select(d => d.WorkingArea.Top).Min();
-						int maxX = Screen.AllScreens.Select(d => d.WorkingArea.Right).Max();
-						int maxY = Screen.AllScreens.Select(d => d.WorkingArea.Bottom).Max();
-
-						if ( RectOnDesktop.X < minX )
+						//Checking that bounds is not out of screen
 						{
-							RectOnDesktop.X = minX;
-						}
+							int minX = Screen.AllScreens.Select(d => d.WorkingArea.Left).Min();
+							int minY = Screen.AllScreens.Select(d => d.WorkingArea.Top).Min();
+							int maxX = Screen.AllScreens.Select(d => d.WorkingArea.Right).Max();
+							int maxY = Screen.AllScreens.Select(d => d.WorkingArea.Bottom).Max();
 
-						if ( RectOnDesktop.Y < minY )
-						{
-							RectOnDesktop.Y = minY;
-						}
-
-						//Ensuring window Size in not more than Current display Size
-						{
-							if ( RectOnDesktop.Width > targetDisplay.WorkingArea.Width )
+							if ( RectOnDesktop.X < minX )
 							{
-								RectOnDesktop.Width = targetDisplay.WorkingArea.Width;
+								RectOnDesktop.X = minX;
 							}
 
-							if ( RectOnDesktop.Height > targetDisplay.WorkingArea.Height )
+							if ( RectOnDesktop.Y < minY )
 							{
-								RectOnDesktop.Height = targetDisplay.WorkingArea.Height;
+								RectOnDesktop.Y = minY;
+							}
+
+							//Ensuring window Size in not more than Current display Size
+							{
+								if ( RectOnDesktop.Width > targetDisplay.WorkingArea.Width )
+								{
+									RectOnDesktop.Width = targetDisplay.WorkingArea.Width;
+								}
+
+								if ( RectOnDesktop.Height > targetDisplay.WorkingArea.Height )
+								{
+									RectOnDesktop.Height = targetDisplay.WorkingArea.Height;
+								}
+							}
+
+
+							//Slide window left and top if out of right and bonttom bounds
+							if ( RectOnDesktop.Right > maxX )
+							{
+								RectOnDesktop.X = maxX - RectOnDesktop.Width;
+							}
+
+							if ( RectOnDesktop.Bottom > maxY )
+							{
+								RectOnDesktop.Y = maxY - RectOnDesktop.Height;
 							}
 						}
 
+						((HWND)f.Handle).setWindowRectWithoutShadow(RectOnDesktop);
+						var bb = targetDisplay.Bounds;
 
-						//Slide window left and top if out of right and bonttom bounds
-						if ( RectOnDesktop.Right > maxX )
+						if ( Screen.AllScreens.Length > 1 )
 						{
-							RectOnDesktop.X = maxX - RectOnDesktop.Width;
-						}
-
-						if ( RectOnDesktop.Bottom > maxY )
-						{
-							RectOnDesktop.Y = maxY - RectOnDesktop.Height;
+							//
 						}
 					}
-
-					((HWND)f.Handle).setWindowRectWithoutShadow(RectOnDesktop);
-					var bb = targetDisplay.Bounds;
-
-					if ( Screen.AllScreens.Length > 1 )
+					else
 					{
-						//
+						//Maximized
+						if ( Screen.AllScreens.Length > 1 && !targetDisplay.Primary )
+						{
+							//need maximize on proper display!
+							var r = _form!.Bounds;
+							r = r.eCenterTo(targetDisplay.WorkingArea.eGetCenter().eToPoint());
+							_form!.Bounds = r;
+						}
 					}
+					f.WindowState = State;
 				}
-				else
-				{
-					//Maximized
-					if ( Screen.AllScreens.Length > 1 && !targetDisplay.Primary )
-					{
-						//need maximize on proper display!
-						var r = _form!.Bounds;
-						r = r.eCenterTo(targetDisplay.WorkingArea.eGetCenter().eToPoint());
-						_form!.Bounds = r;
-					}
-				}
-				f.WindowState = State;
 			}
 
 
@@ -1526,7 +1510,7 @@ namespace uom
 				}
 
 				FromUI();
-				string xml = this.eSerializeAsXML();
+				string xml = this.serializeAsXML();
 				uom.AppTools.AppSettings.SaveMultiString(GetID() , xml , FORMS_SETTTINGS);
 				//Debug.WriteLine($"*********** Save\n{xml}");
 			}
@@ -3105,7 +3089,7 @@ namespace uom
 
 				}
 
-
+				[Obsolete("Obsolete!  use attach_PositionAndStateSaver_Jot() instead!!!" , true)]
 				public void attach_PositionAndStateSaver ( [CallerMemberName] string caller = "" )
 					=> UI.FormPositionInfo.Attach(source! , caller);
 

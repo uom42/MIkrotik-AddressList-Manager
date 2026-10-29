@@ -54,11 +54,6 @@ public partial class MikrotikAddressTableRecord_ListUI
 		//CommunityToolkit.Maui.Core.Platform.KeyboardExtensions.HideKeyboardAsync();
 		//this.HideKeyboardAsync(CancellationToken.None);
 
-
-#if WINDOWS
-		this.attach_PositionAndStateSaver();
-#endif
-
 		LocalizeUI();
 
 #if WINDOWS
@@ -75,8 +70,7 @@ public partial class MikrotikAddressTableRecord_ListUI
 		var iconSize = System.Windows.Forms.SystemInformation.SmallIconSize;
 
 		var bmIconGreen = uom.AppInfo.AppAssembly
-			.eLoadSVGFromResourceFile("ball_green.svg")
-			.toBitmap(iconSize);
+			.loadSVGFromResourceFileAsBitmap("ball_green.svg" , iconSize);
 
 		var bmIconGray = bmIconGreen.eToGrayscaled_ToolStripRenderer();
 		var iml = new ImageList()
@@ -170,12 +164,9 @@ public partial class MikrotikAddressTableRecord_ListUI
 	{
 
 #if WINDOWS
-		lvwRows.GroupCollapsedStateChanged += ( _ , _ ) =>
-		{
-			if ( !_tableRowsReady ) return;
-			lvwRows.SaveGroupsState(dataID: GetHostDataID());
-		};
+		this.attach_PositionAndStateSaver_Jot();
 
+		lvwRows.attachGroupsCollapsingMonitor(dataID: GetHostDataID() , saveDeprecator: () => !_tableRowsReady);
 		toolBarMain.enableItems(false);
 		txtFilter.attach_DelayedTextChangedHandler(OnFilterChanged , cueBanner: L_FILTER);
 		this.runDelayed_OnShown(QueryDataFromDevice);
@@ -320,7 +311,7 @@ public partial class MikrotikAddressTableRecord_ListUI
 
 			} , true , true);
 
-			lvwRows.RestoreGroupsStateFromStorage(dataID: GetHostDataID());
+			lvwRows.tryRestoreGroupsStateFromStorage(dataID: GetHostDataID());
 #endif
 
 		}

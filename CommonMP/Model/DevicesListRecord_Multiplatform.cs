@@ -244,7 +244,7 @@ namespace MALM.Model
 		{
 			Debug.WriteLine($"***************** SaveAddressBook");
 
-			string xml = rows.ToList().eSerializeAsXML();
+			string xml = rows.ToList().serializeAsXML();
 			var fiDatabse = DatabseFile.Value;
 			using var sw = fiDatabse.createStreamWriter(FileMode.OpenOrCreate , encoding: Encoding.Unicode);
 			sw.BaseStream.truncate();

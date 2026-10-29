@@ -5,7 +5,8 @@
     <NoWarn>$(NoWarn);NU1507</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.7" />
+    <PackageVersion Include="Jot" Version="2.1.17" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.14" />
     <PackageVersion Include="AathifMahir.Maui.MauiIcons.Cupertino" Version="6.0.0" />
     <PackageVersion Include="AathifMahir.Maui.MauiIcons.Fluent" Version="6.0.0" />
     <PackageVersion Include="AathifMahir.Maui.MauiIcons.FontAwesome" Version="6.0.0" />
@@ -16,29 +17,29 @@
     <PackageVersion Include="AathifMahir.Maui.MauiIcons.Material.Rounded" Version="6.0.0" />
     <PackageVersion Include="AathifMahir.Maui.MauiIcons.Material.Sharp" Version="6.0.0" />
     <PackageVersion Include="AathifMahir.Maui.MauiIcons.SegoeFluent" Version="6.0.0" />
-    <PackageVersion Include="CommunityToolkit.Maui" Version="14.1.0" />
-    <PackageVersion Include="CommunityToolkit.Maui.Core" Version="14.1.0" />
-    <PackageVersion Include="CommunityToolkit.Maui.Markup" Version="7.0.1" />
+    <PackageVersion Include="CommunityToolkit.Maui" Version="15.0.1" />
+    <PackageVersion Include="CommunityToolkit.Maui.Core" Version="15.0.1" />
+    <PackageVersion Include="CommunityToolkit.Maui.Markup" Version="8.0.0" />
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="10.0.7" />
-    <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.51" />
-    <PackageVersion Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.51" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.120" />
+    <PackageVersion Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.120" />
     <PackageVersion Include="Plugin.CurrentActivity" Version="2.1.0.4" />
     <PackageVersion Include="Plugin.Fingerprint" Version="2.1.5" />
     <PackageVersion Include="Refractored.MvvmHelpers" Version="1.6.2" />
-    <PackageVersion Include="Svg" Version="3.4.7" />
-    <PackageVersion Include="System.Management" Version="10.0.7" />
-    <PackageVersion Include="Vanara.PInvoke.Accessibility" Version="5.0.4" />
-    <PackageVersion Include="Vanara.Pinvoke.DwmApi" Version="5.0.4" />
-    <PackageVersion Include="Vanara.Pinvoke.Gdi32" Version="5.0.4" />
-    <PackageVersion Include="Vanara.Pinvoke.IpHlpApi" Version="5.0.4" />
-    <PackageVersion Include="Vanara.Pinvoke.Kernel32" Version="5.0.4" />
-    <PackageVersion Include="Vanara.Pinvoke.NtDll" Version="5.0.4" />
-    <PackageVersion Include="Vanara.Pinvoke.Security" Version="5.0.4" />
-    <PackageVersion Include="Vanara.Pinvoke.Shell32" Version="5.0.4" />
-    <PackageVersion Include="Vanara.Pinvoke.ShlwApi" Version="5.0.4" />
-    <PackageVersion Include="Vanara.Pinvoke.User32" Version="5.0.4" />
-    <PackageVersion Include="Vanara.Security" Version="5.0.4" />
-    <PackageVersion Include="Vanara.Windows.Forms" Version="5.0.4" />
+    <PackageVersion Include="Svg" Version="3.4.8" />
+    <PackageVersion Include="System.Management" Version="10.0.14" />
+    <PackageVersion Include="Vanara.PInvoke.Accessibility" Version="5.0.8" />
+    <PackageVersion Include="Vanara.Pinvoke.DwmApi" Version="5.0.8" />
+    <PackageVersion Include="Vanara.Pinvoke.Gdi32" Version="5.0.8" />
+    <PackageVersion Include="Vanara.Pinvoke.IpHlpApi" Version="5.0.8" />
+    <PackageVersion Include="Vanara.Pinvoke.Kernel32" Version="5.0.8" />
+    <PackageVersion Include="Vanara.Pinvoke.NtDll" Version="5.0.8" />
+    <PackageVersion Include="Vanara.Pinvoke.Security" Version="5.0.8" />
+    <PackageVersion Include="Vanara.Pinvoke.Shell32" Version="5.0.8" />
+    <PackageVersion Include="Vanara.Pinvoke.ShlwApi" Version="5.0.8" />
+    <PackageVersion Include="Vanara.Pinvoke.User32" Version="5.0.8" />
+    <PackageVersion Include="Vanara.Security" Version="5.0.8" />
+    <PackageVersion Include="Vanara.Windows.Forms" Version="5.0.8" />
   </ItemGroup>
 </Project>

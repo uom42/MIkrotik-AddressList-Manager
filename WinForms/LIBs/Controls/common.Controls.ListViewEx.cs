@@ -6,6 +6,8 @@ global using System.Windows.Forms;
 
 global using uom.controls;
 
+using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics.Eventing.Reader;
 using System.Runtime.CompilerServices;
@@ -1229,389 +1231,6 @@ break;
 
 
 
-		#region Group Tools
-
-
-		private const string DEFAULT_LIST_VIEW_GROUP_NAME = "default";
-
-
-		private Dictionary<string , bool> _knownGroupsStates = [];
-
-
-
-
-
-		private Dictionary<string , bool> GetGroupsState ()
-			=> this
-				.groupsAsIEnumerable()
-				.Select(grp =>
-				{
-					string id = grp.eGetStringID(DEFAULT_LIST_VIEW_GROUP_NAME).ToLower().Trim();
-					bool collapsed = false;
-#if NET
-					collapsed = grp.CollapsedState == ListViewGroupCollapsedState.Collapsed;
-#else
-					collapsed = grp.eGetState_IsCollapsed ();
-#endif
-					return (ID: id , Collapsed: collapsed);
-				}
-				)
-				.Where(grp => grp.ID.isNotNullOrWhiteSpace)
-				.OrderBy(grp => grp.ID)
-				.ToDictionary(grp => grp.ID , grp => grp.Collapsed);
-
-
-
-		private FileInfo GetGroupsStateStorageFile ( string? @directory = null , string dataID = "" )
-		{
-			const string GROUPS_SATES_EXT = ".groups.xml";
-			string lvID = this.eCreateListViewID();
-			if ( !dataID.isNullOrWhiteSpace ) lvID += $"_{dataID}";
-
-			DirectoryInfo di = (@directory is not null)
-				? new(@directory)
-				: uom.AppInfo.UserAppDataPath(true);
-
-			return System.IO.Path.Combine(di.FullName , lvID + GROUPS_SATES_EXT).pathToFileInfo()!;
-		}
-
-
-		/// <summary>Write all groups collapsed/epanded state fo file</summary>
-		/// <param name="directory">Folder where settings file will be placed</param>
-		/// <param name="dataID">Some user custom file suffix</param>
-		/// <param name="append">Do not replace all file data, but update/append groups. When append mode is not used only current groups existing in the ListView will be saved</param>
-		/// <returns>Saved settings file</returns>
-
-		public FileInfo SaveGroupsState ( string? @directory = null , string dataID = "" , bool append = true )
-		{
-			Dictionary<string , bool>? states = null;
-			if ( append )
-			{
-				states = LoadGroupsState(@directory , dataID) ?? [];
-				var currentStates = GetGroupsState();
-				foreach ( var kvp in currentStates )
-				{
-					if ( !states.TryAdd(kvp.Key , kvp.Value) ) // Already exist just modify
-						states[ kvp.Key ] = kvp.Value;
-				}
-			}
-			else // Only save existing listview groups.
-			{
-				states = GetGroupsState();
-			}
-
-			_knownGroupsStates = states;
-
-			var sortedRows = _knownGroupsStates
-				.Select(kvp => (Name: kvp.Key , Collapsed: kvp.Value))
-				.Where(grp => grp.Name.isNotNullOrWhiteSpace)
-				.OrderBy(grp => grp.Name)
-				.ToArray();
-
-#if DEBUG
-			var dd = _knownGroupsStates.dumpArrayToString();
-			Debug.WriteLine($"SaveGroupsState: {dd}");
-#endif
-
-			var text = sortedRows.eSerializeAsXML();
-
-			FileInfo fi = GetGroupsStateStorageFile(@directory , dataID);
-			using ( var sw = fi.createStreamWriter(FileMode.OpenOrCreate , encoding: System.Text.Encoding.Unicode) )
-			{
-				sw.BaseStream.truncate(); //trim previous file data										   
-				sw.WriteLine(text); //writing actual data
-				sw.Flush();
-			}
-			return fi;
-		}
-
-
-		/// <summary>Load groups collapsed/expanded state from storage file</summary>
-		/// <param name="directory">Folder where settings file will be placed</param>
-		/// <param name="dataID">Some user custom file suffix</param>
-
-		private Dictionary<string , bool>? LoadGroupsState ( string? @directory = null , string dataID = "" )
-		{
-			try
-			{
-				FileInfo fi = GetGroupsStateStorageFile(@directory , dataID);
-				return !fi.Exists
-					? null
-					: fi
-					.readAsText()!
-					.Trim()
-					.deSerializeXML<(string Name , bool Collapsed)[]>(throwOnError: true)!
-					.Where(grp => grp.Name.isNotNullOrWhiteSpace)
-					.OrderBy(grp => grp.Name)
-					.ToDictionary(r => r.Name , r => r.Collapsed);
-			}
-			catch ( Exception ex )
-			{
-				//just ignore any errors
-				ex.logError(false);
-				return null;
-			}
-		}
-
-
-
-		/// <summary>Load groups collapsed/expanded state from storage file and apply to ListView</summary>
-		/// <param name="directory">Folder where settings file will be placed</param>
-		/// <param name="dataID">Some user custom file suffix</param>
-
-		public void RestoreGroupsStateFromStorage ( string? @directory = null , string dataID = "" )
-		{
-			var savedStates = LoadGroupsState(@directory , dataID);
-			try
-			{
-				this.runOnLockedUpdate(() =>
-				{
-					this.groupsAsIEnumerable()
-					.forEach(grp =>
-						{
-#if !NET
-							grp.eSetStateFlag (ListViewGroupState.LVGS_COLLAPSIBLE);
-#endif
-							string grpID = grp.eGetStringID(DEFAULT_LIST_VIEW_GROUP_NAME).ToLower().Trim();
-
-							if ( savedStates?.TryGetValue(grpID , out bool savedState) ?? false )
-							{
-#if NET
-								grp.CollapsedState = savedState ? ListViewGroupCollapsedState.Collapsed : ListViewGroupCollapsedState.Expanded;
-#else
-								grp.eSetState_Collapsed (savedState);
-#endif
-							}
-						});
-				});
-
-#if DEBUG
-				var dd = savedStates.dumpArrayToString();
-				Debug.WriteLine($"RestoreGroupsStateFromStorage: {dd}");
-#endif
-
-			}
-			catch ( Exception ex )
-			{
-				//just ignore any errors
-				ex.logError(false);
-			}
-		}
-
-
-		//#if !NET
-#if !NET
-
-
-
-		
-		private void UpdateGroupsStateInStorage ()
-		{
-			var currentStates = GetGroupsState ();
-			bool hasAnyChanges = !currentStates.eIsDictionaryEqualTo (_knownGroupsStates);
-			if (hasAnyChanges)
-			{
-				this.GroupsCollapsedStateChangedByMouse?.Invoke (this, "");
-			}
-		}
-
-
-
-		#region SetGroupState
-
-
-		public static void SetGroupState ( ListViewGroup grp, ListViewGroupState state )
-		{
-			grp.eSetGroup (state: state);
-			grp.ListView!.runInUIThread (() => grp.ListView!.Refresh ());
-		}
-
-		public static void SetGroupStateFlag ( ListViewGroup grp, ListViewGroupState flag, bool flagState = true )
-		{
-			ListViewGroupState state = GetGroupState (grp);
-
-			state |= flag;
-			if (!flagState) state ^= flag;
-
-			SetGroupState (grp, state);
-		}
-
-
-		/// <summary>Returns the combination of state values that are set. For example, if dwMask is LVGS_COLLAPSED and the value returned is zero, the LVGS_COLLAPSED state is not set. Zero is returned if the group is not found.</summary>
-		/// <param name="Mask">Specifies the state values to retrieve. This is a combination of the flags listed for the state member of LVGROUP.</param>
-		public static ListViewGroupState GetGroupState ( ListViewGroup grp, ListViewGroupState? bitsToGet = null )
-		{
-			if (grp?.ListView is null ) return default;
-
-			if (!bitsToGet.HasValue) bitsToGet = ListViewGroupState.LVGS_COLLAPSED;
-
-			ListViewGroupState result = grp.ListView.runInUIThread (() =>
-			{
-				return (ListViewGroupState) SendMessage<ListViewMessage> (
-					grp.ListView.Handle,
-					ListViewMessage.LVM_GETGROUPSTATE,
-					grp.eGetWin32ID (),
-					(int) bitsToGet.Value);
-			});
-			return result;
-		}
-
-		#endregion
-
-
-
-
-
-
-		private delegate void CallbackSetGroupString ( ListViewGroup lstvwgrp, string value );
-
-
-		#region SetGroupText
-
-		/*	  	 
-
-		/// <summary>Задаёт текст для группы, но не меняет флаг состояния группы (!!! Стандартный .Header= string  меняет флаг состояния!!!)</summary>
-		public static void SetGroupText(lstvwgrp As ListViewGroup, Text As  string )
-					 if (lstvwgrp is null ) || (lstvwgrp.ListView is null )  {
-				return
-					 if (lstvwgrp.ListView.InvokeRequired)
-				{
-					Call lstvwgrp.ListView.Invoke(new CallbackSetGroupString(AddressOf SetGroupText), lstvwgrp, Text)
-					 else
-					{
-						var GrpId = GetGroupID(lstvwgrp)
-						 var LVG As new LVGROUP With
-		{.CbSize = Marshal.SizeOf(LVG),
-							.PszHeader = Text,
-							.Mask = LVGROUP.ListViewGroupMask.LVGF_HEADER,
-							.IGroupId = GrpId
-		}
-
-		Call SendMessage(lstvwgrp.ListView.Handle, ListViewMessage.LVM_SETGROUPINFO, GrpId, LVG)
-					 }
-				}
-		 */
-		#endregion
-
-		#region SetGroupFooter
-		/*
-		public static void SetGroupFooter(lstvwgrp As ListViewGroup, Footer As  string )
-				  if (lstvwgrp is null ) || (lstvwgrp.ListView is null )  {
-		return
-				  if (lstvwgrp.ListView.InvokeRequired)
-		{
-		Call lstvwgrp.ListView.Invoke(new CallbackSetGroupString(AddressOf SetGroupFooter), lstvwgrp, Footer)
-				  else
-		{
-
-		 var GrpId = GetGroupID(lstvwgrp)
-					  var group As  new LVGROUP With
-		{.CbSize = Marshal.SizeOf(group),
-													.PszFooter = Footer,
-													.Mask = LVGROUP.ListViewGroupMask.LVGF_FOOTER,
-													.IGroupId = GrpId
-		}
-
-		 Call SendMessage(lstvwgrp.ListView.Handle, ListViewMessage.LVM_SETGROUPINFO, GrpId, group)
-				  }
-		}
-		*/
-		#endregion
-
-		#region SetGroupSubTitle
-		/*
-
-
-		public static void SetGroupSubTitle(lstvwgrp As ListViewGroup, SubTitle As  string )
-					 if (lstvwgrp is null ) || (lstvwgrp.ListView is null )  {
-		return
-					 if (lstvwgrp.ListView.InvokeRequired)
-		{
-			Call lstvwgrp.ListView.Invoke(new CallbackSetGroupString(AddressOf SetGroupSubTitle), lstvwgrp, SubTitle)
-					 else
-			{
-				var GrpId = GetGroupID(lstvwgrp)
-						 var group As new LVGROUP With
-		{.CbSize = Marshal.SizeOf(group),
-							.PszSubtitle = SubTitle,
-							.Mask = LVGROUP.ListViewGroupMask.LVGF_SUBTITLE
-		}
-		Call SendMessage(lstvwgrp.ListView.Handle, ListViewMessage.LVM_SETGROUPINFO, GrpId, group)
-					 }
-		}
-			*/
-		#endregion
-
-		#region SetGroupTaskLink
-		/*
-
-		/// <summary>Обработку кликов надо делать в событии Listview.TaskLinkClick</summary>
-		public static void SetGroupTaskLink(lstvwgrp As ListViewGroup, TaskLinkText As  string )
-		 if  Not(uomvb.OS.VistaOrLater)
-		{
-		return  //Only Vista and forward allows footer on ListViewGroups
-
-		 if (lstvwgrp is null ) || (lstvwgrp.ListView is null )  {
-		return
-		 if (lstvwgrp.ListView.InvokeRequired)
-		{
-		Call lstvwgrp.ListView.Invoke(new CallbackSetGroupString(AddressOf SetGroupTaskLink), lstvwgrp, TaskLinkText)
-		 else
-		{
-			var GrpId = GetGroupID(lstvwgrp)
-			 var group As  new LVGROUP With
-		{.CbSize = Marshal.SizeOf(group),
-										   .PszTask = TaskLinkText,
-										   .Mask = LVGROUP.ListViewGroupMask.LVGF_TASK
-		}
-
-			Call SendMessage(lstvwgrp.ListView.Handle, ListViewMessage.LVM_SETGROUPINFO, GrpId, group)
-		 }
-		}
-		*/
-		#endregion
-
-		#region SetGroupAlign
-
-		/*
-
-		public static void SetGroupAlign(lstvwgrp As ListViewGroup, A As LVGROUP.ListViewGroupAlign)
-
-		if (lstvwgrp is null )
-		{
-		throw new ArgumentNullException("lstvwgrp")
-		if (lstvwgrp.ListView is null )
-		{
-		  throw new ArgumentException("Group must ge Added to ListView before.", "lstvwgrp")
-
-		if (lstvwgrp.ListView.InvokeRequired)
-		  {
-			  var Proc = new Action(Of ListViewGroup, LVGROUP.ListViewGroupAlign)(AddressOf SetGroupAlign)
-		  Call lstvwgrp.ListView.Invoke(Proc, lstvwgrp, A)
-		else
-			  {
-				  var GrpId = GetGroupID(lstvwgrp)
-		   var group As new LVGROUP With
-		{.CbSize = Marshal.SizeOf(group),
-										 .Mask = LVGROUP.ListViewGroupMask.LVGF_ALIGN,
-										 .UAlign = A
-		}
-
-		Call SendMessage(lstvwgrp.ListView.Handle, ListViewMessage.LVM_SETGROUPINFO, GrpId, group)
-		}
-		  }
-		*/
-
-		#endregion
-
-#endif
-
-
-		#endregion
-
-
-
-
 
 
 
@@ -2022,22 +1641,6 @@ namespace uom.Extensions
 #endif
 
 
-		/// <summary>Generate ListView ID with Form Name</summary>
-
-		internal static string eCreateListViewID ( this ListView lvw ) => $"{lvw.FindForm()!.Name}.{lvw.Name}";
-
-
-
-
-		internal static string eGetStringID ( this ListViewGroup g , string defaultID = "default" )
-		{
-			string?[] fields = [ g.Name , g.Header ];
-			return fields.FirstOrDefault(s => s.isNotNullOrWhiteSpace) ?? defaultID;
-		}
-
-
-
-
 
 
 
@@ -2055,47 +1658,530 @@ namespace uom.Extensions
 
 
 
-		public static ListViewStyleEx GetExtendedStyle ( this ListView lvw )
-		   => (ListViewStyleEx)User32.SendMessage<ListViewMessage>(lvw.Handle , ListViewMessage.LVM_GETEXTENDEDLISTVIEWSTYLE);
 
 
 
-		public static void SetExtendedStyle ( this ListView lvw , ListViewStyleEx s )
-			=> User32.SendMessage<ListViewMessage>(lvw.Handle , ListViewMessage.LVM_SETEXTENDEDLISTVIEWSTYLE , 0 , (int)s);
+		private const string
+			ERR_LIST_VIEW_HANDLE_NULL = $"ListView control Handle is not created!",
+
+			DEFAULT_LIST_VIEW_GROUP_NAME = "default",
+			GROUPS_SATES_EXT = ".groups.json";
 
 
-		public static void SetExtendedStyleFlag ( this ListView lvw , ListViewStyleEx s )
-			=> lvw.SetExtendedStyle(lvw.GetExtendedStyle() | s);
-
-
-		#region Allow SubItemImages
-
-
-		public static bool Apply ( this ComCtl32.LVITEM lvi , IntPtr h )
-			=> SendMessage(h , ListViewMessage.LVM_SETITEM , 0 , lvi) != 0;
+		//private static ConcurrentDictionary<string , Dictionary<string , bool>> _listViewGroupSetttings = [];
 
 
 
-		public static void AllowSubItemImages ( this ListView lvw )
-			=> lvw.SetExtendedStyleFlag(ListViewStyleEx.LVS_EX_SUBITEMIMAGES);
-
-
-
-		public static bool SetSubItemImage ( this ListViewItem li , int col , int iconIndex )
+		extension( ListView lvx )
 		{
-			if ( li.ListView is null ) return false;// throw new ArgumentNullException(nameof(li), "ListViewItem.ListView = NULL!");
 
-			ComCtl32.LVITEM lvi = new(li.Index , col , ListViewItemMask.LVIF_IMAGE)
+
+
+			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			private ListViewStyleEx getExtendedStyle ()
+			   => lvx.IsHandleCreated
+				? (ListViewStyleEx)User32.SendMessage<ListViewMessage>(lvx.Handle , ListViewMessage.LVM_GETEXTENDEDLISTVIEWSTYLE)
+				: 0;
+
+			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			private void setExtendedStyle ( ListViewStyleEx s )
+				=> _ = lvx.IsHandleCreated
+				? User32.SendMessage<ListViewMessage>(lvx.Handle , ListViewMessage.LVM_SETEXTENDEDLISTVIEWSTYLE , 0 , (int)s)
+				: throw new NotSupportedException(ERR_LIST_VIEW_HANDLE_NULL);
+
+			public ListViewStyleEx extendedStyle
 			{
-				iImage = iconIndex
-			};
-			return lvi.Apply(li.ListView.Handle);
+				get => lvx.getExtendedStyle();
+				set => lvx.setExtendedStyle(value);
+			}
+
+
+
+			public void allowSubItemImages ()
+				=> lvx.extendedStyle |= ListViewStyleEx.LVS_EX_SUBITEMIMAGES;
+
+
+			public bool setListViewItem ( ComCtl32.LVITEM lvi , IntPtr h )
+				=> SendMessage(h , ListViewMessage.LVM_SETITEM , 0 , lvi) != 0;
+
+
+
+
+			/// <summary>Generate ListView ID with Form Name</summary>
+			internal string createID ()
+				=> $"{lvx.FindForm()!.Name}.{lvx.Name}";
+
+
+			#region Group Tools
+
+
+			private static Dictionary<string , bool> CreateNewDictionary () => Dictionary<string , bool>.newWithOrdinalIgnoreCaseComparer();
+
+
+			internal FileInfo getGroupsStateStorageFile ( string? customGroupsStateStorageDir = null , string dataID = "" )
+			{
+				var ctlID = lvx.createID();
+				if ( dataID.isNotNullOrWhiteSpace ) ctlID = $"{ctlID}_{dataID}";
+
+				ctlID = ctlID
+					.Trim()
+					.pathToSafeFileNameString();
+
+
+				DirectoryInfo di = (customGroupsStateStorageDir is not null)
+					? new(customGroupsStateStorageDir)
+					: uom.AppInfo.UserAppDataPath(true);
+
+				//di.createIfNotExist();
+
+				var path = System.IO.Path.Combine(di.FullName , ctlID + GROUPS_SATES_EXT);
+
+				return path.pathToFileInfo()!;
+			}
+
+
+			internal ReadOnlyDictionary<string , bool> getGroupsState ()
+				=> lvx
+				.groupsAsIEnumerable()
+				.Select(grp => (
+					ID: grp.createID(DEFAULT_LIST_VIEW_GROUP_NAME) ,
+					Collapsed: grp.CollapsedState == ListViewGroupCollapsedState.Collapsed)
+					)
+					.Where(grp => grp.ID.isNotNullOrWhiteSpace)
+					.OrderBy(grp => grp.ID)
+					.ToDictionary(grp => grp.ID , grp => grp.Collapsed)
+				.AsReadOnly();
+
+
+			/// <summary>Write all groups collapsed/epanded state fo file</summary>
+			/// <param name="customGroupsStateStorageDir">Folder where settings file will be placed</param>
+			/// <param name="dataID">Some user custom file suffix</param>
+			/// <param name="append">Do not replace all file data, but update/append groups. When append mode is not used only current groups existing in the ListView will be saved</param>
+			/// <returns>Saved settings file</returns>
+			private FileInfo saveGroupsState ( string? customGroupsStateStorageDir = null , string dataID = "" , bool append = true )
+			{
+				var currentStates = lvx.getGroupsState();
+
+				if ( append )
+				{
+					// Try load old saved groups states from file...
+					var dicSavedStates = lvx
+						.loadGroupsState(customGroupsStateStorageDir , dataID)
+						?? CreateNewDictionary().AsReadOnly();
+
+					if ( dicSavedStates?.any ?? false )
+					{
+						// Found old saved groups states. Use old sates as base dictionary with updated from current states records
+						var editableDic = dicSavedStates!.ToDictionary();
+						if ( currentStates?.any ?? false )
+						{
+							//  Update states from current...
+							editableDic.addOrUpdateRange(currentStates);
+						}
+						currentStates = editableDic.AsReadOnly();
+					}
+				}
+
+				//Ordering
+				currentStates = currentStates
+					.OrderBy(kvp => kvp.Key)
+					.ToDictionary()
+					.AsReadOnly();
+
+				/*
+				// cache current sates to RAM
+				var diCachesStates = lvx.getGroupsStateContainer();
+				diCachesStates.addOrUpdateRange(currentStates , true);
+				 */
+#if DEBUG
+				var dd = currentStates.dumpArrayToString();
+				Debug.WriteLine($"SaveGroupsState: {dd}");
+#endif
+				var text = currentStates.serializeAsJson();
+				FileInfo fi = lvx.getGroupsStateStorageFile(customGroupsStateStorageDir , dataID);
+				fi.Directory!.createIfNotExist();
+				_ = fi.tryDeleteIfExist(false);
+
+				if ( text.isNotNullOrWhiteSpace )
+				{
+					using var sw = fi.createStreamWriter(FileMode.OpenOrCreate , encoding: System.Text.Encoding.Unicode);
+					sw.BaseStream.truncate(); //trim previous file data										   
+					sw.WriteLine(text); //writing actual data
+					sw.Flush();
+				}
+				return fi;
+			}
+
+
+			/// <summary>Load groups collapsed/expanded state from storage file</summary>
+			/// <param name="customGroupsStateStorageDir">Folder where settings file will be placed</param>
+			/// <param name="dataID">Some user custom file suffix</param>
+			private ReadOnlyDictionary<string , bool>? loadGroupsState ( string? customGroupsStateStorageDir = null , string dataID = "" )
+			{
+				try
+				{
+					var fi = lvx
+						.getGroupsStateStorageFile(customGroupsStateStorageDir , dataID);
+
+					if ( !(fi.Directory!.Exists && fi.Exists) ) return null;
+
+					var fileLines = fi
+						.readAsText()!
+						.Trim();
+
+					var dic = fileLines
+						.deserializeFromJsonString<Dictionary<string , bool>>()?
+						.OrderBy(kvp => kvp.Key)?
+						.ToDictionary();
+
+					return dic?
+						.AsReadOnly() ?? null;
+
+
+				}
+				catch ( Exception ex )
+				{
+					//just ignore any errors
+					ex.logError(false);
+					return null;
+				}
+			}
+
+
+
+
+			public void attachGroupsCollapsingMonitor (
+				string dataID = "" ,
+				bool defaultCollapsed = false ,
+				bool notResoreWhenOnly1Group = true ,
+				string? customGroupsStateStorageDir = null ,
+				bool restore = true ,
+				Func<bool>? saveDeprecator = null )
+			{
+				if ( restore )
+					_ = lvx.tryRestoreGroupsStateFromStorage(
+						dataID: dataID ,
+						defaultCollapsed: defaultCollapsed ,
+						notResoreWhenOnly1Group: notResoreWhenOnly1Group ,
+						customGroupsStateStorageDir: customGroupsStateStorageDir
+						);
+
+				lvx.GroupCollapsedStateChanged += ( _ , _ ) =>
+				{
+					var savedProhibited = saveDeprecator?.Invoke() ?? false;
+					if ( !savedProhibited )
+						lvx.saveGroupsState(dataID: dataID);
+				};
+
+			}
+
+
+			/// <summary>Load groups collapsed/expanded state from storage file and apply to ListView</summary>
+			/// <param name="customGroupsStateStorageDir">Folder where settings file will be placed</param>
+			/// <param name="dataID">Some user custom file suffix</param>
+
+			public bool tryRestoreGroupsStateFromStorage ( string dataID = "" , bool defaultCollapsed = false , bool notResoreWhenOnly1Group = true , string? customGroupsStateStorageDir = null )
+			{
+				var currentGroups = lvx.groupsAsIEnumerable().ToArray();
+				if ( notResoreWhenOnly1Group && currentGroups.Length < 2 ) return false;
+
+				try
+				{
+					var savedStates = lvx
+						.loadGroupsState(customGroupsStateStorageDir: customGroupsStateStorageDir , dataID: dataID);
+
+					using ( lvx.SuspendPainting(LayoutSuspendTraversal.TargetOnly) )
+					{
+						currentGroups
+							.forEach(grp =>
+							{
+								string grpID = grp.createID(DEFAULT_LIST_VIEW_GROUP_NAME);
+
+								bool needCollapse = false;
+
+								if ( !(savedStates?.TryGetValue(grpID , out needCollapse) ?? false) )
+									needCollapse = defaultCollapsed;
+
+								grp.CollapsedState = needCollapse
+									? ListViewGroupCollapsedState.Collapsed
+									: ListViewGroupCollapsedState.Expanded;
+
+							});
+
+
+#if DEBUG
+						var dd = savedStates.dumpArrayToString();
+						Debug.WriteLine($"RestoreGroupsStateFromStorage: {dd}");
+#endif
+
+						return true;
+
+					}
+				}
+				catch ( Exception ex )
+				{
+					//just ignore any errors
+					ex.logError(false);
+					return false;
+				}
+
+			}
+
+
+			//#if !NET
+#if !NET
+
+
+
+		
+		private void UpdateGroupsStateInStorage ()
+		{
+			var currentStates = GetGroupsState ();
+			bool hasAnyChanges = !currentStates.eIsDictionaryEqualTo (_knownGroupsStates);
+			if (hasAnyChanges)
+			{
+				this.GroupsCollapsedStateChangedByMouse?.Invoke (this, "");
+			}
 		}
 
+
+
+		#region SetGroupState
+
+
+		public static void SetGroupState ( ListViewGroup grp, ListViewGroupState state )
+		{
+			grp.eSetGroup (state: state);
+			grp.ListView!.runInUIThread (() => grp.ListView!.Refresh ());
+		}
+
+		public static void SetGroupStateFlag ( ListViewGroup grp, ListViewGroupState flag, bool flagState = true )
+		{
+			ListViewGroupState state = GetGroupState (grp);
+
+			state |= flag;
+			if (!flagState) state ^= flag;
+
+			SetGroupState (grp, state);
+		}
+
+
+		/// <summary>Returns the combination of state values that are set. For example, if dwMask is LVGS_COLLAPSED and the value returned is zero, the LVGS_COLLAPSED state is not set. Zero is returned if the group is not found.</summary>
+		/// <param name="Mask">Specifies the state values to retrieve. This is a combination of the flags listed for the state member of LVGROUP.</param>
+		public static ListViewGroupState GetGroupState ( ListViewGroup grp, ListViewGroupState? bitsToGet = null )
+		{
+			if (grp?.ListView is null ) return default;
+
+			if (!bitsToGet.HasValue) bitsToGet = ListViewGroupState.LVGS_COLLAPSED;
+
+			ListViewGroupState result = grp.ListView.runInUIThread (() =>
+			{
+				return (ListViewGroupState) SendMessage<ListViewMessage> (
+					grp.ListView.Handle,
+					ListViewMessage.LVM_GETGROUPSTATE,
+					grp.eGetWin32ID (),
+					(int) bitsToGet.Value);
+			});
+			return result;
+		}
 
 		#endregion
 
 
+
+
+
+
+		private delegate void CallbackSetGroupString ( ListViewGroup lstvwgrp, string value );
+
+
+		#region SetGroupText
+
+		/*	  	 
+
+		/// <summary>Задаёт текст для группы, но не меняет флаг состояния группы (!!! Стандартный .Header= string  меняет флаг состояния!!!)</summary>
+		public static void SetGroupText(lstvwgrp As ListViewGroup, Text As  string )
+					 if (lstvwgrp is null ) || (lstvwgrp.ListView is null )  {
+				return
+					 if (lstvwgrp.ListView.InvokeRequired)
+				{
+					Call lstvwgrp.ListView.Invoke(new CallbackSetGroupString(AddressOf SetGroupText), lstvwgrp, Text)
+					 else
+					{
+						var GrpId = GetGroupID(lstvwgrp)
+						 var LVG As new LVGROUP With
+		{.CbSize = Marshal.SizeOf(LVG),
+							.PszHeader = Text,
+							.Mask = LVGROUP.ListViewGroupMask.LVGF_HEADER,
+							.IGroupId = GrpId
+		}
+
+		Call SendMessage(lstvwgrp.ListView.Handle, ListViewMessage.LVM_SETGROUPINFO, GrpId, LVG)
+					 }
+				}
+		 */
+		#endregion
+
+		#region SetGroupFooter
+		/*
+		public static void SetGroupFooter(lstvwgrp As ListViewGroup, Footer As  string )
+				  if (lstvwgrp is null ) || (lstvwgrp.ListView is null )  {
+		return
+				  if (lstvwgrp.ListView.InvokeRequired)
+		{
+		Call lstvwgrp.ListView.Invoke(new CallbackSetGroupString(AddressOf SetGroupFooter), lstvwgrp, Footer)
+				  else
+		{
+
+		 var GrpId = GetGroupID(lstvwgrp)
+					  var group As  new LVGROUP With
+		{.CbSize = Marshal.SizeOf(group),
+													.PszFooter = Footer,
+													.Mask = LVGROUP.ListViewGroupMask.LVGF_FOOTER,
+													.IGroupId = GrpId
+		}
+
+		 Call SendMessage(lstvwgrp.ListView.Handle, ListViewMessage.LVM_SETGROUPINFO, GrpId, group)
+				  }
+		}
+		*/
+		#endregion
+
+		#region SetGroupSubTitle
+		/*
+
+
+		public static void SetGroupSubTitle(lstvwgrp As ListViewGroup, SubTitle As  string )
+					 if (lstvwgrp is null ) || (lstvwgrp.ListView is null )  {
+		return
+					 if (lstvwgrp.ListView.InvokeRequired)
+		{
+			Call lstvwgrp.ListView.Invoke(new CallbackSetGroupString(AddressOf SetGroupSubTitle), lstvwgrp, SubTitle)
+					 else
+			{
+				var GrpId = GetGroupID(lstvwgrp)
+						 var group As new LVGROUP With
+		{.CbSize = Marshal.SizeOf(group),
+							.PszSubtitle = SubTitle,
+							.Mask = LVGROUP.ListViewGroupMask.LVGF_SUBTITLE
+		}
+		Call SendMessage(lstvwgrp.ListView.Handle, ListViewMessage.LVM_SETGROUPINFO, GrpId, group)
+					 }
+		}
+			*/
+		#endregion
+
+		#region SetGroupTaskLink
+		/*
+
+		/// <summary>Обработку кликов надо делать в событии Listview.TaskLinkClick</summary>
+		public static void SetGroupTaskLink(lstvwgrp As ListViewGroup, TaskLinkText As  string )
+		 if  Not(uomvb.OS.VistaOrLater)
+		{
+		return  //Only Vista and forward allows footer on ListViewGroups
+
+		 if (lstvwgrp is null ) || (lstvwgrp.ListView is null )  {
+		return
+		 if (lstvwgrp.ListView.InvokeRequired)
+		{
+		Call lstvwgrp.ListView.Invoke(new CallbackSetGroupString(AddressOf SetGroupTaskLink), lstvwgrp, TaskLinkText)
+		 else
+		{
+			var GrpId = GetGroupID(lstvwgrp)
+			 var group As  new LVGROUP With
+		{.CbSize = Marshal.SizeOf(group),
+										   .PszTask = TaskLinkText,
+										   .Mask = LVGROUP.ListViewGroupMask.LVGF_TASK
+		}
+
+			Call SendMessage(lstvwgrp.ListView.Handle, ListViewMessage.LVM_SETGROUPINFO, GrpId, group)
+		 }
+		}
+		*/
+		#endregion
+
+		#region SetGroupAlign
+
+		/*
+
+		public static void SetGroupAlign(lstvwgrp As ListViewGroup, A As LVGROUP.ListViewGroupAlign)
+
+		if (lstvwgrp is null )
+		{
+		throw new ArgumentNullException("lstvwgrp")
+		if (lstvwgrp.ListView is null )
+		{
+		  throw new ArgumentException("Group must ge Added to ListView before.", "lstvwgrp")
+
+		if (lstvwgrp.ListView.InvokeRequired)
+		  {
+			  var Proc = new Action(Of ListViewGroup, LVGROUP.ListViewGroupAlign)(AddressOf SetGroupAlign)
+		  Call lstvwgrp.ListView.Invoke(Proc, lstvwgrp, A)
+		else
+			  {
+				  var GrpId = GetGroupID(lstvwgrp)
+		   var group As new LVGROUP With
+		{.CbSize = Marshal.SizeOf(group),
+										 .Mask = LVGROUP.ListViewGroupMask.LVGF_ALIGN,
+										 .UAlign = A
+		}
+
+		Call SendMessage(lstvwgrp.ListView.Handle, ListViewMessage.LVM_SETGROUPINFO, GrpId, group)
+		}
+		  }
+		*/
+
+		#endregion
+
+#endif
+
+
+			#endregion
+
+
+
+
+		}
+
+
+
+
+		extension( ListViewItem li )
+		{
+
+			public bool SetSubItemImage ( int col , int iconIndex )
+			{
+				var lvx = li.ListView;
+				if ( lvx is null ) return false;
+
+				ComCtl32.LVITEM lvi = new(li.Index , col , ListViewItemMask.LVIF_IMAGE)
+				{
+					iImage = iconIndex
+				};
+
+				return lvx.setListViewItem(lvi , lvx.Handle);
+			}
+		}
+
+		extension( ListViewGroup lvg )
+		{
+
+			internal string createID ( string defaultID = "default" )
+			{
+				string?[] ID_Fields = [
+					lvg.Name ,
+					lvg.Header
+					];
+
+				return ID_Fields
+					.FirstOrDefault(s => s.isNotNullOrWhiteSpace)?
+					.ToLower()?
+					.Trim()
+					?? defaultID;
+			}
+
+
+		}
 
 	}
 

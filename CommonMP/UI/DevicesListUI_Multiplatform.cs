@@ -35,8 +35,8 @@ internal partial class DevicesListUI
 #if !WINDOWS
 	private ObservableCollection<DevicesListRecord> _devices = [];
 #else
-    private MKConnection? _dialogResult = null;
-    private readonly DevicesListRecord[] _devices = [];
+	private MKConnection? _dialogResult = null;
+	private readonly DevicesListRecord[] _devices = [];
 #endif
 
 
@@ -62,21 +62,18 @@ internal partial class DevicesListUI
 		Appearing += async ( s , e ) => await onAppearing();
 		Disappearing += async ( s , e ) => await onDisappearing();
 #else
-        lvwDevices.MultiSelect = false;
-        lvwDevices.SelectedIndexChanged += delegate { OnDeviceSelected(); };
+		lvwDevices.MultiSelect = false;
+		lvwDevices.SelectedIndexChanged += delegate { OnDeviceSelected(); };
 
-        btnAdd.Click += OnAdd!;
-        btnEdit.Click += Device_Edit!;
-        btnDelete.Click += Device_Delete!;
-        btnSetMasterKey.Click += OnChangeMasterKey!;
+		btnAdd.Click += OnAdd!;
+		btnEdit.Click += Device_Edit!;
+		btnDelete.Click += Device_Delete!;
+		btnSetMasterKey.Click += OnChangeMasterKey!;
 
-        btnConnect.Click += async ( s , e ) => await OnTryConnectDevice(s , e);
-        lvwDevices.DoubleClick += async ( s , e ) => await OnTryConnectDevice(s , e);
+		btnConnect.Click += async ( s , e ) => await OnTryConnectDevice(s , e);
+		lvwDevices.DoubleClick += async ( s , e ) => await OnTryConnectDevice(s , e);
 
-        Load += ( _ , _ ) => OnLoad();
-
-        this.attach_PositionAndStateSaver();
-
+		Load += ( _ , _ ) => OnLoad();
 #endif
 
 		uom.network.OUI.OUIDatabase.BeginInitInstance();
@@ -90,7 +87,7 @@ internal partial class DevicesListUI
 #if ANDROID
 		_devices = [ with(l.Devices) ];
 #else
-        _devices = l.Devices;
+		_devices = l.Devices;
 #endif
 
 	}
@@ -113,15 +110,15 @@ internal partial class DevicesListUI
 		btnExitApp.Clicked += ( _ , _ ) => OnExit();
 
 #else
-        Text = L_DEVICES_LIST;
+		Text = L_DEVICES_LIST;
 
-        btnDelete.Text = L_DELETE;
-        btnEdit.Text = L_EDIT;
+		btnDelete.Text = L_DELETE;
+		btnEdit.Text = L_EDIT;
 
-        btnConnect.Text = L_CONNECT;
+		btnConnect.Text = L_CONNECT;
 
-        colAddress.Text = L_DEVICE_ADDRESS;
-        colUser.Text = L_DEVICE_USER;
+		colAddress.Text = L_DEVICE_ADDRESS;
+		colUser.Text = L_DEVICE_USER;
 
 #endif
 
@@ -169,13 +166,13 @@ internal partial class DevicesListUI
 #else
 
 
-        using DevicesListRecordEditorUI fe = DevicesListRecordEditorUI.InitUI(null);
-        if ( fe.ShowDialog(this) != DialogResult.OK ) return;
+		using DevicesListRecordEditorUI fe = DevicesListRecordEditorUI.InitUI(null);
+		if ( fe.ShowDialog(this) != DialogResult.OK ) return;
 
-        DevicesListRecord abr = DevicesListRecord.FromEditor(fe);
-        var li = AddRecordToList(abr);
-        await SaveDevicesList();
-        li.activate();
+		DevicesListRecord abr = DevicesListRecord.FromEditor(fe);
+		var li = AddRecordToList(abr);
+		await SaveDevicesList();
+		li.activate();
 
 #endif
 
@@ -194,7 +191,7 @@ internal partial class DevicesListUI
 #if !WINDOWS
 		await _mkm!.ShowEditorUI(SaveDevicesList);
 #else
-        await _mkm!.ShowEditorUI(this , SaveDevicesList);
+		await _mkm!.ShowEditorUI(this , SaveDevicesList);
 #endif
 	}
 
@@ -206,12 +203,12 @@ internal partial class DevicesListUI
 		var rows = _devices;
 #else
 
-        //uom.controls.ListViewItemT<DevicesListRecord>? SelectedDeviceeeeee		=> lvwDevices.eSelectedItemsAs<uom.controls.ListViewItemT<DevicesListRecord>>().FirstOrDefault();
+		//uom.controls.ListViewItemT<DevicesListRecord>? SelectedDeviceeeeee		=> lvwDevices.eSelectedItemsAs<uom.controls.ListViewItemT<DevicesListRecord>>().FirstOrDefault();
 
 
-        var rows = lvwDevices
-            .itemsAs<uom.controls.ListViewItemT<DevicesListRecord>>()
-            .Select(li => li.Value2);
+		var rows = lvwDevices
+			.itemsAs<uom.controls.ListViewItemT<DevicesListRecord>>()
+			.Select(li => li.Value2);
 #endif
 		await _mkm!.Database_WriteEncrypted([ .. rows ]);
 	}

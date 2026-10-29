@@ -63,6 +63,7 @@
 	
 	<!-- References -->
 	<ItemGroup>
+		<PackageReference Include="Jot" />
 		<PackageReference Include="Svg" />
 		<PackageReference Include="System.Management" />
 		

@@ -48,6 +48,8 @@ using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.ConstrainedExecution;
 using System.Runtime.Intrinsics.X86;
+using System.Runtime.Serialization;
+using System.Text.Json;
 using System.Transactions;
 using System.Xml.Serialization;
 //<PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.3" />
@@ -9812,22 +9814,57 @@ public record Error ( ErrorType type , string description )
 				: [ source ];
 
 
-			extension<TKey, TValue> ( Dictionary<TKey , TValue> source ) where TKey : notnull
+			extension<TKey, TValue> ( Dictionary<TKey , TValue> dic ) where TKey : notnull
 			{
 
 
 				public ConcurrentDictionary<TKey , TValue> toConcurrentDictionary ()
-					=> new([ .. source ]);
+					=> new([ .. dic ]);
 
 
 				public bool isDictionaryEqualTo ( Dictionary<TKey , TValue>? target )
-					=> ReferenceEquals(source , target)
+					=> ReferenceEquals(dic , target)
 					|| (target is not null &&
-							source
+							dic
 							.OrderBy(x => x.Key)
 							.SequenceEqual(target.OrderBy(x => x.Key)));
 
 
+
+				/// <summary>
+				/// Returns true if value was added. Returns false if value was updated
+				/// </summary>
+				/// <returns>Returns true if value was added. Returns false if value was updated</returns>
+				[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+				public bool addOrUpdate ( TKey key , TValue value )
+				{
+					if ( !dic.TryAdd(key , value) )
+					{
+						dic[ key ] = value;
+						return false;
+					}
+					return true;
+				}
+
+				[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+				internal void addOrUpdateRange ( Dictionary<TKey , TValue> source )
+				{
+					foreach ( var kvp in source )
+					{
+						dic.addOrUpdate(kvp.Key , kvp.Value);
+					}
+				}
+
+
+				[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+				internal void addOrUpdateRange ( IEnumerable<KeyValuePair<TKey , TValue>> source , bool clearBefore = false )
+				{
+					if ( clearBefore ) dic.Clear();
+					foreach ( var kvp in source )
+					{
+						dic.addOrUpdate(kvp.Key , kvp.Value);
+					}
+				}
 
 
 				/// <summary>Sample:
@@ -9835,9 +9872,10 @@ public record Error ( ErrorType type , string description )
 				/// var val2 = dic.getOrAdd (1334,"234");
 				/// </code>
 				/// </summary>
-				public TValue? getOrAdd ( TKey key , TValue? value )
+				[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+				public TValue? getOrAdd ( TKey key , TValue? value , out bool exist )
 				{
-					ref var val = ref CollectionsMarshal.GetValueRefOrAddDefault(source , key , out var exist);
+					ref var val = ref CollectionsMarshal.GetValueRefOrAddDefault(dic , key , out exist);
 					if ( exist ) return val;
 
 					val = value;
@@ -9850,9 +9888,9 @@ public record Error ( ErrorType type , string description )
 				/// tryUpdate  (1334,"234");
 				/// </code>
 				/// </summary>
-				public bool tryUpdate ( TKey key , TValue? value )
+				public bool tryUpdateUnsafe ( TKey key , TValue? value )
 				{
-					ref var val = ref CollectionsMarshal.GetValueRefOrNullRef(source , key);
+					ref var val = ref CollectionsMarshal.GetValueRefOrNullRef(dic , key);
 					if ( Unsafe.IsNullRef(ref val) ) return false;
 					val = value;
 					return true;
@@ -9860,11 +9898,8 @@ public record Error ( ErrorType type , string description )
 
 
 
-			}
 
 
-			extension<TKey, TValue> ( Dictionary<TKey , TValue> dic ) where TKey : notnull
-			{
 
 				/// <summary>Возвращает массив строк, где каждая строка = 'ключ = значение'</summary>
 				/// <param name="dic"></param>
@@ -9896,40 +9931,44 @@ public record Error ( ErrorType type , string description )
 					.ToArray()!;
 
 
-				[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-				internal void addRange ( Dictionary<TKey , TValue> source )
-				{
-					foreach ( var kvp in source )
-					{
-						dic.Add(kvp.Key , kvp.Value);
-					}
-				}
 
-
-				[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-				internal void addRange ( IEnumerable<KeyValuePair<TKey , TValue>> source )
-				{
-					foreach ( var kvp in source )
-					{
-						dic.Add(kvp.Key , kvp.Value);
-					}
-				}
 
 			}
+
+
+			extension<TValue> ( Dictionary<string , TValue> dic )
+			{
+
+				[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+				public static Dictionary<string , TValue> newWithOrdinalIgnoreCaseComparer ()
+					=> [ with(StringComparer.OrdinalIgnoreCase) ];
+
+
+				[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+				public static Dictionary<string , TValue> newWithCurrentCultureIgnoreCaseComparer ()
+					=> [ with(StringComparer.CurrentCultureIgnoreCase) ];
+
+
+			}
+
+
+
 
 			extension<TKey, TValue> ( System.Collections.Concurrent.ConcurrentDictionary<TKey , TValue> source ) where TKey : notnull
 			{
 
 				/// <inheritdoc cref="System.Collections.Concurrent.ConcurrentDictionary{TKey, TValue}.AddOrUpdate" />
+				[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
 				public void addOrUpdate ( TKey key , TValue newValue )
 					=> source.AddOrUpdate(key , newValue , ( _ , oldValue ) => newValue);
 
+				[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
 				public bool remove ( TKey key )
 					=> source.Remove(key , out _);
 			}
 
 
-
+			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string[] toArray ( this StringCollection sc )
 				=> [ .. sc ];
 
@@ -9945,6 +9984,7 @@ public record Error ( ErrorType type , string description )
 			// End Function
 
 
+			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static T[] append<T> ( this T[] arr , T[] arrAppend )
 			{
 				List<T> l = [ .. arr ];
@@ -9953,6 +9993,7 @@ public record Error ( ErrorType type , string description )
 			}
 
 
+			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static void removeRange<T> ( this List<T> l , IEnumerable<T> whatToRemove )
 			{
 				foreach ( T i in whatToRemove )
@@ -9963,6 +10004,7 @@ public record Error ( ErrorType type , string description )
 
 
 			/// <summary>Считываем первый элемент списка, и удаляем его из списка (как в стеке)</summary>
+			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static T? peekFirstOrDefault<T> ( this List<T> L )
 			{
 				var firstItem = L.FirstOrDefault();
@@ -9976,7 +10018,8 @@ public record Error ( ErrorType type , string description )
 
 
 
-			internal static T eSelectSwitch<T> ( this int ReturnIndex , params T[] ReturnValues ) => ReturnValues[ ReturnIndex ];
+			internal static T selectSwitch<T> ( this int ReturnIndex , params T[] ReturnValues )
+				=> ReturnValues[ ReturnIndex ];
 
 
 
@@ -11786,13 +11829,13 @@ public record Error ( ErrorType type , string description )
 				internal FileInfo toFile () => (FileInfo)fsi!;
 
 				[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-				internal bool tryDeleteIfExist ()
+				internal bool tryDeleteIfExist ( bool refresh = true )
 				{
 					try
 					{
 						if ( fsi is not null )
 						{
-							fsi.Refresh();
+							if ( refresh ) fsi.Refresh();
 							if ( fsi.Exists ) fsi.Delete();
 						}
 						return true;
@@ -14463,20 +14506,25 @@ public record Error ( ErrorType type , string description )
 				}
 			}
 
+
+
+
+
+
 			#region XML Serialization
 
 
-
+			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static void eSerializeXML ( this object SerializableObject , string FileName )
 				=> SerializableObject.eSerializeXML(FileName , Encoding.Unicode);
 
 
-
+			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static void eSerializeXML ( this object SerializableObject , string file , Encoding? enc = null )
 				=> SerializableObject.eSerializeXML(file.pathToFileInfo()! , enc ??= Encoding.Unicode);
 
 
-
+			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static void eSerializeXML ( this object SerializableObject , FileInfo f , Encoding? enc = null )
 			{
 				using FileStream fs = f.Create();
@@ -14484,7 +14532,7 @@ public record Error ( ErrorType type , string description )
 			}
 
 
-
+			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			internal static void eSerializeXML ( this object SerializableObject , Stream s , Encoding? enc = null )
 			{
 				using StreamWriter sw = new(s , enc ??= Encoding.Unicode , 2048 , true);
@@ -14494,17 +14542,56 @@ public record Error ( ErrorType type , string description )
 			}
 
 
-
-			internal static string eSerializeAsXML ( this object SerializableObject )
+			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static string serializeAsXML<TObj> ( this TObj SerializableObject ) //where TObj : ISerializable
 			{
 				StringBuilder sb = new();
 				using ( StringWriter sw = new(sb) )
 				{
-					System.Xml.Serialization.XmlSerializer xs = new(SerializableObject.GetType());
+					System.Xml.Serialization.XmlSerializer xs = new(typeof(TObj));
 					xs.Serialize(sw , SerializableObject);
 				}
 				return sb.ToString();
 			}
+
+			//using System.Text.Json;
+
+			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static string serializeAsJson<TObj> ( this TObj SerializableObject , JsonSerializerOptions? opt = null ) where TObj : class
+			{
+				/*
+				StringBuilder sb = new();
+				using ( StringWriter sw = new(sb) )
+				{
+					System.Xml.Serialization.XmlSerializer xs = new(typeof(TObj));
+					xs.Serialize(sw , SerializableObject);
+				}
+				return sb.ToString();
+				 */
+				// Будет работать со словарями без каких-либо ошибок
+				return JsonSerializer.Serialize(SerializableObject , opt ?? new JsonSerializerOptions { WriteIndented = true });
+			}
+
+			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static TObj? deserializeFromJsonString<TObj> ( this string jsonString ) where TObj : class
+			{
+				if ( jsonString.isNullOrWhiteSpace ) return null;//				default;
+																 // Восстанавливает любой объект, включая ваши словари Dictionary<string, bool>
+				return JsonSerializer.Deserialize<TObj>(jsonString);
+			}
+
+			/*
+			 */
+
+			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static TObj? deserializeStructFromJsonString<TObj> ( this string jsonString ) where TObj : struct
+			{
+				if ( jsonString.isNullOrWhiteSpace ) return default;
+				// Восстанавливает любой объект, включая ваши словари Dictionary<string, bool>
+				return JsonSerializer.Deserialize<TObj>(jsonString);
+			}
+
+
 
 			/*
 

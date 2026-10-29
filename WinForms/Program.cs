@@ -26,9 +26,9 @@ internal static class Program
 	{
 
 #if DEBUG
-        //Localization Test
+		//Localization Test
 
-        /*
+		/*
 		var cul = new CultureInfo("en-US");
 		var cul = new CultureInfo("uk-UA");
 
@@ -38,15 +38,7 @@ internal static class Program
 
 		// To customize application configuration such as set high DPI settings or default font, see https://aka.ms/applicationconfiguration.
 		ApplicationConfiguration.Initialize();
-		Application.SetColorMode(SystemColorMode.System);
-		uom.AppTools.RegisterEncodings();
-
-		/*
-		uom.Network.IP4AddressWithMask ipmRecursiveCloudFlareDNS = new(IPAddress.Parse("1.0.1.0"), 8);
-		var ip1 = IPAddress.Parse("1.1.1.1");
-		bool b = ip1.eIsInSubnet(ipmRecursiveCloudFlareDNS);
-		return;
-		 */
+		Application.initWinForms11();
 
 		using uom.AppTools.SingleInstanceController<uom.AppTools.SecondAppLaunchContext> controller = uom.AppTools.CreateDefaultSingleInstanceController();
 
